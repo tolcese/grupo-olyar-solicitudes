@@ -314,7 +314,7 @@ pre{background:#0f172a;color:#7dd3fc;padding:18px;font-family:'JetBrains Mono',m
         <div class="tscroll">
           <table>
             <thead><tr>
-              <th>#</th><th>Fecha</th><th>Banco</th><th>Concesionaria</th>
+              <th id="th-acc">Acciones</th><th>#</th><th>Fecha</th><th>Banco</th><th>Concesionaria</th>
               <th>Provincia</th><th>Localidad</th><th>DNI</th><th>Cliente</th>
               <th>Dominio</th><th>Marca</th><th>Descripción</th><th>Tipo CTA</th>
               <th>Imp. Solicitado</th><th>Monto Agencia</th><th>Monto Vehículo</th><th>Comisión</th>
@@ -602,7 +602,8 @@ const SCRIPT_CODE = `function doGet(e) {
           importe:rows[i][12], agencia:rows[i][13], vehiculo:rows[i][14], estado:rows[i][15],
           doc01:rows[i][16]==='✓', titulo:rows[i][17]==='✓',
           verif:rows[i][18]==='✓', infdom:rows[i][19]==='✓',
-          tasa:rows[i][20], obs:rows[i][21], usuario:rows[i][22], fechaReg:rows[i][23]
+          tasa:rows[i][20], obs:rows[i][21], usuario:rows[i][22], fechaReg:rows[i][23],
+          comision:String(rows[i][24]||'')
         });
       }
       return ok({records:records});
@@ -1082,6 +1083,7 @@ function renderTable() {
     const chk=v=>v?'<span style="color:var(--green);font-weight:700">✓</span>':'<span style="color:var(--line)">—</span>';
     tbody.innerHTML=data.map((r,idx)=>`
       <tr style="cursor:pointer" onclick="openPanel('${r.id}')">
+        <td onclick="event.stopPropagation()">${isAdmin?`<div class="abtns"><button class="ibtn" onclick="editRec('${r.id}')" title="Editar">✏️</button><button class="ibtn del" onclick="delRec('${r.id}')" title="Eliminar">🗑️</button></div>`:'—'}</td>
         <td class="td-id">${idx+1}</td>
         <td style="white-space:nowrap">${fmtFecha(r.fecha)}</td>
         <td class="td-bold">${r.banco||'—'}</td>
