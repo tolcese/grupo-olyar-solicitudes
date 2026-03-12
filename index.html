@@ -260,6 +260,7 @@ pre{background:#0f172a;color:#7dd3fc;padding:18px;font-family:'JetBrains Mono',m
       <nav class="tb-nav">
         <button class="tn active" id="tn-sol" onclick="showV('sol')">📋 Solicitudes</button>
         <button class="tn" id="tn-nueva" onclick="showV('nueva')">➕ Nueva</button>
+        <button class="tn" id="btn-datero" onclick="copyDatero()" style="display:none">🔗 Link de DATERO</button>
         <button class="tn" id="tn-usuarios" style="display:none" onclick="showV('usuarios')">👥 Usuarios</button>
         <button class="tn" id="tn-micuenta" onclick="showV('micuenta')">🔑 Mi cuenta</button>
         <button class="tn" id="tn-config" style="display:none" onclick="showV('config')">⚙️ Configuración</button>
@@ -746,6 +747,7 @@ async function enterApp() {
   }
   document.getElementById('script-pre').textContent = SCRIPT_CODE;
   document.getElementById('sc-imp').style.display = ME.rol === 'admin' ? '' : 'none';
+  document.getElementById('btn-datero').style.display = ME.rol === 'admin' ? 'none' : '';
   document.getElementById('cfg-wh').value = WH;
   syncUI(WH ? 'ok' : 'idle');
 
@@ -1255,6 +1257,15 @@ async function cambiarPassword() {
     document.getElementById('pwd-rep').value    = '';
     toast('Contraseña actualizada ✓','ok');
   } catch(e) { toast('Error: '+e.message,'er'); }
+}
+
+function copyDatero() {
+  const url = 'https://docs.google.com/forms/d/1S2TuDsiQ2BLFHDOHGYzoJpTsbonJ71jtOAkR0Vud8fI/viewform?edit_requested=true#responses';
+  navigator.clipboard.writeText(url).then(() => {
+    toast('Link copiado al portapapeles ✓', 'ok');
+  }).catch(() => {
+    prompt('Copiá este link:', url);
+  });
 }
 
 function clearFechas() {
