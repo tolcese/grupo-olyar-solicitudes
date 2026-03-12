@@ -93,7 +93,9 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--ink);font-s
 
 /* TABLE */
 .tw{background:#fff;border-radius:var(--r);border:1.5px solid var(--line);overflow:hidden;box-shadow:var(--sh);}
-.tscroll{overflow-x:auto;}
+.tscroll{overflow-x:scroll;position:relative;}
+.tscroll-sticky{position:sticky;bottom:0;overflow-x:scroll;background:transparent;height:12px;z-index:10;}
+.tscroll-inner{height:1px;} .tscroll::-webkit-scrollbar{height:8px;} .tscroll::-webkit-scrollbar-track{background:var(--surface);border-radius:4px;} .tscroll::-webkit-scrollbar-thumb{background:#94a3b8;border-radius:4px;} .tscroll::-webkit-scrollbar-thumb:hover{background:#64748b;}
 table{width:100%;border-collapse:collapse;min-width:1400px;}
 thead tr th:first-child, tbody tr td:first-child{position:sticky;left:0;background:#fff;z-index:2;}
 thead tr th:first-child{background:var(--surface);}
@@ -1384,5 +1386,33 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape')document.querySelect
   </div>
   <div class="panel-body" id="panel-body"></div>
 </div>
+
+<script>
+(function(){
+  window.addEventListener('DOMContentLoaded', function(){
+    const tscroll = document.querySelector('.tscroll');
+    if (!tscroll) return;
+    const sticky = document.createElement('div');
+    sticky.className = 'tscroll-sticky';
+    const inner = document.createElement('div');
+    inner.className = 'tscroll-inner';
+    sticky.appendChild(inner);
+    tscroll.parentNode.insertBefore(sticky, tscroll.nextSibling);
+
+    function syncWidth(){
+      inner.style.width = tscroll.scrollWidth + 'px';
+    }
+    syncWidth();
+    new ResizeObserver(syncWidth).observe(tscroll);
+
+    sticky.addEventListener('scroll', function(){
+      tscroll.scrollLeft = sticky.scrollLeft;
+    });
+    tscroll.addEventListener('scroll', function(){
+      sticky.scrollLeft = tscroll.scrollLeft;
+    });
+  });
+})();
+</script>
 </body>
 </html>
