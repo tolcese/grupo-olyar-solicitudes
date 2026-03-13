@@ -1381,8 +1381,20 @@ function openStatModal(tipo) {
     `;
   }
 
+  document.getElementById('stat-search').value = '';
   document.getElementById('stat-overlay').classList.add('open');
   document.getElementById('stat-panel').classList.add('open');
+}
+
+function filterStatTable() {
+  const q = document.getElementById('stat-search').value.toLowerCase();
+  const rows = document.querySelectorAll('#stat-body table tbody tr');
+  rows.forEach(row => {
+    const name = row.querySelector('td:nth-child(8)');
+    if (name) {
+      row.style.display = name.textContent.toLowerCase().includes(q) ? '' : 'none';
+    }
+  });
 }
 
 function closeStatModal() {
@@ -1509,6 +1521,9 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape')document.querySelect
       <div class="panel-sub" id="stat-sub">—</div>
     </div>
     <button class="xbtn" onclick="closeStatModal()" style="width:34px;height:34px;font-size:18px">×</button>
+  </div>
+  <div style="padding:12px 24px;border-bottom:1px solid var(--line)">
+    <input id="stat-search" type="text" placeholder="🔍 Buscar por nombre..." style="width:100%;padding:8px 12px;border:1.5px solid var(--line);border-radius:8px;font-size:13px;outline:none" oninput="filterStatTable()">
   </div>
   <div class="panel-body" id="stat-body"></div>
 </div>
