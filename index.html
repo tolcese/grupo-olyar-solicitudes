@@ -1315,35 +1315,70 @@ function openStatModal(tipo) {
   if (data.length === 0) {
     document.getElementById('stat-body').innerHTML = '<div style="text-align:center;color:var(--muted);padding:40px">Sin registros</div>';
   } else {
-    document.getElementById('stat-body').innerHTML = data.map((r,i) => `
-      <div class="panel-section" style="margin-bottom:24px;border:1px solid var(--line);border-radius:10px;padding:14px;cursor:pointer" onclick="closeStatModal();openPanel('${r.id}')">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
-          <span style="font-weight:800;font-size:14px">${val(r.nombrecliente)}</span>
-          ${r.estado?`<span class="badge b-${r.estado.toLowerCase()}"><span class="bd"></span>${r.estado}</span>`:''}
-        </div>
-        <div class="prow"><span class="pl">Fecha</span><span class="pv">${fmtFecha(r.fecha)}</span></div>
-        <div class="prow"><span class="pl">Banco</span><span class="pv bold">${val(r.banco)}</span></div>
-        <div class="prow"><span class="pl">Concesionaria</span><span class="pv">${val(r.concesionaria)}</span></div>
-        <div class="prow"><span class="pl">DNI</span><span class="pv mono">${val(r.dni)}</span></div>
-        <div class="prow"><span class="pl">Provincia</span><span class="pv">${val(r.provincia)}</span></div>
-        <div class="prow"><span class="pl">Localidad</span><span class="pv">${val(r.localidad)}</span></div>
-        <div class="prow"><span class="pl">Dominio</span><span class="pv mono">${val(r.dominio)}</span></div>
-        <div class="prow"><span class="pl">Marca</span><span class="pv">${val(r.marca)}</span></div>
-        <div class="prow"><span class="pl">Descripción</span><span class="pv">${val(r.descripcion)}</span></div>
-        <div class="prow"><span class="pl">Tipo CTA</span><span class="pv">${val(r.tipocta)}</span></div>
-        <div class="prow"><span class="pl">Tasa</span><span class="pv">${val(r.tasa)}</span></div>
-        <div class="prow"><span class="pl">Imp. Solicitado</span><span class="pv mono bold">${mon(r.importe)}</span></div>
-        <div class="prow"><span class="pl">Monto Agencia</span><span class="pv mono">${mon(r.agencia)}</span></div>
-        <div class="prow"><span class="pl">Monto Vehículo</span><span class="pv mono">${mon(r.vehiculo)}</span></div>
-        <div class="prow"><span class="pl">Comisión</span><span class="pv mono" style="color:var(--green)">${mon(r.comision)}</span></div>
-        <div class="prow"><span class="pl">Doc 01/08</span><span class="pv">${chk(r.doc01)}</span></div>
-        <div class="prow"><span class="pl">Título unidad</span><span class="pv">${chk(r.titulo)}</span></div>
-        <div class="prow"><span class="pl">Ver. policial</span><span class="pv">${chk(r.verif)}</span></div>
-        <div class="prow"><span class="pl">Inf. dominio</span><span class="pv">${chk(r.infdom)}</span></div>
-        ${r.obs ? `<div class="prow"><span class="pl">Observaciones</span><span class="pv">${r.obs}</span></div>` : ''}
-        <div class="prow"><span class="pl">Usuario</span><span class="pv">${val(r.usuario)}</span></div>
+    document.getElementById('stat-body').innerHTML = `
+      <div style="overflow-x:auto">
+        <table style="width:100%;border-collapse:collapse;font-size:12px">
+          <thead>
+            <tr style="background:var(--surface)">
+              <th style="padding:8px 10px;text-align:left;font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;border-bottom:2px solid var(--line);white-space:nowrap">#</th>
+              <th style="padding:8px 10px;text-align:left;font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;border-bottom:2px solid var(--line);white-space:nowrap">Fecha</th>
+              <th style="padding:8px 10px;text-align:left;font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;border-bottom:2px solid var(--line);white-space:nowrap">Banco</th>
+              <th style="padding:8px 10px;text-align:left;font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;border-bottom:2px solid var(--line);white-space:nowrap">Concesionaria</th>
+              <th style="padding:8px 10px;text-align:left;font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;border-bottom:2px solid var(--line);white-space:nowrap">Provincia</th>
+              <th style="padding:8px 10px;text-align:left;font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;border-bottom:2px solid var(--line);white-space:nowrap">Localidad</th>
+              <th style="padding:8px 10px;text-align:left;font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;border-bottom:2px solid var(--line);white-space:nowrap">DNI</th>
+              <th style="padding:8px 10px;text-align:left;font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;border-bottom:2px solid var(--line);white-space:nowrap">Cliente</th>
+              <th style="padding:8px 10px;text-align:left;font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;border-bottom:2px solid var(--line);white-space:nowrap">Dominio</th>
+              <th style="padding:8px 10px;text-align:left;font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;border-bottom:2px solid var(--line);white-space:nowrap">Marca</th>
+              <th style="padding:8px 10px;text-align:left;font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;border-bottom:2px solid var(--line);white-space:nowrap">Descripción</th>
+              <th style="padding:8px 10px;text-align:left;font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;border-bottom:2px solid var(--line);white-space:nowrap">Tipo CTA</th>
+              <th style="padding:8px 10px;text-align:left;font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;border-bottom:2px solid var(--line);white-space:nowrap">Tasa</th>
+              <th style="padding:8px 10px;text-align:left;font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;border-bottom:2px solid var(--line);white-space:nowrap">Imp. Solicitado</th>
+              <th style="padding:8px 10px;text-align:left;font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;border-bottom:2px solid var(--line);white-space:nowrap">Monto Agencia</th>
+              <th style="padding:8px 10px;text-align:left;font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;border-bottom:2px solid var(--line);white-space:nowrap">Monto Vehículo</th>
+              <th style="padding:8px 10px;text-align:left;font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;border-bottom:2px solid var(--line);white-space:nowrap">Comisión</th>
+              <th style="padding:8px 10px;text-align:left;font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;border-bottom:2px solid var(--line);white-space:nowrap">Estado</th>
+              <th style="padding:8px 10px;text-align:left;font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;border-bottom:2px solid var(--line);white-space:nowrap">Doc 01/08</th>
+              <th style="padding:8px 10px;text-align:left;font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;border-bottom:2px solid var(--line);white-space:nowrap">Título</th>
+              <th style="padding:8px 10px;text-align:left;font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;border-bottom:2px solid var(--line);white-space:nowrap">Ver. Pol.</th>
+              <th style="padding:8px 10px;text-align:left;font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;border-bottom:2px solid var(--line);white-space:nowrap">Inf. Dom.</th>
+              <th style="padding:8px 10px;text-align:left;font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;border-bottom:2px solid var(--line);white-space:nowrap">Observaciones</th>
+              <th style="padding:8px 10px;text-align:left;font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;border-bottom:2px solid var(--line);white-space:nowrap">Usuario</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${data.map((r,i) => `
+              <tr style="border-bottom:1px solid var(--line);cursor:pointer" onmouseover="this.style.background='var(--surface)'" onmouseout="this.style.background=''" onclick="closeStatModal();openPanel('${r.id}')">
+                <td style="padding:8px 10px;color:var(--muted);font-size:11px">${i+1}</td>
+                <td style="padding:8px 10px;white-space:nowrap">${fmtFecha(r.fecha)}</td>
+                <td style="padding:8px 10px;font-weight:700;white-space:nowrap">${val(r.banco)}</td>
+                <td style="padding:8px 10px;white-space:nowrap">${val(r.concesionaria)}</td>
+                <td style="padding:8px 10px;white-space:nowrap">${val(r.provincia)}</td>
+                <td style="padding:8px 10px;white-space:nowrap">${val(r.localidad)}</td>
+                <td style="padding:8px 10px;font-family:monospace;white-space:nowrap">${val(r.dni)}</td>
+                <td style="padding:8px 10px;font-weight:700;white-space:nowrap">${val(r.nombrecliente)}</td>
+                <td style="padding:8px 10px;font-family:monospace;white-space:nowrap">${val(r.dominio)}</td>
+                <td style="padding:8px 10px;white-space:nowrap">${val(r.marca)}</td>
+                <td style="padding:8px 10px;white-space:nowrap">${val(r.descripcion)}</td>
+                <td style="padding:8px 10px;white-space:nowrap">${val(r.tipocta)}</td>
+                <td style="padding:8px 10px;white-space:nowrap">${val(r.tasa)}</td>
+                <td style="padding:8px 10px;font-family:monospace;font-weight:700;white-space:nowrap">${mon(r.importe)}</td>
+                <td style="padding:8px 10px;font-family:monospace;white-space:nowrap">${mon(r.agencia)}</td>
+                <td style="padding:8px 10px;font-family:monospace;white-space:nowrap">${mon(r.vehiculo)}</td>
+                <td style="padding:8px 10px;font-family:monospace;color:var(--green);white-space:nowrap">${mon(r.comision)}</td>
+                <td style="padding:8px 10px;white-space:nowrap">${r.estado?`<span class="badge b-${r.estado.toLowerCase()}"><span class="bd"></span>${r.estado}</span>`:'-'}</td>
+                <td style="padding:8px 10px;text-align:center">${chk(r.doc01)}</td>
+                <td style="padding:8px 10px;text-align:center">${chk(r.titulo)}</td>
+                <td style="padding:8px 10px;text-align:center">${chk(r.verif)}</td>
+                <td style="padding:8px 10px;text-align:center">${chk(r.infdom)}</td>
+                <td style="padding:8px 10px;max-width:200px">${val(r.obs)}</td>
+                <td style="padding:8px 10px;white-space:nowrap">${val(r.usuario)}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
       </div>
-    `).join('');
+    `;
   }
 
   document.getElementById('stat-overlay').classList.add('open');
@@ -1467,7 +1502,7 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape')document.querySelect
 
 <!-- STAT MODAL -->
 <div class="panel-overlay" id="stat-overlay" onclick="closeStatModal()"></div>
-<div class="panel" id="stat-panel" style="width:600px">
+<div class="panel" id="stat-panel" style="width:95vw;max-width:95vw">
   <div class="panel-head">
     <div>
       <div class="panel-title" id="stat-title">—</div>
