@@ -289,11 +289,11 @@ pre{background:#0f172a;color:#7dd3fc;padding:18px;font-family:'JetBrains Mono',m
         </div>
       </div>
       <div class="stats">
-        <div class="sc c-bl"><div class="sl">Total</div><div class="sv" id="st-tot">—</div></div>
-        <div class="sc c-gr"><div class="sl">Aprobados</div><div class="sv" id="st-apr">—</div></div>
-        <div class="sc c-re"><div class="sl">Rechazados</div><div class="sv" id="st-rec">—</div></div>
-        <div class="sc c-pu"><div class="sl">Avanza</div><div class="sv" id="st-ava">—</div></div>
-        <div class="sc c-am" id="sc-imp"><div class="sl">Total Importe</div><div class="sv" id="st-imp" style="font-size:16px">—</div></div>
+        <div class="sc c-bl" style="cursor:pointer" onclick="openStatModal('todos')"><div class="sl">Total</div><div class="sv" id="st-tot">—</div></div>
+        <div class="sc c-gr" style="cursor:pointer" onclick="openStatModal('APROBADO')"><div class="sl">Aprobados</div><div class="sv" id="st-apr">—</div></div>
+        <div class="sc c-re" style="cursor:pointer" onclick="openStatModal('RECHAZADO')"><div class="sl">Rechazados</div><div class="sv" id="st-rec">—</div></div>
+        <div class="sc c-pu" style="cursor:pointer" onclick="openStatModal('AVANZA')"><div class="sl">Avanza</div><div class="sv" id="st-ava">—</div></div>
+        <div class="sc c-am" id="sc-imp" style="cursor:pointer" onclick="openStatModal('importe')"><div class="sl">Total Importe</div><div class="sv" id="st-imp" style="font-size:16px">—</div></div>
       </div>
       <div class="toolbar">
         <div class="searchbox">
@@ -1288,6 +1288,73 @@ function exportCSV() {
 }
 
 
+
+// ══════════════════════════════════════════════
+// STAT MODAL
+// ══════════════════════════════════════════════
+function openStatModal(tipo) {
+  let data, title;
+  if (tipo === 'todos') {
+    data = RECORDS;
+    title = 'Todos los registros';
+  } else if (tipo === 'importe') {
+    data = RECORDS;
+    title = 'Total Importe';
+  } else {
+    data = RECORDS.filter(r => (r.estado||'').toUpperCase() === tipo);
+    title = tipo.charAt(0) + tipo.slice(1).toLowerCase() + 's';
+  }
+
+  document.getElementById('stat-title').textContent = title;
+  document.getElementById('stat-sub').textContent = data.length + ' registro' + (data.length !== 1 ? 's' : '');
+
+  const mon = v => v ? '$'+Number(String(v).replace(/[$,]/g,'')).toLocaleString('es-AR') : '—';
+  const chk = v => v ? '✓' : '—';
+  const val = v => v || '—';
+
+  if (data.length === 0) {
+    document.getElementById('stat-body').innerHTML = '<div style="text-align:center;color:var(--muted);padding:40px">Sin registros</div>';
+  } else {
+    document.getElementById('stat-body').innerHTML = data.map((r,i) => `
+      <div class="panel-section" style="margin-bottom:24px;border:1px solid var(--line);border-radius:10px;padding:14px;cursor:pointer" onclick="closeStatModal();openPanel('${r.id}')">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+          <span style="font-weight:800;font-size:14px">${val(r.nombrecliente)}</span>
+          ${r.estado?`<span class="badge b-${r.estado.toLowerCase()}"><span class="bd"></span>${r.estado}</span>`:''}
+        </div>
+        <div class="prow"><span class="pl">Fecha</span><span class="pv">${fmtFecha(r.fecha)}</span></div>
+        <div class="prow"><span class="pl">Banco</span><span class="pv bold">${val(r.banco)}</span></div>
+        <div class="prow"><span class="pl">Concesionaria</span><span class="pv">${val(r.concesionaria)}</span></div>
+        <div class="prow"><span class="pl">DNI</span><span class="pv mono">${val(r.dni)}</span></div>
+        <div class="prow"><span class="pl">Provincia</span><span class="pv">${val(r.provincia)}</span></div>
+        <div class="prow"><span class="pl">Localidad</span><span class="pv">${val(r.localidad)}</span></div>
+        <div class="prow"><span class="pl">Dominio</span><span class="pv mono">${val(r.dominio)}</span></div>
+        <div class="prow"><span class="pl">Marca</span><span class="pv">${val(r.marca)}</span></div>
+        <div class="prow"><span class="pl">Descripción</span><span class="pv">${val(r.descripcion)}</span></div>
+        <div class="prow"><span class="pl">Tipo CTA</span><span class="pv">${val(r.tipocta)}</span></div>
+        <div class="prow"><span class="pl">Tasa</span><span class="pv">${val(r.tasa)}</span></div>
+        <div class="prow"><span class="pl">Imp. Solicitado</span><span class="pv mono bold">${mon(r.importe)}</span></div>
+        <div class="prow"><span class="pl">Monto Agencia</span><span class="pv mono">${mon(r.agencia)}</span></div>
+        <div class="prow"><span class="pl">Monto Vehículo</span><span class="pv mono">${mon(r.vehiculo)}</span></div>
+        <div class="prow"><span class="pl">Comisión</span><span class="pv mono" style="color:var(--green)">${mon(r.comision)}</span></div>
+        <div class="prow"><span class="pl">Doc 01/08</span><span class="pv">${chk(r.doc01)}</span></div>
+        <div class="prow"><span class="pl">Título unidad</span><span class="pv">${chk(r.titulo)}</span></div>
+        <div class="prow"><span class="pl">Ver. policial</span><span class="pv">${chk(r.verif)}</span></div>
+        <div class="prow"><span class="pl">Inf. dominio</span><span class="pv">${chk(r.infdom)}</span></div>
+        ${r.obs ? `<div class="prow"><span class="pl">Observaciones</span><span class="pv">${r.obs}</span></div>` : ''}
+        <div class="prow"><span class="pl">Usuario</span><span class="pv">${val(r.usuario)}</span></div>
+      </div>
+    `).join('');
+  }
+
+  document.getElementById('stat-overlay').classList.add('open');
+  document.getElementById('stat-panel').classList.add('open');
+}
+
+function closeStatModal() {
+  document.getElementById('stat-overlay').classList.remove('open');
+  document.getElementById('stat-panel').classList.remove('open');
+}
+
 // ══════════════════════════════════════════════
 // SLIDE PANEL
 // ══════════════════════════════════════════════
@@ -1396,6 +1463,19 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape')document.querySelect
     <button class="xbtn" onclick="closePanel()" style="width:34px;height:34px;font-size:18px">×</button>
   </div>
   <div class="panel-body" id="panel-body"></div>
+</div>
+
+<!-- STAT MODAL -->
+<div class="panel-overlay" id="stat-overlay" onclick="closeStatModal()"></div>
+<div class="panel" id="stat-panel" style="width:600px">
+  <div class="panel-head">
+    <div>
+      <div class="panel-title" id="stat-title">—</div>
+      <div class="panel-sub" id="stat-sub">—</div>
+    </div>
+    <button class="xbtn" onclick="closeStatModal()" style="width:34px;height:34px;font-size:18px">×</button>
+  </div>
+  <div class="panel-body" id="stat-body"></div>
 </div>
 </body>
 </html>
