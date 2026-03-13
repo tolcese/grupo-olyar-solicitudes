@@ -1018,7 +1018,7 @@ async function saveRecord() {
   if (editId) {
     const idx = RECORDS.findIndex(r=>r.id===editId);
     RECORDS[idx] = { ...RECORDS[idx], ...d };
-    rec = RECORDS[idx]; action = 'edit';
+    rec = { ...RECORDS[idx], usuarioEdit: ME.nom }; action = 'edit';
   } else {
     rec = { id:'S'+Date.now(), ...d, usuario:ME.nom, fechaReg:new Date().toISOString().slice(0,10) };
     RECORDS.push(rec); action = 'add';
