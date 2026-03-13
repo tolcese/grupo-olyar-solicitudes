@@ -468,6 +468,23 @@ pre{background:#0f172a;color:#7dd3fc;padding:18px;font-family:'JetBrains Mono',m
           <canvas id="chart-barras" style="max-height:300px;margin-top:16px"></canvas>
         </div>
       </div>
+      <div class="card" style="margin-bottom:20px">
+        <div class="card-t">💰 Comisiones acumuladas por mes</div>
+        <div class="card-s">Total de comisiones generadas por período</div>
+        <div style="display:flex;gap:12px;align-items:center;margin-top:14px;flex-wrap:wrap">
+          <div style="display:flex;align-items:center;gap:6px">
+            <label style="font-size:12px;color:var(--muted);font-weight:600">Desde</label>
+            <input type="date" id="rep-desde" class="fsel" onchange="renderReportes()" style="font-size:12px;padding:6px 10px">
+          </div>
+          <div style="display:flex;align-items:center;gap:6px">
+            <label style="font-size:12px;color:var(--muted);font-weight:600">Hasta</label>
+            <input type="date" id="rep-hasta" class="fsel" onchange="renderReportes()" style="font-size:12px;padding:6px 10px">
+          </div>
+          <button class="btn btn-s" style="font-size:12px;padding:6px 12px" onclick="document.getElementById('rep-desde').value='';document.getElementById('rep-hasta').value='';renderReportes()">✕ Limpiar</button>
+          <span id="rep-total" style="margin-left:auto;font-size:14px;font-weight:800;color:var(--ink)"></span>
+        </div>
+        <canvas id="chart-comisiones" style="max-height:300px;margin-top:16px"></canvas>
+      </div>
     </div>
 
     <!-- MI CUENTA -->
@@ -1673,6 +1690,52 @@ function renderReportes() {
     return nombres[parseInt(mo)-1] + ' ' + y;
   });
   const keys = Object.keys(meses).sort();
+
+  // ── COMISIONES POR MES ──
+  const desde = document.getElementById('rep-desde')?.value || '';
+  const hasta = document.getElementById('rep-hasta')?.value || '';
+
+  let dataComis = RECORDS.filter(r => r.comision && parseFloat(r.comision) > 0);
+  if (desde) dataComis = dataComis.filter(r => r.fecha && r.fecha >= desde);
+  if (hasta) dataComis = dataComis.filter(r => r.fecha && r.fecha <= hasta);
+
+  const mesesC = {};
+  dataComis.forEach(r => {
+    const mes = (r.fecha||'').slice(0,7);
+    if (!mes) return;
+    mesesC[mes] = (mesesC[mes]||0) + parseFloat(r.comision||0);
+  });
+
+  const keysC = Object.keys(mesesC).sort();
+  const nombresM = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+  const labelsC = keysC.map(m => { const [y,mo]=m.split('-'); return nombresM[parseInt(mo)-1]+' '+y; });
+  const totalComis = dataComis.reduce((s,r)=>s+parseFloat(r.comision||0),0);
+  const repTotal = document.getElementById('rep-total');
+  if (repTotal) repTotal.textContent = 'Total: $'+totalComis.toLocaleString('es-AR',{minimumFractionDigits:2,maximumFractionDigits:2});
+
+  if (window.chartComisiones) window.chartComisiones.destroy();
+  window.chartComisiones = new Chart(document.getElementById('chart-comisiones'), {
+    type: 'bar',
+    data: {
+      labels: labelsC,
+      datasets: [{
+        label: 'Comisiones ($)',
+        data: keysC.map(k=>mesesC[k]),
+        backgroundColor: '#f59e0b',
+        borderRadius: 6
+      }]
+    },
+    options: {
+      responsive: true,
+      scales: {
+        y: { beginAtZero:true, ticks: { callback: v=>'$'+Number(v).toLocaleString('es-AR') } }
+      },
+      plugins: {
+        legend: { display:false },
+        tooltip: { callbacks: { label: ctx=>' $'+ctx.raw.toLocaleString('es-AR',{minimumFractionDigits:2}) } }
+      }
+    }
+  });
 
   if (chartBarras) chartBarras.destroy();
   chartBarras = new Chart(document.getElementById('chart-barras'), {
