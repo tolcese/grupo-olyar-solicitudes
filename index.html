@@ -308,6 +308,12 @@ pre{background:#0f172a;color:#7dd3fc;padding:18px;font-family:'JetBrains Mono',m
         <select class="fsel" id="f-ban" onchange="renderTable()">
           <option value="">Todos los bancos</option>
         </select>
+        <select class="fsel" id="f-conc" onchange="renderTable()">
+          <option value="">Todas las concesionarias</option>
+        </select>
+        <select class="fsel" id="f-prov" onchange="renderTable()">
+          <option value="">Todas las provincias</option>
+        </select>
         <input type="date" class="fsel" id="f-fecha-desde" onchange="renderTable()" title="Desde">
         <input type="date" class="fsel" id="f-fecha-hasta" onchange="renderTable()" title="Hasta">
         <button class="btn btn-s" style="font-size:12px;padding:7px 12px" onclick="clearFechas()">✕ Fechas</button>
@@ -880,6 +886,20 @@ function initBanco() {
       } else { this.value=''; }
     }
   };
+  const fc = document.getElementById('f-conc');
+  if (fc) {
+    const cv = fc.value;
+    const concs = [...new Set(RECORDS.map(r=>r.concesionaria).filter(Boolean))].sort();
+    fc.innerHTML = '<option value="">Todas las concesionarias</option>'+concs.map(c=>`<option value="${c}">${c}</option>`).join('');
+    fc.value = cv;
+  }
+  const fp = document.getElementById('f-prov');
+  if (fp) {
+    const pv = fp.value;
+    const provs = [...new Set(RECORDS.map(r=>r.provincia).filter(Boolean))].sort();
+    fp.innerHTML = '<option value="">Todas las provincias</option>'+provs.map(p=>`<option value="${p}">${p}</option>`).join('');
+    fp.value = pv;
+  }
   const fb = document.getElementById('f-ban');
   if (fb) fb.innerHTML = '<option value="">Todos los bancos</option>'+LISTS.banco.map(b=>`<option>${b}</option>`).join('');
 }
@@ -1116,6 +1136,10 @@ function renderTable() {
   if (q)    data=data.filter(r=>[r.nombrecliente,r.dni,r.banco,r.dominio,r.concesionaria,r.marca,r.provincia].some(v=>(v||'').toLowerCase().includes(q)));
   if (fEst) data=data.filter(r=>r.estado===fEst);
   if (fBan) data=data.filter(r=>r.banco===fBan);
+  const fConc = document.getElementById('f-conc')?.value||'';
+  const fProv = document.getElementById('f-prov')?.value||'';
+  if (fConc) data=data.filter(r=>r.concesionaria===fConc);
+  if (fProv) data=data.filter(r=>r.provincia===fProv);
   const fDesde = document.getElementById('f-fecha-desde')?.value||'';
   const fHasta = document.getElementById('f-fecha-hasta')?.value||'';
   if (fDesde) data=data.filter(r=>r.fecha && r.fecha >= fDesde);
