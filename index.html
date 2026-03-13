@@ -308,15 +308,17 @@ pre{background:#0f172a;color:#7dd3fc;padding:18px;font-family:'JetBrains Mono',m
         <select class="fsel" id="f-ban" onchange="renderTable()">
           <option value="">Todos los bancos</option>
         </select>
+        <input type="date" class="fsel" id="f-fecha-desde" onchange="renderTable()" title="Desde">
+        <input type="date" class="fsel" id="f-fecha-hasta" onchange="renderTable()" title="Hasta">
+        <button class="btn btn-s" style="font-size:12px;padding:7px 12px" onclick="clearFechas()">✕ Fechas</button>
+      </div>
+      <div class="toolbar" style="margin-top:8px">
         <select class="fsel" id="f-conc" onchange="renderTable()">
           <option value="">Todas las concesionarias</option>
         </select>
         <select class="fsel" id="f-prov" onchange="renderTable()">
           <option value="">Todas las provincias</option>
         </select>
-        <input type="date" class="fsel" id="f-fecha-desde" onchange="renderTable()" title="Desde">
-        <input type="date" class="fsel" id="f-fecha-hasta" onchange="renderTable()" title="Hasta">
-        <button class="btn btn-s" style="font-size:12px;padding:7px 12px" onclick="clearFechas()">✕ Fechas</button>
       </div>
       <div class="tw">
         <div class="tscroll">
