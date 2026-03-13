@@ -1058,6 +1058,8 @@ function fmtFecha(v) {
   return s;
 }
 
+let FILTERED_RECORDS = [];
+
 function renderTable() {
   const q    = (document.getElementById('srch')?.value||'').toLowerCase();
   const fEst = document.getElementById('f-est')?.value||'';
@@ -1084,7 +1086,8 @@ function renderTable() {
     empty.style.display='none';
     const $=v=>v?'$'+Number(String(v).replace(/[$,]/g,'')).toLocaleString('es-AR'):'—';
     const chk=v=>v?'<span style="color:var(--green);font-weight:700">✓</span>':'<span style="color:var(--line)">—</span>';
-    tbody.innerHTML=data.map((r,idx)=>`
+    FILTERED_RECORDS = data;
+  tbody.innerHTML=data.map((r,idx)=>`
       <tr style="cursor:pointer" onclick="openPanel('${r.id}')">
         
         <td class="td-id">${idx+1}</td>
@@ -1277,9 +1280,10 @@ function clearFechas() {
 }
 
 function exportCSV() {
-  if (!RECORDS.length) { toast('Sin datos','in'); return; }
+  const exportData = FILTERED_RECORDS.length ? FILTERED_RECORDS : RECORDS;
+  if (!exportData.length) { toast('Sin datos','in'); return; }
   const H=['ID','Fecha','Banco','Concesionaria','Provincia','Localidad','DNI','Cliente','Dominio','Marca','Descripción','Tipo CTA','Importe','Agencia','Vehículo','Estado','Doc 01/08','Título','Ver. Pol.','Inf. Dom.','Tasa','Obs','Usuario','Fecha Reg'];
-  const rows=RECORDS.map(r=>[r.id,r.fecha,r.banco,r.concesionaria,r.provincia,r.localidad,r.dni,r.nombrecliente,r.dominio,r.marca,r.descripcion,r.tipocta,r.importe,r.agencia,r.vehiculo,r.estado,r.doc01?'Sí':'No',r.titulo?'Sí':'No',r.verif?'Sí':'No',r.infdom?'Sí':'No',r.tasa,r.obs,r.usuario,r.fechaReg].map(v=>`"${(v||'').toString().replace(/"/g,'""')}"`).join(';'));
+  const rows=exportData.map(r=>[r.id,r.fecha,r.banco,r.concesionaria,r.provincia,r.localidad,r.dni,r.nombrecliente,r.dominio,r.marca,r.descripcion,r.tipocta,r.importe,r.agencia,r.vehiculo,r.estado,r.doc01?'Sí':'No',r.titulo?'Sí':'No',r.verif?'Sí':'No',r.infdom?'Sí':'No',r.tasa,r.obs,r.usuario,r.fechaReg].map(v=>`"${(v||'').toString().replace(/"/g,'""')}"`).join(';'));
   const a=document.createElement('a');
   a.href=URL.createObjectURL(new Blob(['\uFEFF'+[H.join(';'),...rows].join('\n')],{type:'text/csv;charset=utf-8;'}));
   a.download=`solicitudes_${new Date().toISOString().slice(0,10)}.csv`;
