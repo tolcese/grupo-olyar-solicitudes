@@ -886,20 +886,6 @@ function initBanco() {
       } else { this.value=''; }
     }
   };
-  const fc = document.getElementById('f-conc');
-  if (fc) {
-    const cv = fc.value;
-    const concs = [...new Set(RECORDS.map(r=>r.concesionaria).filter(Boolean))].sort();
-    fc.innerHTML = '<option value="">Todas las concesionarias</option>'+concs.map(c=>`<option value="${c}">${c}</option>`).join('');
-    fc.value = cv;
-  }
-  const fp = document.getElementById('f-prov');
-  if (fp) {
-    const pv = fp.value;
-    const provs = [...new Set(RECORDS.map(r=>r.provincia).filter(Boolean))].sort();
-    fp.innerHTML = '<option value="">Todas las provincias</option>'+provs.map(p=>`<option value="${p}">${p}</option>`).join('');
-    fp.value = pv;
-  }
   const fb = document.getElementById('f-ban');
   if (fb) fb.innerHTML = '<option value="">Todos los bancos</option>'+LISTS.banco.map(b=>`<option>${b}</option>`).join('');
 }
@@ -1127,6 +1113,22 @@ function fmtFecha(v) {
 let FILTERED_RECORDS = [];
 
 function renderTable() {
+  // populate concesionaria filter
+  const fc = document.getElementById('f-conc');
+  if (fc && RECORDS.length) {
+    const cv = fc.value;
+    const concs = [...new Set(RECORDS.map(r=>r.concesionaria).filter(Boolean))].sort();
+    fc.innerHTML = '<option value="">Todas las concesionarias</option>'+concs.map(c=>`<option value="${c}">${c}</option>`).join('');
+    fc.value = cv;
+  }
+  // populate provincia filter
+  const fp = document.getElementById('f-prov');
+  if (fp && RECORDS.length) {
+    const pv = fp.value;
+    const provs = [...new Set(RECORDS.map(r=>r.provincia).filter(Boolean))].sort();
+    fp.innerHTML = '<option value="">Todas las provincias</option>'+provs.map(p=>`<option value="${p}">${p}</option>`).join('');
+    fp.value = pv;
+  }
   const q    = (document.getElementById('srch')?.value||'').toLowerCase();
   const fEst = document.getElementById('f-est')?.value||'';
   const fBan = document.getElementById('f-ban')?.value||'';
