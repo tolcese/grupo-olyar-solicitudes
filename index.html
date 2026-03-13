@@ -456,30 +456,28 @@ pre{background:#0f172a;color:#7dd3fc;padding:18px;font-family:'JetBrains Mono',m
       <div class="ph">
         <div><div class="ph-t">Reportes</div><div class="ph-s">Estadísticas visuales</div></div>
       </div>
-      <!-- SECCION 1: ESTADOS TOTALES -->
-      <div class="card" style="margin-bottom:24px">
-        <div style="border-bottom:2px solid var(--line);padding-bottom:12px;margin-bottom:16px">
-          <div class="card-t">🥧 Estados totales</div>
-          <div class="card-s">Distribución de aprobados, rechazados y avanza</div>
-        </div>
-        <canvas id="chart-torta" style="max-height:320px"></canvas>
+      <!-- TABS DE REPORTES -->
+      <div style="display:flex;gap:10px;margin-bottom:24px;border-bottom:2px solid var(--line);padding-bottom:0">
+        <button id="tab-torta" onclick="showRepTab('torta')" style="padding:10px 20px;border:none;border-bottom:3px solid var(--blue);background:none;cursor:pointer;font-size:13px;font-weight:700;color:var(--blue);margin-bottom:-2px">🥧 Estados totales</button>
+        <button id="tab-barras" onclick="showRepTab('barras')" style="padding:10px 20px;border:none;border-bottom:3px solid transparent;background:none;cursor:pointer;font-size:13px;font-weight:600;color:var(--muted);margin-bottom:-2px">📊 Registros por mes</button>
+        <button id="tab-comisiones" onclick="showRepTab('comisiones')" style="padding:10px 20px;border:none;border-bottom:3px solid transparent;background:none;cursor:pointer;font-size:13px;font-weight:600;color:var(--muted);margin-bottom:-2px">💰 Comisiones por mes</button>
       </div>
 
-      <!-- SECCION 2: REGISTROS POR MES -->
-      <div class="card" style="margin-bottom:24px">
-        <div style="border-bottom:2px solid var(--line);padding-bottom:12px;margin-bottom:16px">
-          <div class="card-t">📊 Registros por mes</div>
-          <div class="card-s">Aprobados, rechazados y avanza por mes</div>
-        </div>
-        <canvas id="chart-barras" style="max-height:320px"></canvas>
+      <!-- TAB 1: ESTADOS TOTALES -->
+      <div id="rep-torta" class="card">
+        <div class="card-s" style="margin-bottom:16px">Distribución de aprobados, rechazados y avanza</div>
+        <canvas id="chart-torta" style="max-height:380px"></canvas>
       </div>
 
-      <!-- SECCION 3: COMISIONES POR MES -->
-      <div class="card" style="margin-bottom:24px">
-        <div style="border-bottom:2px solid var(--line);padding-bottom:12px;margin-bottom:16px">
-          <div class="card-t">💰 Comisiones acumuladas por mes</div>
-          <div class="card-s">Total de comisiones generadas por período</div>
-        </div>
+      <!-- TAB 2: REGISTROS POR MES -->
+      <div id="rep-barras" class="card" style="display:none">
+        <div class="card-s" style="margin-bottom:16px">Aprobados, rechazados y avanza por mes</div>
+        <canvas id="chart-barras" style="max-height:380px"></canvas>
+      </div>
+
+      <!-- TAB 3: COMISIONES POR MES -->
+      <div id="rep-comisiones" class="card" style="display:none">
+        <div class="card-s" style="margin-bottom:16px">Total de comisiones generadas por período</div>
         <div style="display:flex;gap:12px;align-items:center;margin-bottom:16px;flex-wrap:wrap">
           <div style="display:flex;align-items:center;gap:6px">
             <label style="font-size:12px;color:var(--muted);font-weight:600">Desde</label>
@@ -492,7 +490,7 @@ pre{background:#0f172a;color:#7dd3fc;padding:18px;font-family:'JetBrains Mono',m
           <button class="btn btn-s" style="font-size:12px;padding:6px 12px" onclick="document.getElementById('rep-desde').value='';document.getElementById('rep-hasta').value='';renderReportes()">✕ Limpiar</button>
           <span id="rep-total" style="margin-left:auto;font-size:14px;font-weight:800;color:var(--ink)"></span>
         </div>
-        <canvas id="chart-comisiones" style="max-height:320px"></canvas>
+        <canvas id="chart-comisiones" style="max-height:380px"></canvas>
       </div>
     </div>
 
@@ -1651,6 +1649,17 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape')document.querySelect
 <script>
 let chartTorta = null;
 let chartBarras = null;
+
+function showRepTab(tab) {
+  ['torta','barras','comisiones'].forEach(t => {
+    document.getElementById('rep-'+t).style.display = t===tab ? '' : 'none';
+    const btn = document.getElementById('tab-'+t);
+    btn.style.borderBottomColor = t===tab ? 'var(--blue)' : 'transparent';
+    btn.style.color = t===tab ? 'var(--blue)' : 'var(--muted)';
+    btn.style.fontWeight = t===tab ? '700' : '600';
+  });
+  setTimeout(renderReportes, 50);
+}
 
 function renderReportes() {
   if (!RECORDS.length) return;
