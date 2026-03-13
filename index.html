@@ -319,6 +319,9 @@ pre{background:#0f172a;color:#7dd3fc;padding:18px;font-family:'JetBrains Mono',m
         <select class="fsel" id="f-prov" onchange="renderTable()">
           <option value="">Todas las provincias</option>
         </select>
+        <select class="fsel" id="f-usu" onchange="renderTable()" style="display:none">
+          <option value="">Todos los usuarios</option>
+        </select>
       </div>
       <div class="tw">
         <div class="tscroll">
@@ -800,6 +803,7 @@ async function enterApp() {
   }
   document.getElementById('script-pre').textContent = SCRIPT_CODE;
   document.getElementById('sc-imp').style.display = ME.rol === 'admin' ? '' : 'none';
+  document.getElementById('f-usu').style.display = ME.rol === 'admin' ? '' : 'none';
   document.getElementById('tn-reportes').style.display = ME.rol === 'admin' ? '' : 'none';
   document.getElementById('btn-datero').style.display = ME.rol === 'admin' ? 'none' : '';
   document.getElementById('cfg-wh').value = WH;
@@ -1115,6 +1119,14 @@ function fmtFecha(v) {
 let FILTERED_RECORDS = [];
 
 function renderTable() {
+  // populate usuario filter
+  const fu = document.getElementById('f-usu');
+  if (fu && fu.style.display !== 'none' && RECORDS.length) {
+    const uv = fu.value;
+    const users = [...new Set(RECORDS.map(r=>r.usuario).filter(Boolean))].sort();
+    fu.innerHTML = '<option value="">Todos los usuarios</option>'+users.map(u=>`<option value="${u}">${u}</option>`).join('');
+    fu.value = uv;
+  }
   // populate concesionaria filter
   const fc = document.getElementById('f-conc');
   if (fc && RECORDS.length) {
@@ -1141,8 +1153,10 @@ function renderTable() {
   if (fEst) data=data.filter(r=>r.estado===fEst);
   if (fBan) data=data.filter(r=>r.banco===fBan);
   const fConc = document.getElementById('f-conc')?.value||'';
+  const fUsu = document.getElementById('f-usu')?.value||'';
   const fProv = document.getElementById('f-prov')?.value||'';
   if (fConc) data=data.filter(r=>r.concesionaria===fConc);
+  if (fUsu) data=data.filter(r=>r.usuario===fUsu);
   if (fProv) data=data.filter(r=>r.provincia===fProv);
   const fDesde = document.getElementById('f-fecha-desde')?.value||'';
   const fHasta = document.getElementById('f-fecha-hasta')?.value||'';
