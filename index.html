@@ -224,6 +224,28 @@ pre{background:#0f172a;color:#7dd3fc;padding:18px;font-family:'JetBrains Mono',m
 .pchk.yes{background:var(--green-soft);color:#065f46;}
 .pchk.no{background:var(--surface);color:var(--muted);}
 .th-sort{cursor:pointer;user-select:none;white-space:nowrap;}.th-sort:hover{background:var(--line);}.sort-icon{font-size:10px;color:var(--muted);margin-left:2px;}.th-sort.asc .sort-icon::before{content:"\2191";}.th-sort.desc .sort-icon::before{content:"\2193";}.th-sort.asc .sort-icon,.th-sort.desc .sort-icon{color:var(--blue);font-size:12px;}
+
+/* SCROLL ESPEJO FIJO */
+#scroll-mirror-wrap{
+  position:fixed;
+  bottom:0;
+  left:0;
+  right:0;
+  z-index:200;
+  background:#fff;
+  border-top:1.5px solid var(--line);
+  box-shadow:0 -2px 8px rgba(0,0,0,.07);
+  display:none;
+  padding:0 32px;
+}
+#scroll-mirror{
+  overflow-x:auto;
+  overflow-y:hidden;
+  height:14px;
+}
+#scroll-mirror-inner{
+  height:1px;
+}
 </style>
 </head>
 <body>
@@ -1872,6 +1894,77 @@ function toast(msg,type='ok') {
 }
 
 document.addEventListener('keydown',e=>{if(e.key==='Escape')document.querySelectorAll('.overlay.open').forEach(o=>o.classList.remove('open'));});
+
+// ══════════════════════════════════════════════
+// SCROLL ESPEJO FIJO
+// ══════════════════════════════════════════════
+(function() {
+  const mirrorWrap = document.getElementById('scroll-mirror-wrap');
+  const mirror     = document.getElementById('scroll-mirror');
+  const mirrorInner= document.getElementById('scroll-mirror-inner');
+  let tscroll      = null;
+  let syncing      = false;
+
+  function setupMirror() {
+    tscroll = document.querySelector('.tscroll');
+    if (!tscroll) return;
+
+    // Ajustar el ancho del inner al contenido de la tabla
+    function syncWidth() {
+      const table = tscroll.querySelector('table');
+      if (table) {
+        mirrorInner.style.width = table.scrollWidth + 'px';
+      }
+    }
+    syncWidth();
+
+    // Mostrar solo cuando la vista de solicitudes está visible
+    function updateVisibility() {
+      const vSol = document.getElementById('v-sol');
+      const visible = vSol && vSol.style.display !== 'none';
+      // Solo mostrar si la tabla tiene scroll horizontal real
+      const needsScroll = tscroll.scrollWidth > tscroll.clientWidth;
+      mirrorWrap.style.display = (visible && needsScroll) ? 'block' : 'none';
+      if (visible) syncWidth();
+    }
+
+    // Sincronización bidireccional
+    tscroll.addEventListener('scroll', () => {
+      if (syncing) return;
+      syncing = true;
+      mirror.scrollLeft = tscroll.scrollLeft;
+      syncing = false;
+    });
+
+    mirror.addEventListener('scroll', () => {
+      if (syncing) return;
+      syncing = true;
+      tscroll.scrollLeft = mirror.scrollLeft;
+      syncing = false;
+    });
+
+    // Observar cambios de visibilidad de vistas
+    const observer = new MutationObserver(updateVisibility);
+    document.querySelectorAll('#v-sol, #v-nueva, #v-reportes, #v-usuarios, #v-backup, #v-micuenta, #v-config').forEach(el => {
+      if (el) observer.observe(el, { attributes: true, attributeFilter: ['style'] });
+    });
+
+    // Actualizar al resize
+    window.addEventListener('resize', () => { syncWidth(); updateVisibility(); });
+
+    // Chequeo inicial y periódico (para cuando carga la tabla con datos)
+    updateVisibility();
+    setTimeout(updateVisibility, 1000);
+    setTimeout(updateVisibility, 3000);
+  }
+
+  // Esperar a que el DOM esté listo
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', setupMirror);
+  } else {
+    setupMirror();
+  }
+})();
 </script>
 
 <!-- SLIDE PANEL -->
@@ -1914,6 +2007,13 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape')document.querySelect
     <button class="xbtn" onclick="closeHistorial()" style="width:34px;height:34px;font-size:18px">×</button>
   </div>
   <div class="panel-body" id="hist-body"></div>
+</div>
+
+<!-- SCROLL ESPEJO FIJO -->
+<div id="scroll-mirror-wrap">
+  <div id="scroll-mirror">
+    <div id="scroll-mirror-inner"></div>
+  </div>
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
