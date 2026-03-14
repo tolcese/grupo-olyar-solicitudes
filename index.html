@@ -287,6 +287,7 @@ pre{background:#0f172a;color:#7dd3fc;padding:18px;font-family:'JetBrains Mono',m
         <div style="display:flex;gap:8px;flex-wrap:wrap">
           <button class="btn btn-s" onclick="loadRecords()">↻ Actualizar</button>
           <button class="btn btn-s" onclick="exportCSV()">📥 CSV</button>
+          <button class="btn btn-s" onclick="exportPDF()">📄 PDF</button>
           <button class="btn btn-p" onclick="showV('nueva')">＋ Nueva solicitud</button>
         </div>
       </div>
@@ -1427,6 +1428,141 @@ function exportCSV() {
 
 
 
+
+
+// ══════════════════════════════════════════════
+// EXPORT PDF
+// ══════════════════════════════════════════════
+function exportPDF() {
+  const data = FILTERED_RECORDS.length ? FILTERED_RECORDS : RECORDS;
+  if (!data.length) { toast('Sin datos', 'in'); return; }
+
+  const now = new Date();
+  const fechaGen = now.toLocaleDateString('es-AR', {day:'2-digit',month:'2-digit',year:'numeric'});
+  const horaGen  = now.toLocaleTimeString('es-AR', {hour:'2-digit',minute:'2-digit'});
+  const mon = v => v ? '$'+Number(String(v).replace(/[$,]/g,'')).toLocaleString('es-AR') : '—';
+  const val = v => v || '—';
+  const chk = v => v ? 'Sí' : 'No';
+
+  const filas = data.map((r,i) => `
+    <tr class="${i%2===0?'par':''}">
+      <td>${i+1}</td>
+      <td>${fmtFecha(r.fecha)}</td>
+      <td><b>${val(r.banco)}</b></td>
+      <td>${val(r.concesionaria)}</td>
+      <td>${val(r.provincia)}</td>
+      <td>${val(r.localidad)}</td>
+      <td>${val(r.dni)}</td>
+      <td><b>${val(r.nombrecliente)}</b></td>
+      <td>${val(r.dominio)}</td>
+      <td>${val(r.marca)}</td>
+      <td>${val(r.descripcion)}</td>
+      <td>${val(r.tipocta)}</td>
+      <td>${val(r.tasa)}</td>
+      <td>${mon(r.importe)}</td>
+      <td>${mon(r.agencia)}</td>
+      <td>${mon(r.vehiculo)}</td>
+      <td style="color:#059669"><b>${mon(r.comision)}</b></td>
+      <td><span class="est est-${(r.estado||'').toLowerCase()}">${val(r.estado)}</span></td>
+      <td>${chk(r.doc01)}</td>
+      <td>${chk(r.titulo)}</td>
+      <td>${chk(r.verif)}</td>
+      <td>${chk(r.infdom)}</td>
+      <td>${val(r.obs)}</td>
+      <td>${val(r.usuario)}</td>
+    </tr>
+  `).join('');
+
+  const totalImporte = data.reduce((s,r)=>s+parseFloat(String(r.importe||0).replace(/[$,]/g,'')),0);
+  const totalComision = data.reduce((s,r)=>s+parseFloat(String(r.comision||0).replace(/[$,]/g,'')),0);
+  const aprobados = data.filter(r=>(r.estado||'').toUpperCase()==='APROBADO').length;
+  const rechazados = data.filter(r=>(r.estado||'').toUpperCase()==='RECHAZADO').length;
+  const avanza = data.filter(r=>(r.estado||'').toUpperCase()==='AVANZA').length;
+
+  const html = `<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Reporte de Solicitudes - Grupo Olyar</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family: Arial, sans-serif; font-size: 10px; color: #1e293b; padding: 20px; }
+  .header { border-bottom: 3px solid #1e40af; padding-bottom: 14px; margin-bottom: 18px; display:flex; justify-content:space-between; align-items:flex-end; }
+  .header-left h1 { font-size: 22px; color: #1e40af; font-weight: 900; letter-spacing: -0.5px; }
+  .header-left p { font-size: 11px; color: #64748b; margin-top: 3px; }
+  .header-right { text-align:right; font-size: 10px; color: #64748b; }
+  .header-right strong { display:block; font-size:12px; color:#1e293b; }
+  .summary { display:flex; gap:12px; margin-bottom:18px; }
+  .sum-box { flex:1; border:1px solid #e2e8f0; border-radius:8px; padding:10px 14px; }
+  .sum-box .lbl { font-size:9px; font-weight:700; text-transform:uppercase; letter-spacing:.05em; color:#64748b; margin-bottom:4px; }
+  .sum-box .val { font-size:16px; font-weight:900; color:#1e293b; }
+  .sum-box.green { border-color:#bbf7d0; background:#f0fdf4; } .sum-box.green .val { color:#059669; }
+  .sum-box.red   { border-color:#fecaca; background:#fef2f2; } .sum-box.red   .val { color:#dc2626; }
+  .sum-box.purple{ border-color:#ddd6fe; background:#f5f3ff; } .sum-box.purple .val { color:#7c3aed; }
+  .sum-box.blue  { border-color:#bfdbfe; background:#eff6ff; } .sum-box.blue  .val { color:#1d4ed8; }
+  .sum-box.amber { border-color:#fde68a; background:#fffbeb; } .sum-box.amber .val { color:#d97706; }
+  table { width:100%; border-collapse:collapse; margin-top:6px; }
+  thead tr { background:#1e40af; color:#fff; }
+  thead th { padding:7px 6px; text-align:left; font-size:8.5px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; white-space:nowrap; }
+  tbody tr.par { background:#f8fafc; }
+  tbody tr:hover { background:#eff6ff; }
+  tbody td { padding:6px 6px; font-size:9px; border-bottom:1px solid #f1f5f9; vertical-align:middle; }
+  .est { padding:2px 7px; border-radius:20px; font-size:8px; font-weight:700; }
+  .est-aprobado { background:#dcfce7; color:#065f46; }
+  .est-rechazado { background:#fee2e2; color:#7f1d1d; }
+  .est-avanza { background:#ede9fe; color:#4c1d95; }
+  .footer { margin-top:18px; padding-top:10px; border-top:1px solid #e2e8f0; display:flex; justify-content:space-between; font-size:9px; color:#94a3b8; }
+  @media print { body { padding:10px; } }
+</style>
+</head>
+<body>
+  <div class="header">
+    <div class="header-left">
+      <h1>Grupo Olyar</h1>
+      <p>Reporte de Solicitudes de Crédito Automotor</p>
+    </div>
+    <div class="header-right">
+      <strong>Generado el ${fechaGen} a las ${horaGen}</strong>
+      <span>${data.length} registro${data.length!==1?'s':''} ${FILTERED_RECORDS.length && FILTERED_RECORDS.length < RECORDS.length ? '(filtrados)' : '(todos)'}</span>
+    </div>
+  </div>
+
+  <div class="summary">
+    <div class="sum-box blue"><div class="lbl">Total registros</div><div class="val">${data.length}</div></div>
+    <div class="sum-box green"><div class="lbl">Aprobados</div><div class="val">${aprobados}</div></div>
+    <div class="sum-box red"><div class="lbl">Rechazados</div><div class="val">${rechazados}</div></div>
+    <div class="sum-box purple"><div class="lbl">Avanza</div><div class="val">${avanza}</div></div>
+    <div class="sum-box amber"><div class="lbl">Total comisiones</div><div class="val">$${totalComision.toLocaleString('es-AR',{minimumFractionDigits:2,maximumFractionDigits:2})}</div></div>
+    <div class="sum-box blue"><div class="lbl">Total importe</div><div class="val">$${totalImporte.toLocaleString('es-AR',{minimumFractionDigits:0,maximumFractionDigits:0})}</div></div>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th>#</th><th>Fecha</th><th>Banco</th><th>Concesionaria</th><th>Provincia</th><th>Localidad</th>
+        <th>DNI</th><th>Cliente</th><th>Dominio</th><th>Marca</th><th>Descripción</th>
+        <th>Tipo CTA</th><th>Tasa</th><th>Imp. Solicitado</th><th>Monto Agencia</th>
+        <th>Monto Vehículo</th><th>Comisión</th><th>Estado</th>
+        <th>Doc</th><th>Tít.</th><th>Ver.</th><th>Inf.</th>
+        <th>Observaciones</th><th>Usuario</th>
+      </tr>
+    </thead>
+    <tbody>${filas}</tbody>
+  </table>
+
+  <div class="footer">
+    <span>Grupo Olyar — Sistema de Gestión de Solicitudes</span>
+    <span>Página generada automáticamente</span>
+  </div>
+</body>
+</html>`;
+
+  const win = window.open('', '_blank');
+  win.document.write(html);
+  win.document.close();
+  win.focus();
+  setTimeout(() => win.print(), 500);
+}
 
 // ══════════════════════════════════════════════
 // HISTORIAL
