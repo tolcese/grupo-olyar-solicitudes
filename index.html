@@ -486,10 +486,7 @@ pre{background:#0f172a;color:#7dd3fc;padding:18px;font-family:'JetBrains Mono',m
         <div class="card-s" style="margin-bottom:16px">Descarga una copia completa de la planilla en formato Excel (.xlsx) a tu PC</div>
         <button class="btn btn-p" id="btn-backup" onclick="hacerBackupManual()">💾 Hacer backup ahora</button>
         <div id="backup-msg" style="margin-top:14px;font-size:13px;display:none"></div>
-        <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--line)">
-          <div class="card-t" style="font-size:13px;margin-bottom:6px">⏰ Backup automático</div>
-          <div class="card-s">El backup automático cada 15 días está configurado en Apps Script y descarga el archivo automáticamente.</div>
-        </div>
+
       </div>
     </div>
 
@@ -1451,30 +1448,28 @@ function exportCSV() {
 // ══════════════════════════════════════════════
 // BACKUP
 // ══════════════════════════════════════════════
-async function hacerBackupManual() {
+function hacerBackupManual() {
   const btn = document.getElementById('btn-backup');
   const msg = document.getElementById('backup-msg');
-  btn.disabled = true;
-  btn.innerHTML = '<span class="spinner"></span>Preparando backup...';
-  msg.style.display = 'none';
-  try {
-    const res = await gas({ action: 'backup' });
-    // Download Excel directly
-    const a = document.createElement('a');
-    a.href = res.url;
-    a.download = res.nombre + '.xlsx';
-    a.click();
-    msg.style.display = 'block';
-    msg.style.color = '#059669';
-    msg.innerHTML = '✓ Backup descargado:<br><b>' + res.nombre + '.xlsx</b><br><span style="font-size:11px;color:var(--muted)">Guardado en tu carpeta de descargas</span>';
-    toast('Backup descargado ✓', 'ok');
-  } catch(e) {
-    msg.style.display = 'block';
-    msg.style.color = '#dc2626';
-    msg.textContent = 'Error al crear backup: ' + e.message;
-  }
-  btn.disabled = false;
-  btn.innerHTML = '💾 Hacer backup ahora';
+  if (!RECORDS.length) { toast('Sin datos para respaldar','in'); return; }
+
+  const fecha = new Date().toISOString().slice(0,10);
+  const nombre = 'Backup_Grupo_Olyar_' + fecha;
+
+  const H = ['ID','Fecha','Banco','Concesionaria','Provincia','Localidad','DNI','Cliente','Dominio','Marca','Descripcion','Tipo CTA','Importe','Agencia','Vehiculo','Estado','Doc 01/08','Titulo','Ver. Pol.','Inf. Dom.','Tasa','Obs','Usuario','Fecha Reg','Comision'];
+  const rows = RECORDS.map(r => [r.id,r.fecha,r.banco,r.concesionaria,r.provincia,r.localidad,r.dni,r.nombrecliente,r.dominio,r.marca,r.descripcion,r.tipocta,r.importe,r.agencia,r.vehiculo,r.estado,r.doc01?'Si':'No',r.titulo?'Si':'No',r.verif?'Si':'No',r.infdom?'Si':'No',r.tasa,r.obs,r.usuario,r.fechaReg,r.comision].map(v=>`"${(v||'').toString().replace(/"/g,'""')}"`).join(';'));
+
+  const csv = '﻿' + [H.join(';'), ...rows].join('
+');
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([csv], {type:'text/csv;charset=utf-8;'}));
+  a.download = nombre + '.csv';
+  a.click();
+
+  msg.style.display = 'block';
+  msg.style.color = '#059669';
+  msg.innerHTML = '✓ Backup descargado:<br><b>' + nombre + '.csv</b><br><span style="font-size:11px;color:var(--muted)">Guardado en tu carpeta de descargas</span>';
+  toast('Backup descargado ✓', 'ok');
 }
 
 async function activarBackupAuto() {
