@@ -234,6 +234,10 @@ pre{background:#0f172a;color:#7dd3fc;padding:18px;font-family:'JetBrains Mono',m
 .pchk.yes{background:var(--green-soft);color:#065f46;}
 .pchk.no{background:var(--surface);color:var(--muted);}
 .th-sort{cursor:pointer;user-select:none;white-space:nowrap;}.th-sort:hover{background:var(--line);}.sort-icon{font-size:10px;color:var(--muted);margin-left:2px;}.th-sort.asc .sort-icon::before{content:"\2191";}.th-sort.desc .sort-icon::before{content:"\2193";}.th-sort.asc .sort-icon,.th-sort.desc .sort-icon{color:var(--blue);font-size:12px;}
+/* SCROLL MIRROR */
+#scroll-mirror-wrap{position:fixed;bottom:0;left:0;right:0;z-index:200;background:#fff;border-top:1.5px solid var(--line);box-shadow:0 -2px 8px rgba(0,0,0,.09);padding:2px 32px;display:none;transition:opacity .2s;}
+#scroll-mirror{overflow-x:auto;overflow-y:hidden;height:16px;}
+#scroll-mirror-inner{height:1px;}
 </style>
 </head>
 <body>
@@ -2096,6 +2100,90 @@ function renderReportes() {
     }
   });
 }
+</script>
+
+<!-- SCROLL MIRROR FIJO -->
+<div id="scroll-mirror-wrap">
+  <div id="scroll-mirror">
+    <div id="scroll-mirror-inner"></div>
+  </div>
+</div>
+
+<script>
+(function() {
+  const wrap   = document.getElementById('scroll-mirror-wrap');
+  const mirror = document.getElementById('scroll-mirror');
+  const inner  = document.getElementById('scroll-mirror-inner');
+  let syncing  = false;
+
+  function getTscroll() { return document.querySelector('.tscroll'); }
+
+  function syncWidth() {
+    const sc = getTscroll();
+    if (sc) inner.style.width = sc.scrollWidth + 'px';
+  }
+
+  function shouldShow() {
+    const vSol = document.getElementById('v-sol');
+    const sc   = getTscroll();
+    if (!vSol || !sc) return false;
+    const visible     = vSol.style.display !== 'none';
+    const needsScroll = sc.scrollWidth > sc.clientWidth + 2;
+    // Solo mostrar si el usuario scrolleó hacia abajo (la tabla ya no está visible en su totalidad)
+    const twEl  = document.querySelector('.tw');
+    const scrolled = window.scrollY > 100;
+    return visible && needsScroll && scrolled;
+  }
+
+  function updateVisibility() {
+    wrap.style.display = shouldShow() ? 'block' : 'none';
+    syncWidth();
+  }
+
+  function attachSync() {
+    const sc = getTscroll();
+    if (!sc) return;
+    sc.addEventListener('scroll', () => {
+      if (syncing) return;
+      syncing = true;
+      mirror.scrollLeft = sc.scrollLeft;
+      syncing = false;
+    });
+    mirror.addEventListener('scroll', () => {
+      if (syncing) return;
+      syncing = true;
+      sc.scrollLeft = mirror.scrollLeft;
+      syncing = false;
+    });
+  }
+
+  // Observar cambios de vista
+  function observeViews() {
+    const observer = new MutationObserver(updateVisibility);
+    document.querySelectorAll('[id^="v-"]').forEach(el => {
+      observer.observe(el, { attributes: true, attributeFilter: ['style'] });
+    });
+  }
+
+  window.addEventListener('scroll', updateVisibility, { passive: true });
+  window.addEventListener('resize', () => { syncWidth(); updateVisibility(); });
+
+  function init() {
+    attachSync();
+    observeViews();
+    syncWidth();
+    updateVisibility();
+    // Re-chequear cuando carguen los datos
+    setTimeout(syncWidth, 1500);
+    setTimeout(syncWidth, 4000);
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+})();
 </script>
 </body>
 </html>
