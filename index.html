@@ -223,6 +223,7 @@ pre{background:#0f172a;color:#7dd3fc;padding:18px;font-family:'JetBrains Mono',m
 .pchk{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:700;}
 .pchk.yes{background:var(--green-soft);color:#065f46;}
 .pchk.no{background:var(--surface);color:var(--muted);}
+.th-sort{cursor:pointer;user-select:none;white-space:nowrap;}.th-sort:hover{background:var(--line);}.sort-icon{font-size:10px;color:var(--muted);margin-left:2px;}.th-sort.asc .sort-icon::before{content:"↑";}.th-sort.desc .sort-icon::before{content:"↓";}.th-sort.asc .sort-icon,.th-sort.desc .sort-icon{color:var(--blue);font-size:12px;}
 </style>
 </head>
 <body>
@@ -327,17 +328,30 @@ pre{background:#0f172a;color:#7dd3fc;padding:18px;font-family:'JetBrains Mono',m
         <div class="tscroll">
           <table>
             <thead><tr>
-              <th>#</th><th>Fecha</th><th>Banco</th><th>Concesionaria</th>
-              <th>Provincia</th><th>Localidad</th><th>DNI</th><th>Cliente</th>
-              <th>Dominio</th><th>Marca</th><th>Descripción</th><th>Tipo CTA</th>
-              <th>Imp. Solicitado</th><th>Monto Agencia</th><th>Monto Vehículo</th><th>Comisión</th>
-              <th>Estado</th>
-
+              <th>#</th>
+              <th class="th-sort" onclick="sortBy('fecha')" id="th-fecha">Fecha <span class="sort-icon">↕</span></th>
+              <th class="th-sort" onclick="sortBy('banco')" id="th-banco">Banco <span class="sort-icon">↕</span></th>
+              <th class="th-sort" onclick="sortBy('concesionaria')" id="th-concesionaria">Concesionaria <span class="sort-icon">↕</span></th>
+              <th class="th-sort" onclick="sortBy('provincia')" id="th-provincia">Provincia <span class="sort-icon">↕</span></th>
+              <th class="th-sort" onclick="sortBy('localidad')" id="th-localidad">Localidad <span class="sort-icon">↕</span></th>
+              <th class="th-sort" onclick="sortBy('dni')" id="th-dni">DNI <span class="sort-icon">↕</span></th>
+              <th class="th-sort" onclick="sortBy('nombrecliente')" id="th-nombrecliente">Cliente <span class="sort-icon">↕</span></th>
+              <th class="th-sort" onclick="sortBy('dominio')" id="th-dominio">Dominio <span class="sort-icon">↕</span></th>
+              <th class="th-sort" onclick="sortBy('marca')" id="th-marca">Marca <span class="sort-icon">↕</span></th>
+              <th class="th-sort" onclick="sortBy('descripcion')" id="th-descripcion">Descripción <span class="sort-icon">↕</span></th>
+              <th class="th-sort" onclick="sortBy('tipocta')" id="th-tipocta">Tipo CTA <span class="sort-icon">↕</span></th>
+              <th class="th-sort" onclick="sortBy('importe')" id="th-importe">Imp. Solicitado <span class="sort-icon">↕</span></th>
+              <th class="th-sort" onclick="sortBy('agencia')" id="th-agencia">Monto Agencia <span class="sort-icon">↕</span></th>
+              <th class="th-sort" onclick="sortBy('vehiculo')" id="th-vehiculo">Monto Vehículo <span class="sort-icon">↕</span></th>
+              <th class="th-sort" onclick="sortBy('comision')" id="th-comision">Comisión <span class="sort-icon">↕</span></th>
+              <th class="th-sort" onclick="sortBy('estado')" id="th-estado">Estado <span class="sort-icon">↕</span></th>
               <th title="Documento 01/08">Doc 01/08</th>
               <th title="Título Unidad">Título</th>
               <th title="Verificación Policial (12)">Ver. Pol.</th>
               <th title="Informe Dominio">Inf. Dom.</th>
-              <th>Tasa</th><th>Observaciones</th><th>Usuario</th>
+              <th class="th-sort" onclick="sortBy('tasa')" id="th-tasa">Tasa <span class="sort-icon">↕</span></th>
+              <th>Observaciones</th>
+              <th class="th-sort" onclick="sortBy('usuario')" id="th-usuario">Usuario <span class="sort-icon">↕</span></th>
               <th id="th-acc" style="position:sticky;right:0;background:var(--surface);z-index:2;box-shadow:-2px 0 6px rgba(0,0,0,.06)">Acciones</th>
             </tr></thead>
             <tbody id="tbody"></tbody>
@@ -1117,6 +1131,24 @@ function fmtFecha(v) {
 }
 
 let FILTERED_RECORDS = [];
+let SORT_COL = null;
+let SORT_DIR = 1;
+
+function sortBy(col) {
+  if (SORT_COL === col) {
+    SORT_DIR *= -1;
+  } else {
+    SORT_COL = col;
+    SORT_DIR = 1;
+  }
+  // update header icons
+  document.querySelectorAll('.th-sort').forEach(th => {
+    th.classList.remove('asc','desc');
+  });
+  const th = document.getElementById('th-'+col);
+  if (th) th.classList.add(SORT_DIR === 1 ? 'asc' : 'desc');
+  renderTable();
+}
 
 function renderTable() {
   // populate usuario filter
@@ -1174,7 +1206,21 @@ function renderTable() {
     empty.style.display='none';
     const $=v=>v?'$'+Number(String(v).replace(/[$,]/g,'')).toLocaleString('es-AR'):'—';
     const chk=v=>v?'<span style="color:var(--green);font-weight:700">✓</span>':'<span style="color:var(--line)">—</span>';
-    FILTERED_RECORDS = data;
+    // apply sort
+  if (SORT_COL) {
+    data.sort((a,b) => {
+      let va = a[SORT_COL]||'';
+      let vb = b[SORT_COL]||'';
+      // numeric sort for money/number fields
+      if (['importe','agencia','vehiculo','comision','tasa'].includes(SORT_COL)) {
+        va = parseFloat(String(va).replace(/[$,]/g,''))||0;
+        vb = parseFloat(String(vb).replace(/[$,]/g,''))||0;
+        return (va-vb)*SORT_DIR;
+      }
+      return String(va).localeCompare(String(vb), 'es')*SORT_DIR;
+    });
+  }
+  FILTERED_RECORDS = data;
   tbody.innerHTML=data.map((r,idx)=>`
       <tr style="cursor:pointer" onclick="openPanel('${r.id}')">
         
