@@ -2129,10 +2129,7 @@ function renderReportes() {
     if (!vSol || !sc) return false;
     const visible     = vSol.style.display !== 'none';
     const needsScroll = sc.scrollWidth > sc.clientWidth + 2;
-    // Solo mostrar si el usuario scrolleó hacia abajo (la tabla ya no está visible en su totalidad)
-    const twEl  = document.querySelector('.tw');
-    const scrolled = window.scrollY > 100;
-    return visible && needsScroll && scrolled;
+    return visible && needsScroll;
   }
 
   function updateVisibility() {
