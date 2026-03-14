@@ -483,14 +483,12 @@ pre{background:#0f172a;color:#7dd3fc;padding:18px;font-family:'JetBrains Mono',m
       <div class="ph"><div><div class="ph-t">Backup</div><div class="ph-s">Copia de seguridad de la planilla</div></div></div>
       <div class="card" style="max-width:500px">
         <div class="card-t">💾 Backup manual</div>
-        <div class="card-s" style="margin-bottom:16px">Genera una copia de la planilla en tu Google Drive dentro de la carpeta <b>Backups Grupo Olyar</b></div>
+        <div class="card-s" style="margin-bottom:16px">Descarga una copia completa de la planilla en formato Excel (.xlsx) a tu PC</div>
         <button class="btn btn-p" id="btn-backup" onclick="hacerBackupManual()">💾 Hacer backup ahora</button>
         <div id="backup-msg" style="margin-top:14px;font-size:13px;display:none"></div>
         <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--line)">
           <div class="card-t" style="font-size:13px;margin-bottom:6px">⏰ Backup automático</div>
-          <div class="card-s">Se realiza automáticamente cada <b>15 días</b> a las 3:00 AM y se guarda en la misma carpeta.</div>
-          <button class="btn btn-s" style="margin-top:12px;font-size:12px" onclick="activarBackupAuto()">⚙️ Activar backup automático</button>
-          <div id="backup-auto-msg" style="margin-top:10px;font-size:12px;color:var(--muted);display:none"></div>
+          <div class="card-s">El backup automático cada 15 días está configurado en Apps Script y descarga el archivo automáticamente.</div>
         </div>
       </div>
     </div>
@@ -1457,14 +1455,19 @@ async function hacerBackupManual() {
   const btn = document.getElementById('btn-backup');
   const msg = document.getElementById('backup-msg');
   btn.disabled = true;
-  btn.innerHTML = '<span class="spinner"></span>Haciendo backup...';
+  btn.innerHTML = '<span class="spinner"></span>Preparando backup...';
   msg.style.display = 'none';
   try {
     const res = await gas({ action: 'backup' });
+    // Download Excel directly
+    const a = document.createElement('a');
+    a.href = res.url;
+    a.download = res.nombre + '.xlsx';
+    a.click();
     msg.style.display = 'block';
     msg.style.color = '#059669';
-    msg.innerHTML = '✓ Backup creado correctamente:<br><b>' + res.nombre + '</b><br><span style="font-size:11px;color:var(--muted)">Guardado en Google Drive → Backups Grupo Olyar</span>';
-    toast('Backup creado ✓', 'ok');
+    msg.innerHTML = '✓ Backup descargado:<br><b>' + res.nombre + '.xlsx</b><br><span style="font-size:11px;color:var(--muted)">Guardado en tu carpeta de descargas</span>';
+    toast('Backup descargado ✓', 'ok');
   } catch(e) {
     msg.style.display = 'block';
     msg.style.color = '#dc2626';
