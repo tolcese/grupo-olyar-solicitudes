@@ -91,6 +91,16 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--ink);font-s
 .searchbox input::placeholder{color:var(--muted);}
 .fsel{border:1.5px solid var(--line);border-radius:8px;padding:8px 12px;font-family:'Inter',sans-serif;font-size:13px;color:var(--ink2);background:#fff;outline:none;cursor:pointer;}
 
+/* PAGINACIÓN */
+.pagination{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-top:1.5px solid var(--line);background:#fff;flex-wrap:wrap;gap:8px;}
+.pag-info{font-size:12.5px;color:var(--muted);}
+.pag-btns{display:flex;gap:6px;align-items:center;}
+.pag-btn{padding:6px 13px;border-radius:7px;border:1.5px solid var(--line);background:#fff;font-family:'Inter',sans-serif;font-size:13px;font-weight:600;color:var(--ink2);cursor:pointer;transition:all .12s;}
+.pag-btn:hover:not(:disabled){border-color:var(--blue);color:var(--blue);}
+.pag-btn:disabled{opacity:.4;cursor:not-allowed;}
+.pag-btn.active{background:var(--blue);color:#fff;border-color:var(--blue);}
+.pag-num{font-size:13px;font-weight:600;color:var(--ink2);padding:0 4px;}
+
 /* TABLE */
 .tw{background:#fff;border-radius:var(--r);border:1.5px solid var(--line);overflow:hidden;box-shadow:var(--sh);}
 .tscroll{overflow-x:auto;}
@@ -224,10 +234,6 @@ pre{background:#0f172a;color:#7dd3fc;padding:18px;font-family:'JetBrains Mono',m
 .pchk.yes{background:var(--green-soft);color:#065f46;}
 .pchk.no{background:var(--surface);color:var(--muted);}
 .th-sort{cursor:pointer;user-select:none;white-space:nowrap;}.th-sort:hover{background:var(--line);}.sort-icon{font-size:10px;color:var(--muted);margin-left:2px;}.th-sort.asc .sort-icon::before{content:"\2191";}.th-sort.desc .sort-icon::before{content:"\2193";}.th-sort.asc .sort-icon,.th-sort.desc .sort-icon{color:var(--blue);font-size:12px;}
-/* SCROLL ESPEJO */
-#scroll-mirror-wrap{position:fixed;bottom:0;left:0;right:0;z-index:200;background:#fff;border-top:1.5px solid var(--line);box-shadow:0 -2px 8px rgba(0,0,0,.07);display:none;padding:2px 32px;}
-#scroll-mirror{overflow-x:auto;overflow-y:hidden;height:16px;}
-#scroll-mirror-inner{height:1px;}
 </style>
 </head>
 <body>
@@ -367,6 +373,14 @@ pre{background:#0f172a;color:#7dd3fc;padding:18px;font-family:'JetBrains Mono',m
           <div class="ei">📄</div>
           <h3 id="empty-h">Sin solicitudes todavía</h3>
           <p id="empty-p">Creá la primera con el botón "Nueva solicitud"</p>
+        </div>
+        <div class="pagination" id="pagination" style="display:none">
+          <div class="pag-info" id="pag-info">—</div>
+          <div class="pag-btns">
+            <button class="pag-btn" id="pag-prev" onclick="changePage(-1)">← Anterior</button>
+            <span class="pag-num" id="pag-num">—</span>
+            <button class="pag-btn" id="pag-next" onclick="changePage(1)">Siguiente →</button>
+          </div>
         </div>
       </div>
     </div>
@@ -1152,6 +1166,15 @@ function fmtFecha(v) {
 let FILTERED_RECORDS = [];
 let SORT_COL = null;
 let SORT_DIR = 1;
+let CURRENT_PAGE = 1;
+const PAGE_SIZE = 20;
+
+function changePage(dir) {
+  const total = FILTERED_RECORDS.length;
+  const maxPage = Math.ceil(total / PAGE_SIZE) || 1;
+  CURRENT_PAGE = Math.min(Math.max(CURRENT_PAGE + dir, 1), maxPage);
+  renderTablePage();
+}
 
 function sortBy(col) {
   if (SORT_COL === col) {
@@ -1160,13 +1183,11 @@ function sortBy(col) {
     SORT_COL = col;
     SORT_DIR = 1;
   }
-  // update header icons
-  document.querySelectorAll('.th-sort').forEach(th => {
-    th.classList.remove('asc','desc');
-  });
+  document.querySelectorAll('.th-sort').forEach(th => th.classList.remove('asc','desc'));
   const th = document.getElementById('th-'+col);
   if (th) th.classList.add(SORT_DIR === 1 ? 'asc' : 'desc');
-  renderTable();
+  CURRENT_PAGE = 1;
+  renderTablePage();
 }
 
 function renderTable() {
@@ -1197,40 +1218,26 @@ function renderTable() {
   const q    = (document.getElementById('srch')?.value||'').toLowerCase();
   const fEst = document.getElementById('f-est')?.value||'';
   const fBan = document.getElementById('f-ban')?.value||'';
-  const isAdmin = ME?.rol==='admin';
 
   let data = [...RECORDS].reverse();
   if (q)    data=data.filter(r=>[r.nombrecliente,r.dni,r.banco,r.dominio,r.concesionaria,r.marca,r.provincia].some(v=>(v||'').toLowerCase().includes(q)));
   if (fEst) data=data.filter(r=>r.estado===fEst);
   if (fBan) data=data.filter(r=>r.banco===fBan);
   const fConc = document.getElementById('f-conc')?.value||'';
-  const fUsu = document.getElementById('f-usu')?.value||'';
+  const fUsu  = document.getElementById('f-usu')?.value||'';
   const fProv = document.getElementById('f-prov')?.value||'';
   if (fConc) data=data.filter(r=>r.concesionaria===fConc);
-  if (fUsu) data=data.filter(r=>r.usuario===fUsu);
+  if (fUsu)  data=data.filter(r=>r.usuario===fUsu);
   if (fProv) data=data.filter(r=>r.provincia===fProv);
   const fDesde = document.getElementById('f-fecha-desde')?.value||'';
   const fHasta = document.getElementById('f-fecha-hasta')?.value||'';
   if (fDesde) data=data.filter(r=>r.fecha && r.fecha >= fDesde);
   if (fHasta) data=data.filter(r=>r.fecha && r.fecha <= fHasta);
 
-  const tbody=document.getElementById('tbody');
-  const empty=document.getElementById('empty-state');
-
-  if (!data.length) {
-    tbody.innerHTML=''; empty.style.display='';
-    document.getElementById('empty-h').textContent = RECORDS.length===0?'Sin solicitudes todavía':'Sin resultados';
-    document.getElementById('empty-p').textContent  = RECORDS.length===0?'Creá la primera con el botón "Nueva solicitud"':'Probá con otro término';
-  } else {
-    empty.style.display='none';
-    const $=v=>v?'$'+Number(String(v).replace(/[$,]/g,'')).toLocaleString('es-AR'):'—';
-    const chk=v=>v?'<span style="color:var(--green);font-weight:700">✓</span>':'<span style="color:var(--line)">—</span>';
-    // apply sort
   if (SORT_COL) {
     data.sort((a,b) => {
       let va = a[SORT_COL]||'';
       let vb = b[SORT_COL]||'';
-      // numeric sort for money/number fields
       if (['importe','agencia','vehiculo','comision','tasa'].includes(SORT_COL)) {
         va = parseFloat(String(va).replace(/[$,]/g,''))||0;
         vb = parseFloat(String(vb).replace(/[$,]/g,''))||0;
@@ -1239,11 +1246,53 @@ function renderTable() {
       return String(va).localeCompare(String(vb), 'es')*SORT_DIR;
     });
   }
+
   FILTERED_RECORDS = data;
-  tbody.innerHTML=data.map((r,idx)=>`
+  CURRENT_PAGE = 1;
+  renderTablePage();
+  document.getElementById('ph-count').textContent=`${data.length} registro${data.length!==1?'s':''}`;
+  renderStats(data);
+}
+
+function renderTablePage() {
+  const data   = FILTERED_RECORDS;
+  const tbody  = document.getElementById('tbody');
+  const empty  = document.getElementById('empty-state');
+  const pagDiv = document.getElementById('pagination');
+  const isAdmin= ME?.rol==='admin';
+
+  if (!data.length) {
+    tbody.innerHTML='';
+    empty.style.display='';
+    pagDiv.style.display='none';
+    document.getElementById('empty-h').textContent = RECORDS.length===0?'Sin solicitudes todavía':'Sin resultados';
+    document.getElementById('empty-p').textContent  = RECORDS.length===0?'Creá la primera con el botón "Nueva solicitud"':'Probá con otro término';
+    return;
+  }
+
+  empty.style.display='none';
+
+  const total   = data.length;
+  const maxPage = Math.ceil(total / PAGE_SIZE);
+  CURRENT_PAGE  = Math.min(Math.max(CURRENT_PAGE, 1), maxPage);
+
+  const start = (CURRENT_PAGE - 1) * PAGE_SIZE;
+  const end   = Math.min(start + PAGE_SIZE, total);
+  const page  = data.slice(start, end);
+
+  // Actualizar paginación
+  pagDiv.style.display = total > PAGE_SIZE ? 'flex' : 'none';
+  document.getElementById('pag-info').textContent = `Mostrando ${start+1}–${end} de ${total} registros`;
+  document.getElementById('pag-num').textContent  = `Página ${CURRENT_PAGE} de ${maxPage}`;
+  document.getElementById('pag-prev').disabled    = CURRENT_PAGE <= 1;
+  document.getElementById('pag-next').disabled    = CURRENT_PAGE >= maxPage;
+
+  const $=v=>v?'$'+Number(String(v).replace(/[$,]/g,'')).toLocaleString('es-AR'):'—';
+  const chk=v=>v?'<span style="color:var(--green);font-weight:700">✓</span>':'<span style="color:var(--line)">—</span>';
+
+  tbody.innerHTML=page.map((r,idx)=>`
       <tr style="cursor:pointer" onclick="openPanel('${r.id}')">
-        
-        <td class="td-id">${idx+1}</td>
+        <td class="td-id">${start+idx+1}</td>
         <td style="white-space:nowrap">${fmtFecha(r.fecha)}</td>
         <td class="td-bold">${r.banco||'—'}</td>
         <td>${r.concesionaria||'—'}</td>
@@ -1260,7 +1309,6 @@ function renderTable() {
         <td class="td-mono">${$(r.vehiculo)}</td>
         <td class="td-mono" style="color:var(--green);font-weight:600">${$(r.comision)}</td>
         <td>${r.estado?`<span class="badge b-${r.estado.toLowerCase()}"><span class="bd"></span>${r.estado}</span>`:'—'}</td>
-
         <td class="chk">${chk(r.doc01)}</td>
         <td class="chk">${chk(r.titulo)}</td>
         <td class="chk">${chk(r.verif)}</td>
@@ -1268,11 +1316,8 @@ function renderTable() {
         <td>${r.tasa||'—'}</td>
         <td style="max-width:140px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${r.obs||''}">${r.obs||'—'}</td>
         <td style="font-size:11.5px;color:var(--muted)">${r.usuario||'—'}</td>
-        <td style="position:sticky;right:0;background:#fff;box-shadow:-2px 0 6px rgba(0,0,0,.06)">${`<div class="abtns"><button class="ibtn" onclick="event.stopPropagation();editRec('${r.id}')" title="Editar">✏️</button>${isAdmin?`<button class="ibtn del" onclick="event.stopPropagation();delRec('${r.id}')" title="Eliminar">🗑️</button>`:''}${isAdmin?`<button class="ibtn" onclick="event.stopPropagation();openHistorial('${r.id}')" title="Historial">🕐</button>`:''}</div>`}</td>
+        <td style="position:sticky;right:0;background:#fff;box-shadow:-2px 0 6px rgba(0,0,0,.06)"><div class="abtns"><button class="ibtn" onclick="event.stopPropagation();editRec('${r.id}')" title="Editar">✏️</button>${isAdmin?`<button class="ibtn del" onclick="event.stopPropagation();delRec('${r.id}')" title="Eliminar">🗑️</button>`:''} ${isAdmin?`<button class="ibtn" onclick="event.stopPropagation();openHistorial('${r.id}')" title="Historial">🕐</button>`:''}</div></td>
       </tr>`).join('');
-  }
-  document.getElementById('ph-count').textContent=`${data.length} registro${data.length!==1?'s':''}`;
-  renderStats(data);
 }
 
 function renderStats(data) {
@@ -1876,88 +1921,7 @@ function toast(msg,type='ok') {
 }
 
 document.addEventListener('keydown',e=>{if(e.key==='Escape')document.querySelectorAll('.overlay.open').forEach(o=>o.classList.remove('open'));});
-
-// ══════════════════════════════════════════════
-// SCROLL ESPEJO FIJO
-// ══════════════════════════════════════════════
-(function() {
-  const mirrorWrap  = document.getElementById('scroll-mirror-wrap');
-  const mirror      = document.getElementById('scroll-mirror');
-  const mirrorInner = document.getElementById('scroll-mirror-inner');
-  let syncing = false;
-
-  function getScrollEl() {
-    return document.querySelector('.tscroll');
-  }
-
-  function syncWidth() {
-    const sc = getScrollEl();
-    if (!sc) return;
-    mirrorInner.style.width = sc.scrollWidth + 'px';
-  }
-
-  function updateVisibility() {
-    const vSol = document.getElementById('v-sol');
-    const sc   = getScrollEl();
-    if (!vSol || !sc) return;
-    const visible     = vSol.style.display !== 'none';
-    const needsScroll = sc.scrollWidth > sc.clientWidth + 2;
-    mirrorWrap.style.display = (visible && needsScroll) ? 'block' : 'none';
-    if (visible) syncWidth();
-  }
-
-  function attachScrollSync() {
-    const sc = getScrollEl();
-    if (!sc) return;
-
-    sc.addEventListener('scroll', () => {
-      if (syncing) return;
-      syncing = true;
-      mirror.scrollLeft = sc.scrollLeft;
-      syncing = false;
-    });
-
-    mirror.addEventListener('scroll', () => {
-      if (syncing) return;
-      syncing = true;
-      sc.scrollLeft = mirror.scrollLeft;
-      syncing = false;
-    });
-  }
-
-  // Observar cambios de display en todas las vistas
-  function observeViews() {
-    const views = document.querySelectorAll('[id^="v-"]');
-    const observer = new MutationObserver(updateVisibility);
-    views.forEach(el => observer.observe(el, { attributes: true, attributeFilter: ['style'] }));
-  }
-
-  window.addEventListener('resize', () => { syncWidth(); updateVisibility(); });
-
-  // Inicializar cuando el DOM esté listo
-  function init() {
-    attachScrollSync();
-    observeViews();
-    updateVisibility();
-    // Reintentar luego de que carguen los registros
-    setTimeout(updateVisibility, 1500);
-    setTimeout(updateVisibility, 4000);
-  }
-
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init);
-  } else {
-    init();
-  }
-})();
 </script>
-
-<!-- SCROLL ESPEJO FIJO -->
-<div id="scroll-mirror-wrap">
-  <div id="scroll-mirror">
-    <div id="scroll-mirror-inner"></div>
-  </div>
-</div>
 
 <!-- SLIDE PANEL -->
 <div class="panel-overlay" id="panel-overlay" onclick="closePanel()"></div>
