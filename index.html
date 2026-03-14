@@ -1459,8 +1459,7 @@ function hacerBackupManual() {
   const H = ['ID','Fecha','Banco','Concesionaria','Provincia','Localidad','DNI','Cliente','Dominio','Marca','Descripcion','Tipo CTA','Importe','Agencia','Vehiculo','Estado','Doc 01/08','Titulo','Ver. Pol.','Inf. Dom.','Tasa','Obs','Usuario','Fecha Reg','Comision'];
   const rows = RECORDS.map(r => [r.id,r.fecha,r.banco,r.concesionaria,r.provincia,r.localidad,r.dni,r.nombrecliente,r.dominio,r.marca,r.descripcion,r.tipocta,r.importe,r.agencia,r.vehiculo,r.estado,r.doc01?'Si':'No',r.titulo?'Si':'No',r.verif?'Si':'No',r.infdom?'Si':'No',r.tasa,r.obs,r.usuario,r.fechaReg,r.comision].map(v=>`"${(v||'').toString().replace(/"/g,'""')}"`).join(';'));
 
-  const csv = '﻿' + [H.join(';'), ...rows].join('
-');
+  const csv = '\uFEFF' + [H.join(';'), ...rows].join('\n');
   const a = document.createElement('a');
   a.href = URL.createObjectURL(new Blob([csv], {type:'text/csv;charset=utf-8;'}));
   a.download = nombre + '.csv';
