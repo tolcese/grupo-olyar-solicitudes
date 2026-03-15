@@ -265,6 +265,22 @@ pre{background:#0f172a;color:#7dd3fc;padding:18px;font-family:'JetBrains Mono',m
 .gestor-name{font-size:13.5px;font-weight:700;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .gestor-sub{font-size:11.5px;color:var(--muted);margin-top:2px;}
 .gestores-list{display:flex;flex-direction:column;gap:10px;margin-top:16px;}
+
+/* GESTORÍA */
+.gestoria-overlay{position:fixed;inset:0;background:rgba(15,23,42,.55);backdrop-filter:blur(4px);z-index:500;display:flex;align-items:center;justify-content:center;padding:16px;opacity:0;pointer-events:none;transition:opacity .2s;}
+.gestoria-overlay.open{opacity:1;pointer-events:all;}
+.gestoria-modal{background:#fff;border-radius:18px;width:100%;max-width:1200px;max-height:92vh;display:flex;flex-direction:column;box-shadow:var(--sh-lg);transform:scale(.96) translateY(10px);transition:transform .25s cubic-bezier(.34,1.56,.64,1);}
+.gestoria-overlay.open .gestoria-modal{transform:scale(1) translateY(0);}
+.gestoria-head{padding:20px 28px;border-bottom:1.5px solid var(--line);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
+.gestoria-body{overflow:auto;flex:1;padding:0;}
+.gestoria-table{width:100%;border-collapse:collapse;min-width:1100px;font-size:13px;}
+.gestoria-table thead tr{background:var(--surface);border-bottom:1.5px solid var(--line);}
+.gestoria-table th{padding:10px 13px;text-align:left;font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;white-space:nowrap;}
+.gestoria-table td{padding:11px 13px;color:var(--ink2);border-bottom:1px solid var(--line);vertical-align:middle;white-space:nowrap;}
+.gestoria-table tbody tr:last-child td{border-bottom:none;}
+.gestoria-table tbody tr:hover td{background:#f8faff;}
+.btn-asignar{padding:5px 12px;border-radius:7px;border:1.5px solid var(--blue);background:var(--blue-soft);color:var(--blue);font-family:'Inter',sans-serif;font-size:12px;font-weight:700;cursor:pointer;transition:all .12s;white-space:nowrap;}
+.btn-asignar:hover{background:var(--blue);color:#fff;}
 </style>
 </head>
 <body>
@@ -306,6 +322,7 @@ pre{background:#0f172a;color:#7dd3fc;padding:18px;font-family:'JetBrains Mono',m
         <button class="tn" id="btn-datero" onclick="copyDatero()" style="display:none">🔗 Link de DATERO</button>
         <button class="tn" id="tn-usuarios" style="display:none" onclick="showV('usuarios')">👥 Usuarios</button>
         <button class="tn" id="tn-reportes" style="display:none" onclick="showV('reportes')">📊 Reportes</button>
+        <button class="tn" id="tn-gestoria" onclick="openGestoria()">📁 Gestoría</button>
         <button class="tn" id="tn-micuenta" onclick="showV('micuenta')">🔑 Mi cuenta</button>
       </nav>
     </div>
@@ -1028,6 +1045,82 @@ async function delGestor(id) {
     toast('Gestor eliminado', 'in');
     await loadGestores();
   } catch(e) { toast('Error: ' + e.message, 'er'); }
+}
+
+// ══════════════════════════════════════════════
+// GESTORÍA
+// ══════════════════════════════════════════════
+function openGestoria() {
+  document.getElementById('gestoria-overlay').classList.add('open');
+  // Marcar activo en topbar
+  document.querySelectorAll('.tn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tn-gestoria').classList.add('active');
+  renderGestoria();
+  syncGestoriaSheet();
+}
+
+function closeGestoria() {
+  document.getElementById('gestoria-overlay').classList.remove('open');
+  document.querySelectorAll('.tn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tn-sol').classList.add('active');
+}
+
+function renderGestoria() {
+  const q = (document.getElementById('gestoria-srch')?.value || '').toLowerCase();
+  let data = [...RECORDS];
+  if (q) data = data.filter(r =>
+    [r.nombrecliente, r.dni, r.banco, r.concesionaria, r.provincia, r.localidad, r.marca].some(v => (v||'').toLowerCase().includes(q))
+  );
+
+  const tbody = document.getElementById('gestoria-tbody');
+  const empty = document.getElementById('gestoria-empty');
+  const count = document.getElementById('gestoria-count');
+
+  count.textContent = data.length + ' registro' + (data.length !== 1 ? 's' : '');
+
+  if (!data.length) {
+    tbody.innerHTML = '';
+    empty.style.display = '';
+    return;
+  }
+  empty.style.display = 'none';
+
+  const mon = v => v ? '$' + Number(String(v).replace(/[$,]/g,'')).toLocaleString('es-AR') : '—';
+  const val = v => v || '—';
+
+  tbody.innerHTML = data.map((r, i) => `
+    <tr>
+      <td style="color:var(--muted);font-size:11px">${i+1}</td>
+      <td>${r.fecha ? r.fecha.split('-').reverse().join('/') : '—'}</td>
+      <td style="font-weight:700;min-width:130px">${val(r.nombrecliente)}</td>
+      <td style="font-family:monospace">${val(r.dni)}</td>
+      <td style="font-weight:600">${val(r.banco)}</td>
+      <td>${val(r.tipocta)}</td>
+      <td>${val(r.tasa)}</td>
+      <td>${val(r.concesionaria)}</td>
+      <td>${val(r.provincia)}</td>
+      <td>${val(r.localidad)}</td>
+      <td>${val(r.marca)}</td>
+      <td style="max-width:120px;overflow:hidden;text-overflow:ellipsis" title="${r.descripcion||''}">${val(r.descripcion)}</td>
+      <td style="font-family:monospace">${mon(r.vehiculo)}</td>
+      <td style="font-family:monospace">${mon(r.importe)}</td>
+      <td style="font-family:monospace">${mon(r.agencia)}</td>
+      <td style="font-family:monospace;color:var(--green);font-weight:600">${mon(r.comision)}</td>
+      <td>${r.estado ? `<span class="badge b-${r.estado.toLowerCase()}"><span class="bd"></span>${r.estado}</span>` : '—'}</td>
+      <td><button class="btn-asignar" onclick="asignarGestoria('${r.id}')">Asignar</button></td>
+    </tr>`).join('');
+}
+
+function asignarGestoria(id) {
+  // Función reservada — funcionalidad a definir
+  toast('Función "Asignar" próximamente', 'in');
+}
+
+async function syncGestoriaSheet() {
+  // Sincroniza los registros de Solicitudes a la pestaña Gestoria en Sheets
+  try {
+    await gas({ action: 'syncGestoria' });
+  } catch(e) {}
 }
 
 document.getElementById('l-p').addEventListener('keydown', e => { if(e.key==='Enter') doLogin(); });
@@ -2271,6 +2364,9 @@ function renderReportes() {
     <button class="sb-item" id="sb-gestores" onclick="closeSidebar();openGestores()">
       <span class="sb-icon">👤</span> Gestores
     </button>
+    <button class="sb-item" onclick="closeSidebar();openGestoria()">
+      <span class="sb-icon">📁</span> Gestoría
+    </button>
 
     <div class="sb-divider"></div>
     <div class="sb-section-label">Cuenta</div>
@@ -2327,6 +2423,59 @@ function renderReportes() {
       <div class="mfoot">
         <button class="btn btn-s" onclick="closeFormGestor()">Cancelar</button>
         <button class="btn btn-p" onclick="saveGestor()">💾 Guardar gestor</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL GESTORÍA -->
+<div class="gestoria-overlay" id="gestoria-overlay" onclick="if(event.target===this)closeGestoria()">
+  <div class="gestoria-modal" onclick="event.stopPropagation()">
+    <div class="gestoria-head">
+      <div>
+        <div style="font-size:17px;font-weight:800;color:var(--ink)">📁 Gestoría</div>
+        <div style="font-size:12px;color:var(--muted);margin-top:2px" id="gestoria-count">—</div>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <div class="searchbox" style="min-width:220px">
+          <span style="color:var(--muted)">🔍</span>
+          <input id="gestoria-srch" placeholder="Buscar cliente, banco..." oninput="renderGestoria()">
+        </div>
+        <button class="xbtn" onclick="closeGestoria()" style="width:34px;height:34px;font-size:18px">×</button>
+      </div>
+    </div>
+    <div class="gestoria-body">
+      <div style="overflow-x:auto">
+        <table class="gestoria-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Fecha</th>
+              <th>Cliente</th>
+              <th>DNI</th>
+              <th>Banco</th>
+              <th>Tipo CTA</th>
+              <th>Tasa</th>
+              <th>Concesionaria</th>
+              <th>Provincia</th>
+              <th>Localidad</th>
+              <th>Marca</th>
+              <th>Descripción</th>
+              <th>Monto Vehículo</th>
+              <th>Imp. Solicitado</th>
+              <th>Monto Agencia</th>
+              <th>Comisión</th>
+              <th>Estado</th>
+              <th>Acción</th>
+            </tr>
+          </thead>
+          <tbody id="gestoria-tbody"></tbody>
+        </table>
+      </div>
+      <div id="gestoria-empty" class="empty-state" style="display:none">
+        <div class="ei">📁</div>
+        <h3>Sin registros</h3>
+        <p>No hay solicitudes cargadas todavía</p>
       </div>
     </div>
   </div>
