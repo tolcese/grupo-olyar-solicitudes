@@ -272,7 +272,8 @@ pre{background:#0f172a;color:#7dd3fc;padding:18px;font-family:'JetBrains Mono',m
 .gestoria-modal{background:#fff;border-radius:18px;width:100%;max-width:1200px;max-height:92vh;display:flex;flex-direction:column;box-shadow:var(--sh-lg);transform:scale(.96) translateY(10px);transition:transform .25s cubic-bezier(.34,1.56,.64,1);}
 .gestoria-overlay.open .gestoria-modal{transform:scale(1) translateY(0);}
 .gestoria-head{padding:20px 28px;border-bottom:1.5px solid var(--line);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
-.gestoria-body{overflow:auto;flex:1;padding:0;}
+.gestoria-body{overflow-y:auto;overflow-x:hidden;flex:1;padding:0;}
+.gestoria-body-inner{overflow-x:visible;}
 .gestoria-scroll-mirror{overflow-x:auto;overflow-y:hidden;height:14px;border-top:1.5px solid var(--line);flex-shrink:0;background:#fff;}
 .gestoria-scroll-mirror-inner{height:1px;}
 .gestoria-table{width:100%;border-collapse:collapse;min-width:1100px;font-size:13px;}
@@ -1063,14 +1064,14 @@ function openGestoria() {
 }
 
 function initGestoriaMirror() {
-  const body   = document.querySelector('.gestoria-body');
+  const scroll = document.getElementById('gestoria-scroll');
   const mirror = document.getElementById('gestoria-mirror');
   const inner  = document.getElementById('gestoria-mirror-inner');
-  if (!body || !mirror || !inner) return;
-  inner.style.width = body.scrollWidth + 'px';
+  if (!scroll || !mirror || !inner) return;
+  inner.style.width = scroll.scrollWidth + 'px';
   let syncing = false;
-  body.onscroll = () => { if (syncing) return; syncing = true; mirror.scrollLeft = body.scrollLeft; syncing = false; };
-  mirror.onscroll = () => { if (syncing) return; syncing = true; body.scrollLeft = mirror.scrollLeft; syncing = false; };
+  scroll.onscroll = () => { if (syncing) return; syncing = true; mirror.scrollLeft = scroll.scrollLeft; syncing = false; };
+  mirror.onscroll = () => { if (syncing) return; syncing = true; scroll.scrollLeft = mirror.scrollLeft; syncing = false; };
 }
 
 function closeGestoria() {
@@ -2460,7 +2461,7 @@ function renderReportes() {
       </div>
     </div>
     <div class="gestoria-body">
-      <div style="overflow-x:auto">
+      <div id="gestoria-scroll" style="overflow-x:auto;overflow-y:visible">
         <table class="gestoria-table">
           <thead>
             <tr>
@@ -2482,7 +2483,6 @@ function renderReportes() {
               <th>Monto Agencia</th>
               <th>Comisión</th>
               <th>Estado</th>
-              <th>Acción</th>
             </tr>
           </thead>
           <tbody id="gestoria-tbody"></tbody>
