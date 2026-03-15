@@ -297,7 +297,6 @@ pre{background:#0f172a;color:#7dd3fc;padding:18px;font-family:'JetBrains Mono',m
         <button class="tn" id="btn-datero" onclick="copyDatero()" style="display:none">🔗 Link de DATERO</button>
         <button class="tn" id="tn-usuarios" style="display:none" onclick="showV('usuarios')">👥 Usuarios</button>
         <button class="tn" id="tn-reportes" style="display:none" onclick="showV('reportes')">📊 Reportes</button>
-        <button class="tn" id="tn-backup" style="display:none" onclick="showV('backup')">💾 Backup</button>
         <button class="tn" id="tn-micuenta" onclick="showV('micuenta')">🔑 Mi cuenta</button>
         <button class="tn" id="tn-config" style="display:none" onclick="showV('config')">⚙️ Configuración</button>
       </nav>
@@ -874,7 +873,6 @@ async function enterApp() {
   document.getElementById('sc-imp').style.display = ME.rol === 'admin' ? '' : 'none';
   document.getElementById('f-usu').style.display = ME.rol === 'admin' ? '' : 'none';
   document.getElementById('tn-reportes').style.display = ME.rol === 'admin' ? '' : 'none';
-  document.getElementById('tn-backup').style.display = ME.rol === 'admin' ? '' : 'none';
   document.getElementById('btn-datero').style.display = ME.rol === 'admin' ? 'none' : '';
   document.getElementById('cfg-wh').value = WH;
   syncUI(WH ? 'ok' : 'idle');
@@ -915,6 +913,7 @@ function openSidebar() {
   if (ME) document.getElementById('sb-username').textContent = '@' + (ME.usr || ME.nom || '');
   // Mostrar config solo si admin
   document.getElementById('sb-config').style.display = ME?.rol === 'admin' ? '' : 'none';
+  document.getElementById('sb-backup').style.display = ME?.rol === 'admin' ? '' : 'none';
 }
 function closeSidebar() {
   document.getElementById('sidebar').classList.remove('open');
@@ -2164,6 +2163,9 @@ function renderReportes() {
     </button>
     <button class="sb-item" id="sb-config" onclick="closeSidebar();showV('config')" style="display:none">
       <span class="sb-icon">⚙️</span> Configuración
+    </button>
+    <button class="sb-item" id="sb-backup" onclick="closeSidebar();showV('backup')" style="display:none">
+      <span class="sb-icon">💾</span> Backup
     </button>
 
     <div class="sb-divider"></div>
