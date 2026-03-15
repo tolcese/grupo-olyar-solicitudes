@@ -273,6 +273,8 @@ pre{background:#0f172a;color:#7dd3fc;padding:18px;font-family:'JetBrains Mono',m
 .gestoria-overlay.open .gestoria-modal{transform:scale(1) translateY(0);}
 .gestoria-head{padding:20px 28px;border-bottom:1.5px solid var(--line);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
 .gestoria-body{overflow:auto;flex:1;padding:0;}
+.gestoria-scroll-mirror{overflow-x:auto;overflow-y:hidden;height:14px;border-top:1.5px solid var(--line);flex-shrink:0;background:#fff;}
+.gestoria-scroll-mirror-inner{height:1px;}
 .gestoria-table{width:100%;border-collapse:collapse;min-width:1100px;font-size:13px;}
 .gestoria-table thead tr{background:var(--surface);border-bottom:1.5px solid var(--line);}
 .gestoria-table th{padding:10px 13px;text-align:left;font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;white-space:nowrap;}
@@ -1057,6 +1059,18 @@ function openGestoria() {
   document.getElementById('tn-gestoria').classList.add('active');
   renderGestoria();
   syncGestoriaSheet();
+  setTimeout(initGestoriaMirror, 150);
+}
+
+function initGestoriaMirror() {
+  const body   = document.querySelector('.gestoria-body');
+  const mirror = document.getElementById('gestoria-mirror');
+  const inner  = document.getElementById('gestoria-mirror-inner');
+  if (!body || !mirror || !inner) return;
+  inner.style.width = body.scrollWidth + 'px';
+  let syncing = false;
+  body.onscroll = () => { if (syncing) return; syncing = true; mirror.scrollLeft = body.scrollLeft; syncing = false; };
+  mirror.onscroll = () => { if (syncing) return; syncing = true; body.scrollLeft = mirror.scrollLeft; syncing = false; };
 }
 
 function closeGestoria() {
@@ -1091,6 +1105,7 @@ function renderGestoria() {
   tbody.innerHTML = data.map((r, i) => `
     <tr>
       <td style="color:var(--muted);font-size:11px">${i+1}</td>
+      <td><button class="btn-asignar" onclick="asignarGestoria('${r.id}')">Asignar</button></td>
       <td>${r.fecha ? r.fecha.split('-').reverse().join('/') : '—'}</td>
       <td style="font-weight:700;min-width:130px">${val(r.nombrecliente)}</td>
       <td style="font-family:monospace">${val(r.dni)}</td>
@@ -1107,8 +1122,8 @@ function renderGestoria() {
       <td style="font-family:monospace">${mon(r.agencia)}</td>
       <td style="font-family:monospace;color:var(--green);font-weight:600">${mon(r.comision)}</td>
       <td>${r.estado ? `<span class="badge b-${r.estado.toLowerCase()}"><span class="bd"></span>${r.estado}</span>` : '—'}</td>
-      <td><button class="btn-asignar" onclick="asignarGestoria('${r.id}')">Asignar</button></td>
     </tr>`).join('');
+  setTimeout(initGestoriaMirror, 50);
 }
 
 function asignarGestoria(id) {
@@ -2450,6 +2465,7 @@ function renderReportes() {
           <thead>
             <tr>
               <th>#</th>
+              <th>Acción</th>
               <th>Fecha</th>
               <th>Cliente</th>
               <th>DNI</th>
@@ -2477,6 +2493,10 @@ function renderReportes() {
         <h3>Sin registros</h3>
         <p>No hay solicitudes cargadas todavía</p>
       </div>
+    </div>
+    <!-- Barra scroll espejo fija al fondo del modal -->
+    <div class="gestoria-scroll-mirror" id="gestoria-mirror">
+      <div class="gestoria-scroll-mirror-inner" id="gestoria-mirror-inner"></div>
     </div>
   </div>
 </div>
