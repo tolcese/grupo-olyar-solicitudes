@@ -238,6 +238,24 @@ pre{background:#0f172a;color:#7dd3fc;padding:18px;font-family:'JetBrains Mono',m
 #scroll-mirror-wrap{position:fixed;bottom:0;left:0;right:0;z-index:200;background:#fff;border-top:1.5px solid var(--line);box-shadow:0 -2px 8px rgba(0,0,0,.09);padding:2px 32px;display:none;transition:opacity .2s;}
 #scroll-mirror{overflow-x:auto;overflow-y:hidden;height:16px;}
 #scroll-mirror-inner{height:1px;}
+
+/* SIDEBAR */
+.hamburger-btn{width:34px;height:34px;border-radius:8px;border:1.5px solid var(--line);background:#fff;cursor:pointer;font-size:17px;display:flex;align-items:center;justify-content:center;transition:all .12s;flex-shrink:0;}
+.hamburger-btn:hover{border-color:var(--blue);color:var(--blue);}
+.sidebar-overlay{position:fixed;inset:0;background:rgba(15,23,42,.4);z-index:600;opacity:0;pointer-events:none;transition:opacity .25s;}
+.sidebar-overlay.open{opacity:1;pointer-events:all;}
+.sidebar{position:fixed;top:0;left:0;bottom:0;width:270px;max-width:90vw;background:#fff;box-shadow:8px 0 40px rgba(0,0,0,.15);z-index:601;transform:translateX(-100%);transition:transform .3s cubic-bezier(.4,0,.2,1);display:flex;flex-direction:column;}
+.sidebar.open{transform:translateX(0);}
+.sidebar-head{padding:18px 20px;border-bottom:1.5px solid var(--line);display:flex;align-items:center;justify-content:space-between;}
+.sidebar-brand{display:flex;align-items:center;gap:10px;}
+.sidebar-body{padding:16px 12px;flex:1;overflow-y:auto;}
+.sb-section-label{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;padding:0 10px;margin-bottom:6px;margin-top:4px;}
+.sb-item{width:100%;padding:10px 12px;border-radius:9px;border:none;background:none;font-family:'Inter',sans-serif;font-size:13.5px;font-weight:600;color:var(--ink2);cursor:pointer;display:flex;align-items:center;gap:10px;text-align:left;transition:all .12s;}
+.sb-item:hover{background:var(--blue-soft);color:var(--blue);}
+.sb-item-danger{color:var(--red);}
+.sb-item-danger:hover{background:var(--red-soft);color:var(--red);}
+.sb-icon{font-size:16px;width:22px;text-align:center;}
+.sb-divider{border:none;border-top:1px solid var(--line);margin:10px 0;}
 </style>
 </head>
 <body>
@@ -271,6 +289,7 @@ pre{background:#0f172a;color:#7dd3fc;padding:18px;font-family:'JetBrains Mono',m
 <div id="app">
   <div class="topbar">
     <div class="tb-left">
+      <button class="hamburger-btn" id="hamburger-btn" onclick="toggleSidebar()">☰</button>
       <div class="tb-brand"><div class="tb-dot"></div>Grupo Olyar</div>
       <nav class="tb-nav">
         <button class="tn active" id="tn-sol" onclick="showV('sol')">📋 Solicitudes</button>
@@ -878,6 +897,28 @@ function doLogout() {
   // Reset nav
   document.getElementById('tn-usuarios').style.display = 'none';
   document.getElementById('tn-config').style.display = 'none';
+  closeSidebar();
+}
+
+// ══════════════════════════════════════════════
+// SIDEBAR
+// ══════════════════════════════════════════════
+function toggleSidebar() {
+  const sb = document.getElementById('sidebar');
+  if (sb.classList.contains('open')) closeSidebar();
+  else openSidebar();
+}
+function openSidebar() {
+  document.getElementById('sidebar').classList.add('open');
+  document.getElementById('sidebar-overlay').classList.add('open');
+  // Sincronizar nombre de usuario
+  if (ME) document.getElementById('sb-username').textContent = '@' + (ME.usr || ME.nom || '');
+  // Mostrar config solo si admin
+  document.getElementById('sb-config').style.display = ME?.rol === 'admin' ? '' : 'none';
+}
+function closeSidebar() {
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('sidebar-overlay').classList.remove('open');
 }
 
 document.getElementById('l-p').addEventListener('keydown', e => { if(e.key==='Enter') doLogin(); });
@@ -2101,6 +2142,36 @@ function renderReportes() {
   });
 }
 </script>
+
+<!-- SIDEBAR LATERAL IZQUIERDO -->
+<div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebar()"></div>
+<div class="sidebar" id="sidebar">
+  <div class="sidebar-head">
+    <div class="sidebar-brand">
+      <div class="login-icon" style="width:36px;height:36px;font-size:17px">🚘</div>
+      <div>
+        <div style="font-size:14px;font-weight:800;color:var(--ink)">Grupo Olyar</div>
+        <div style="font-size:11px;color:var(--muted)" id="sb-username">—</div>
+      </div>
+    </div>
+    <button class="xbtn" onclick="closeSidebar()" style="width:32px;height:32px;font-size:18px">×</button>
+  </div>
+
+  <div class="sidebar-body">
+    <div class="sb-section-label">Cuenta</div>
+    <button class="sb-item" onclick="closeSidebar();showV('micuenta')">
+      <span class="sb-icon">🔑</span> Mi cuenta
+    </button>
+    <button class="sb-item" id="sb-config" onclick="closeSidebar();showV('config')" style="display:none">
+      <span class="sb-icon">⚙️</span> Configuración
+    </button>
+
+    <div class="sb-divider"></div>
+    <button class="sb-item sb-item-danger" onclick="closeSidebar();doLogout()">
+      <span class="sb-icon">🚪</span> Cerrar sesión
+    </button>
+  </div>
+</div>
 
 <!-- SCROLL MIRROR FIJO -->
 <div id="scroll-mirror-wrap">
