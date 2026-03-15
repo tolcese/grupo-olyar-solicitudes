@@ -280,6 +280,20 @@ pre{background:#0f172a;color:#7dd3fc;padding:18px;font-family:'JetBrains Mono',m
 .gestoria-table thead tr{border-bottom:1.5px solid var(--line);}
 .gestoria-scroll-mirror{overflow-x:auto;overflow-y:hidden;height:14px;border-top:1.5px solid var(--line);flex-shrink:0;background:#fff;}
 .gestoria-scroll-mirror-inner{height:1px;}
+
+/* MODAL SELECCIONAR GESTOR */
+.sel-gestor-overlay{position:fixed;inset:0;background:rgba(15,23,42,.6);z-index:700;display:flex;align-items:center;justify-content:center;padding:16px;opacity:0;pointer-events:none;transition:opacity .2s;}
+.sel-gestor-overlay.open{opacity:1;pointer-events:all;}
+.sel-gestor-modal{background:#fff;border-radius:16px;width:100%;max-width:480px;max-height:80vh;display:flex;flex-direction:column;box-shadow:var(--sh-lg);transform:scale(.95) translateY(8px);transition:transform .2s cubic-bezier(.34,1.56,.64,1);}
+.sel-gestor-overlay.open .sel-gestor-modal{transform:scale(1) translateY(0);}
+.sel-gestor-head{padding:18px 22px;border-bottom:1.5px solid var(--line);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
+.sel-gestor-body{overflow-y:auto;padding:14px 16px;flex:1;}
+.sel-gestor-item{display:flex;align-items:center;gap:12px;padding:11px 12px;border-radius:10px;cursor:pointer;border:1.5px solid var(--line);margin-bottom:8px;transition:all .12s;}
+.sel-gestor-item:hover{border-color:var(--blue);background:var(--blue-soft);}
+.sel-gestor-item:last-child{margin-bottom:0;}
+.sel-gestor-av{width:36px;height:36px;border-radius:50%;background:var(--blue);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;color:#fff;flex-shrink:0;}
+.sel-gestor-info .sgi-name{font-size:13.5px;font-weight:700;color:var(--ink);}
+.sel-gestor-info .sgi-sub{font-size:11.5px;color:var(--muted);margin-top:2px;}
 .gestoria-table th{padding:10px 13px;text-align:left;font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;white-space:nowrap;}
 .gestoria-table td{padding:11px 13px;color:var(--ink2);border-bottom:1px solid var(--line);vertical-align:middle;white-space:nowrap;}
 .gestoria-table tbody tr:last-child td{border-bottom:none;}
@@ -1137,13 +1151,63 @@ function renderGestoria() {
       <td style="font-family:monospace">${mon(r.agencia)}</td>
       <td style="font-family:monospace;color:var(--green);font-weight:600">${mon(r.comision)}</td>
       <td>${r.estado ? `<span class="badge b-${r.estado.toLowerCase()}"><span class="bd"></span>${r.estado}</span>` : '—'}</td>
+      <td style="font-size:12px;color:var(--blue);font-weight:600">${r.gestorAsignado || '<span style="color:var(--muted)">Sin asignar</span>'}</td>
     </tr>`).join('');
   setTimeout(initGestoriaMirror, 50);
 }
 
-function asignarGestoria(id) {
-  // Función reservada — funcionalidad a definir
-  toast('Función "Asignar" próximamente', 'in');
+let ASIGNAR_ID = null; // ID del registro de Gestoría a asignar
+
+async function asignarGestoria(id) {
+  ASIGNAR_ID = id;
+  const r = RECORDS.find(x => x.id === id);
+  document.getElementById('sel-gestor-sub').textContent = r ? (r.nombrecliente || id) : id;
+  document.getElementById('sel-gestor-overlay').classList.add('open');
+
+  const body = document.getElementById('sel-gestor-body');
+  body.innerHTML = '<div style="text-align:center;color:var(--muted);padding:30px"><span class="spinner"></span> Cargando...</div>';
+
+  try {
+    const res = await gas({ action: 'getGestores' });
+    const gestores = res.gestores || [];
+    if (!gestores.length) {
+      body.innerHTML = '<div style="text-align:center;color:var(--muted);padding:30px;font-size:13px">No hay gestores cargados.<br>Agregá uno desde el menú lateral → Gestores.</div>';
+      return;
+    }
+    body.innerHTML = gestores.map(g => `
+      <div class="sel-gestor-item" onclick="confirmarAsignacion('${g.id}', '${(g.nombre||'').replace(/'/g,"\\'")}')">
+        <div class="sel-gestor-av">${(g.nombre||'?')[0].toUpperCase()}</div>
+        <div class="sel-gestor-info">
+          <div class="sgi-name">${g.nombre||'—'}</div>
+          <div class="sgi-sub">${[g.localidad, g.provincia].filter(Boolean).join(', ')||''}${g.telefono ? ' · '+g.telefono : ''}</div>
+        </div>
+      </div>`).join('');
+  } catch(e) {
+    body.innerHTML = '<div style="color:var(--red);padding:20px;font-size:13px">Error cargando gestores.</div>';
+  }
+}
+
+function closeSelGestor() {
+  document.getElementById('sel-gestor-overlay').classList.remove('open');
+  ASIGNAR_ID = null;
+}
+
+async function confirmarAsignacion(gestorId, gestorNombre) {
+  if (!ASIGNAR_ID) return;
+  try {
+    await gas({
+      action:       'asignarGestor',
+      solicitudId:  ASIGNAR_ID,
+      gestorId,
+      gestorNombre
+    });
+    toast(`Asignado a ${gestorNombre} ✓`, 'ok');
+    closeSelGestor();
+    renderGestoria();
+    await syncGestoriaSheet();
+  } catch(e) {
+    toast('Error al asignar: ' + e.message, 'er');
+  }
 }
 
 async function syncGestoriaSheet() {
@@ -2497,6 +2561,7 @@ function renderReportes() {
               <th>Monto Agencia</th>
               <th>Comisión</th>
               <th>Estado</th>
+              <th>Gestor asignado</th>
             </tr>
           </thead>
           <tbody id="gestoria-tbody"></tbody>
@@ -2511,6 +2576,22 @@ function renderReportes() {
     <!-- Barra scroll espejo fija al fondo del modal -->
     <div class="gestoria-scroll-mirror" id="gestoria-mirror">
       <div class="gestoria-scroll-mirror-inner" id="gestoria-mirror-inner"></div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL SELECCIONAR GESTOR -->
+<div class="sel-gestor-overlay" id="sel-gestor-overlay" onclick="if(event.target===this)closeSelGestor()">
+  <div class="sel-gestor-modal" onclick="event.stopPropagation()">
+    <div class="sel-gestor-head">
+      <div>
+        <div style="font-size:15px;font-weight:800;color:var(--ink)">Seleccionar gestor</div>
+        <div style="font-size:11.5px;color:var(--muted);margin-top:2px" id="sel-gestor-sub">—</div>
+      </div>
+      <button class="xbtn" onclick="closeSelGestor()" style="width:32px;height:32px;font-size:18px">×</button>
+    </div>
+    <div class="sel-gestor-body" id="sel-gestor-body">
+      <div style="text-align:center;color:var(--muted);padding:30px"><span class="spinner"></span> Cargando...</div>
     </div>
   </div>
 </div>
