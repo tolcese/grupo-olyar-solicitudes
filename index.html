@@ -861,7 +861,8 @@ function doPost(e) { return doGet(e); }`;
 // ══════════════════════════════════════════════
 // CONFIG — URL del Apps Script
 // ══════════════════════════════════════════════
-let WH = 'https://script.google.com/macros/s/AKfycbx6TOiYKnU0FzB1zEktwSoDAfoCiHjZCHPqDS7rawPhDG1itaa3pePWrcxAM57xMVZ0/exec';
+let WH = 'https://script.google.com/macros/s/AKfycbwc_8BZ2yuzYDySII9Kf9Hkvdq1WjCubyNyQcUQf20pgWdF7Vy7MtisNcX0WbEtpj5U/exec';
+const SHEET_NAME = 'Solicitudes';
 
 // ══════════════════════════════════════════════
 // STATE EN MEMORIA
@@ -1996,43 +1997,30 @@ function exportCSV() {
 async function hacerBackupManual() {
   const btn = document.getElementById('btn-backup');
   const msg = document.getElementById('backup-msg');
-  btn.disabled = true;
-  btn.textContent = '⏳ Generando backup...';
-  msg.style.display = 'none';
+  if (!RECORDS.length) { toast('Sin datos para respaldar','in'); return; }
 
-  try {
-    // Backup en Drive via Apps Script
-    const res = await gas({ action: 'backup' });
-    if (res.ok) {
-      msg.style.display = 'block';
-      msg.style.color = '#059669';
-      msg.innerHTML = '✓ Backup guardado en Drive:<br><b>' + res.nombre + '</b><br>'
-        + '<a href="' + res.url + '" target="_blank" style="font-size:12px;color:var(--blue)">📂 Abrir en Google Drive</a>'
-        + '<br><span style="font-size:11px;color:var(--muted)">Carpeta: Backups Grupo Olyar</span>';
-      toast('Backup guardado en Drive ✓', 'ok');
-    } else {
-      throw new Error(res.error || 'Error desconocido');
-    }
-  } catch(e) {
-    msg.style.display = 'block';
-    msg.style.color = 'var(--red)';
-    msg.innerHTML = '✕ Error al guardar en Drive: ' + e.message;
-    toast('Error en backup: ' + e.message, 'er');
-  } finally {
-    btn.disabled = false;
-    btn.textContent = '💾 Hacer backup ahora';
-  }
+  const fecha = new Date().toISOString().slice(0,10);
+  const nombre = 'Backup_Grupo_Olyar_' + fecha;
+
+  const H = ['ID','Fecha','Banco','Concesionaria','Provincia','Localidad','DNI','Cliente','Dominio','Marca','Descripcion','Tipo CTA','Importe','Agencia','Vehiculo','Estado','Doc 01/08','Titulo','Ver. Pol.','Inf. Dom.','Tasa','Obs','Usuario','Fecha Reg','Comision'];
+  const rows = RECORDS.map(r => [r.id,r.fecha,r.banco,r.concesionaria,r.provincia,r.localidad,r.dni,r.nombrecliente,r.dominio,r.marca,r.descripcion,r.tipocta,r.importe,r.agencia,r.vehiculo,r.estado,r.doc01?'Si':'No',r.titulo?'Si':'No',r.verif?'Si':'No',r.infdom?'Si':'No',r.tasa,r.obs,r.usuario,r.fechaReg,r.comision].map(v=>`"${(v||'').toString().replace(/"/g,'""')}"`).join(';'));
+
+  const csv = '\uFEFF' + [H.join(';'), ...rows].join('\n');
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([csv], {type:'text/csv;charset=utf-8;'}));
+  a.download = nombre + '.csv';
+  a.click();
+
+  msg.style.display = 'block';
+  msg.style.color = '#059669';
+  msg.innerHTML = '✓ Backup descargado:<br><b>' + nombre + '.csv</b><br><span style="font-size:11px;color:var(--muted)">Guardado en tu carpeta de descargas</span>';
+  toast('Backup descargado ✓', 'ok');
 }
 
 async function activarBackupAuto() {
   const msg = document.getElementById('backup-auto-msg');
   msg.style.display = 'block';
-  msg.innerHTML = '⚙️ Para activar el backup automático cada 15 días:'
-    + '<br><b>1.</b> Abrí Apps Script'
-    + '<br><b>2.</b> En el menú superior seleccioná la función <code>configurarTriggerBackup</code>'
-    + '<br><b>3.</b> Hacé clic en ▶ Ejecutar'
-    + '<br><b>4.</b> Aceptá los permisos que solicite'
-    + '<br><span style="color:var(--green);font-weight:600">✓ Listo — el backup se ejecutará solo cada 15 días a las 3am y se guardará en tu Drive en la carpeta "Backups Grupo Olyar"</span>';
+  msg.textContent = 'Para activar el backup automático, abrí Apps Script → ejecutá la función configurarTriggerBackup() una sola vez. Después se ejecutará solo cada 15 días.';
 }
 
 // ══════════════════════════════════════════════
