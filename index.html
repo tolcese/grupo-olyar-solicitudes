@@ -982,6 +982,7 @@ function openSidebar() {
   // Mostrar config solo si admin
   document.getElementById('sb-config').style.display = ME?.rol === 'admin' ? '' : 'none';
   document.getElementById('sb-backup').style.display = ME?.rol === 'admin' ? '' : 'none';
+  document.getElementById('sb-contabilidad').style.display = ME?.rol === 'admin' ? '' : 'none';
 }
 function closeSidebar() {
   document.getElementById('sidebar').classList.remove('open');
@@ -1233,6 +1234,16 @@ async function confirmarAsignacion(gestorId, gestorNombre) {
 
 async function syncGestoriaSheet() {
   try { await gas({ action: 'syncGestoria' }); } catch(e) {}
+}
+
+// ══════════════════════════════════════════════
+// CONTABILIDAD
+// ══════════════════════════════════════════════
+function openContabilidad() {
+  document.getElementById('contabilidad-overlay').classList.add('open');
+}
+function closeContabilidad() {
+  document.getElementById('contabilidad-overlay').classList.remove('open');
 }
 
 // ══════════════════════════════════════════════
@@ -2642,6 +2653,9 @@ function renderReportes() {
     <button class="sb-item" id="sb-backup" onclick="closeSidebar();showV('backup')" style="display:none">
       <span class="sb-icon">💾</span> Backup
     </button>
+    <button class="sb-item" id="sb-contabilidad" onclick="closeSidebar();openContabilidad()" style="display:none">
+      <span class="sb-icon">🧾</span> Contabilidad
+    </button>
 
     <div class="sb-divider"></div>
     <button class="sb-item sb-item-danger" onclick="closeSidebar();doLogout()">
@@ -2745,6 +2759,21 @@ function renderReportes() {
     <!-- Barra scroll espejo fija al fondo del modal -->
     <div class="gestoria-scroll-mirror" id="gestoria-mirror">
       <div class="gestoria-scroll-mirror-inner" id="gestoria-mirror-inner"></div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL CONTABILIDAD -->
+<div class="overlay" id="contabilidad-overlay" onclick="if(event.target===this)closeContabilidad()">
+  <div class="modal" style="max-width:700px" onclick="event.stopPropagation()">
+    <div class="mh">
+      <div class="mt">🧾 Contabilidad</div>
+      <button class="xbtn" onclick="closeContabilidad()">×</button>
+    </div>
+    <div style="text-align:center;padding:48px 20px;color:var(--muted)">
+      <div style="font-size:48px;margin-bottom:12px">🧾</div>
+      <div style="font-size:15px;font-weight:700;color:var(--ink2);margin-bottom:6px">Sección en construcción</div>
+      <div style="font-size:13px">Próximamente vas a poder gestionar datos contables desde acá.</div>
     </div>
   </div>
 </div>
