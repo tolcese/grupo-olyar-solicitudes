@@ -294,6 +294,25 @@ pre{background:#0f172a;color:#7dd3fc;padding:18px;font-family:'JetBrains Mono',m
 .sel-gestor-av{width:36px;height:36px;border-radius:50%;background:var(--blue);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;color:#fff;flex-shrink:0;}
 .sel-gestor-info .sgi-name{font-size:13.5px;font-weight:700;color:var(--ink);}
 .sel-gestor-info .sgi-sub{font-size:11.5px;color:var(--muted);margin-top:2px;}
+
+/* PRENDAS */
+.prendas-overlay{position:fixed;inset:0;background:rgba(15,23,42,.55);backdrop-filter:blur(4px);z-index:500;display:flex;align-items:center;justify-content:center;padding:16px;opacity:0;pointer-events:none;transition:opacity .2s;}
+.prendas-overlay.open{opacity:1;pointer-events:all;}
+.prendas-modal{background:#fff;border-radius:18px;width:100%;max-width:1300px;max-height:92vh;display:flex;flex-direction:column;box-shadow:var(--sh-lg);transform:scale(.96) translateY(10px);transition:transform .25s cubic-bezier(.34,1.56,.64,1);}
+.prendas-overlay.open .prendas-modal{transform:scale(1) translateY(0);}
+.prendas-head{padding:20px 28px;border-bottom:1.5px solid var(--line);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
+.prendas-body{overflow-y:auto;overflow-x:hidden;flex:1;padding:0;}
+.prendas-scroll-x{overflow-x:auto;overflow-y:visible;scrollbar-width:none;}
+.prendas-scroll-x::-webkit-scrollbar{display:none;}
+.prendas-scroll-mirror{overflow-x:auto;overflow-y:hidden;height:14px;border-top:1.5px solid var(--line);flex-shrink:0;background:#fff;}
+.prendas-scroll-mirror-inner{height:1px;}
+.prendas-table{width:100%;border-collapse:collapse;min-width:1400px;font-size:13px;}
+.prendas-table thead th{position:sticky;top:0;z-index:2;background:var(--surface);}
+.prendas-table thead tr{border-bottom:1.5px solid var(--line);}
+.prendas-table th{padding:10px 13px;text-align:left;font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;white-space:nowrap;}
+.prendas-table td{padding:11px 13px;color:var(--ink2);border-bottom:1px solid var(--line);vertical-align:middle;white-space:nowrap;}
+.prendas-table tbody tr:last-child td{border-bottom:none;}
+.prendas-table tbody tr:hover td{background:#f8faff;}
 .gestoria-table th{padding:10px 13px;text-align:left;font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;white-space:nowrap;}
 .gestoria-table td{padding:11px 13px;color:var(--ink2);border-bottom:1px solid var(--line);vertical-align:middle;white-space:nowrap;}
 .gestoria-table tbody tr:last-child td{border-bottom:none;}
@@ -342,6 +361,7 @@ pre{background:#0f172a;color:#7dd3fc;padding:18px;font-family:'JetBrains Mono',m
         <button class="tn" id="tn-usuarios" style="display:none" onclick="showV('usuarios')">👥 Usuarios</button>
         <button class="tn" id="tn-reportes" style="display:none" onclick="showV('reportes')">📊 Reportes</button>
         <button class="tn" id="tn-gestoria" onclick="openGestoria()">📁 Gestoría</button>
+        <button class="tn" id="tn-prendas" onclick="openPrendas()">📌 Prendas</button>
         <button class="tn" id="tn-micuenta" onclick="showV('micuenta')">🔑 Mi cuenta</button>
       </nav>
     </div>
@@ -835,7 +855,7 @@ function doPost(e) { return doGet(e); }`;
 // ══════════════════════════════════════════════
 // CONFIG — URL del Apps Script
 // ══════════════════════════════════════════════
-let WH = 'https://script.google.com/macros/s/AKfycbw3XlWLPm6VE5fG15RbYw2V1KmTjSoV0TC7vbltxiX-oojJDpKx-vW6E9CzJIGIfhRI/exec';
+let WH = 'https://script.google.com/macros/s/AKfycbwAxMO1z39pGJ7c-yFt6Qe-HlS6RKqiCcxrJF4wUplMgB82vXhrQVdo_v8RV3if2Nc/exec';
 const SHEET_NAME = 'Solicitudes';
 
 // ══════════════════════════════════════════════
@@ -1206,10 +1226,89 @@ async function confirmarAsignacion(gestorId, gestorNombre) {
 }
 
 async function syncGestoriaSheet() {
-  // Sincroniza los registros de Solicitudes a la pestaña Gestoria en Sheets
-  try {
-    await gas({ action: 'syncGestoria' });
-  } catch(e) {}
+  try { await gas({ action: 'syncGestoria' }); } catch(e) {}
+}
+
+// ══════════════════════════════════════════════
+// PRENDAS
+// ══════════════════════════════════════════════
+function openPrendas() {
+  document.getElementById('prendas-overlay').classList.add('open');
+  document.querySelectorAll('.tn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tn-prendas').classList.add('active');
+  renderPrendas();
+  setTimeout(initPrendasMirror, 150);
+}
+
+function closePrendas() {
+  document.getElementById('prendas-overlay').classList.remove('open');
+  document.querySelectorAll('.tn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tn-sol').classList.add('active');
+}
+
+function renderPrendas() {
+  const q = (document.getElementById('prendas-srch')?.value || '').toLowerCase();
+
+  // Solo registros con gestor asignado
+  let data = RECORDS.filter(r => r.gestorAsignado && r.gestorAsignado.trim() !== '');
+  if (q) data = data.filter(r =>
+    [r.nombrecliente, r.banco, r.concesionaria, r.provincia, r.localidad, r.marca, r.gestorAsignado].some(v => (v||'').toLowerCase().includes(q))
+  );
+
+  const tbody = document.getElementById('prendas-tbody');
+  const empty = document.getElementById('prendas-empty');
+  const count = document.getElementById('prendas-count');
+
+  count.textContent = data.length + ' registro' + (data.length !== 1 ? 's' : '');
+
+  if (!data.length) {
+    tbody.innerHTML = '';
+    empty.style.display = '';
+    setTimeout(initPrendasMirror, 50);
+    return;
+  }
+  empty.style.display = 'none';
+
+  const hoy = new Date().toLocaleDateString('es-AR', {day:'2-digit', month:'2-digit', year:'numeric'});
+  const chk = v => v ? '<span style="color:var(--green);font-weight:700">✓</span>' : '<span style="color:var(--line)">—</span>';
+  const val = v => v || '—';
+
+  tbody.innerHTML = data.map((r, i) => `
+    <tr>
+      <td style="color:var(--muted);font-size:11px">${i+1}</td>
+      <td style="white-space:nowrap">${hoy}</td>
+      <td style="white-space:nowrap">${r.fecha ? r.fecha.split('-').reverse().join('/') : '—'}</td>
+      <td style="font-weight:700;color:var(--blue)">${val(r.gestorAsignado)}</td>
+      <td style="font-weight:700;min-width:130px">${val(r.nombrecliente)}</td>
+      <td style="font-weight:600">${val(r.banco)}</td>
+      <td>${val(r.concesionaria)}</td>
+      <td>${val(r.localidad)}</td>
+      <td>${val(r.provincia)}</td>
+      <td>${val(r.marca)}</td>
+      <td style="max-width:130px;overflow:hidden;text-overflow:ellipsis" title="${r.descripcion||''}">${val(r.descripcion)}</td>
+      <td>${val(r.tipocta)}</td>
+      <td class="chk">${chk(r.doc01)}</td>
+      <td class="chk">${chk(r.titulo)}</td>
+      <td class="chk">${chk(r.verif)}</td>
+      <td style="font-family:monospace">${val(r.dominio)}</td>
+      <td>${val(r.tasa)}</td>
+      <td style="font-family:monospace">${r.importe ? '$'+Number(String(r.importe).replace(/[$,]/g,'')).toLocaleString('es-AR') : '—'}</td>
+      <td style="max-width:140px;overflow:hidden;text-overflow:ellipsis" title="${r.obs||''}">${val(r.obs)}</td>
+    </tr>`).join('');
+
+  setTimeout(initPrendasMirror, 50);
+}
+
+function initPrendasMirror() {
+  const scroll = document.getElementById('prendas-scroll');
+  const mirror = document.getElementById('prendas-mirror');
+  const inner  = document.getElementById('prendas-mirror-inner');
+  if (!scroll || !mirror || !inner) return;
+  inner.style.width = scroll.scrollWidth + 'px';
+  mirror.style.display = scroll.scrollWidth > scroll.clientWidth + 2 ? 'block' : 'none';
+  let syncing = false;
+  scroll.onscroll = () => { if (syncing) return; syncing = true; mirror.scrollLeft = scroll.scrollLeft; syncing = false; };
+  mirror.onscroll = () => { if (syncing) return; syncing = true; scroll.scrollLeft = mirror.scrollLeft; syncing = false; };
 }
 
 document.getElementById('l-p').addEventListener('keydown', e => { if(e.key==='Enter') doLogin(); });
@@ -2456,6 +2555,9 @@ function renderReportes() {
     <button class="sb-item" onclick="closeSidebar();openGestoria()">
       <span class="sb-icon">📁</span> Gestoría
     </button>
+    <button class="sb-item" onclick="closeSidebar();openPrendas()">
+      <span class="sb-icon">📌</span> Prendas
+    </button>
 
     <div class="sb-divider"></div>
     <div class="sb-section-label">Cuenta</div>
@@ -2571,6 +2673,63 @@ function renderReportes() {
     <!-- Barra scroll espejo fija al fondo del modal -->
     <div class="gestoria-scroll-mirror" id="gestoria-mirror">
       <div class="gestoria-scroll-mirror-inner" id="gestoria-mirror-inner"></div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL PRENDAS -->
+<div class="prendas-overlay" id="prendas-overlay" onclick="if(event.target===this)closePrendas()">
+  <div class="prendas-modal" onclick="event.stopPropagation()">
+    <div class="prendas-head">
+      <div>
+        <div style="font-size:17px;font-weight:800;color:var(--ink)">📌 Prendas</div>
+        <div style="font-size:12px;color:var(--muted);margin-top:2px" id="prendas-count">—</div>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <div class="searchbox" style="min-width:220px">
+          <span style="color:var(--muted)">🔍</span>
+          <input id="prendas-srch" placeholder="Buscar cliente, banco, gestor..." oninput="renderPrendas()">
+        </div>
+        <button class="xbtn" onclick="closePrendas()" style="width:34px;height:34px;font-size:18px">×</button>
+      </div>
+    </div>
+    <div class="prendas-body">
+      <div class="prendas-scroll-x" id="prendas-scroll">
+        <table class="prendas-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Fecha actual</th>
+              <th>Fecha solicitud</th>
+              <th>Gestor asignado</th>
+              <th>Cliente</th>
+              <th>Banco</th>
+              <th>Concesionaria</th>
+              <th>Localidad</th>
+              <th>Provincia</th>
+              <th>Marca</th>
+              <th>Descripción vehículo</th>
+              <th>Tipo CTA</th>
+              <th>Doc 01/08</th>
+              <th>Título</th>
+              <th>Ver. Pol.</th>
+              <th>Dominio</th>
+              <th>Tasa</th>
+              <th>Imp. Solicitado</th>
+              <th>Observaciones</th>
+            </tr>
+          </thead>
+          <tbody id="prendas-tbody"></tbody>
+        </table>
+      </div>
+      <div id="prendas-empty" class="empty-state" style="display:none">
+        <div class="ei">📌</div>
+        <h3>Sin registros en Prendas</h3>
+        <p>Los registros aparecen acá cuando se les asigna un gestor en Gestoría</p>
+      </div>
+    </div>
+    <div class="prendas-scroll-mirror" id="prendas-mirror">
+      <div class="prendas-scroll-mirror-inner" id="prendas-mirror-inner"></div>
     </div>
   </div>
 </div>
