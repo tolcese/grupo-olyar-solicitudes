@@ -313,6 +313,12 @@ pre{background:#0f172a;color:#7dd3fc;padding:18px;font-family:'JetBrains Mono',m
 .prendas-table td{padding:11px 13px;color:var(--ink2);border-bottom:1px solid var(--line);vertical-align:middle;white-space:nowrap;}
 .prendas-table tbody tr:last-child td{border-bottom:none;}
 .prendas-table tbody tr:hover td{background:#f8faff;}
+
+/* MODAL EDITAR PRENDA */
+.prendas-edit-overlay{position:fixed;inset:0;background:rgba(15,23,42,.55);backdrop-filter:blur(4px);z-index:700;display:flex;align-items:center;justify-content:center;padding:16px;opacity:0;pointer-events:none;transition:opacity .2s;}
+.prendas-edit-overlay.open{opacity:1;pointer-events:all;}
+.prendas-edit-modal{background:#fff;border-radius:16px;width:100%;max-width:420px;box-shadow:var(--sh-lg);transform:scale(.95) translateY(8px);transition:transform .2s cubic-bezier(.34,1.56,.64,1);}
+.prendas-edit-overlay.open .prendas-edit-modal{transform:scale(1) translateY(0);}
 .gestoria-table th{padding:10px 13px;text-align:left;font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;white-space:nowrap;}
 .gestoria-table td{padding:11px 13px;color:var(--ink2);border-bottom:1px solid var(--line);vertical-align:middle;white-space:nowrap;}
 .gestoria-table tbody tr:last-child td{border-bottom:none;}
@@ -855,7 +861,7 @@ function doPost(e) { return doGet(e); }`;
 // ══════════════════════════════════════════════
 // CONFIG — URL del Apps Script
 // ══════════════════════════════════════════════
-let WH = 'https://script.google.com/macros/s/AKfycbwAxMO1z39pGJ7c-yFt6Qe-HlS6RKqiCcxrJF4wUplMgB82vXhrQVdo_v8RV3if2Nc/exec';
+let WH = 'https://script.google.com/macros/s/AKfycbwQyOP8Ia9qlfM7XaLkI-Zq5tTkhar-ohTKd0GDH6P6cgQ3YMlGgU0FjXwbF-Voqh98/exec';
 const SHEET_NAME = 'Solicitudes';
 
 // ══════════════════════════════════════════════
@@ -1248,8 +1254,6 @@ function closePrendas() {
 
 function renderPrendas() {
   const q = (document.getElementById('prendas-srch')?.value || '').toLowerCase();
-
-  // Solo registros con gestor asignado
   let data = RECORDS.filter(r => r.gestorAsignado && r.gestorAsignado.trim() !== '');
   if (q) data = data.filter(r =>
     [r.nombrecliente, r.banco, r.concesionaria, r.provincia, r.localidad, r.marca, r.gestorAsignado].some(v => (v||'').toLowerCase().includes(q))
@@ -1258,6 +1262,7 @@ function renderPrendas() {
   const tbody = document.getElementById('prendas-tbody');
   const empty = document.getElementById('prendas-empty');
   const count = document.getElementById('prendas-count');
+  const isAdmin = ME?.rol === 'admin';
 
   count.textContent = data.length + ' registro' + (data.length !== 1 ? 's' : '');
 
@@ -1273,8 +1278,19 @@ function renderPrendas() {
   const chk = v => v ? '<span style="color:var(--green);font-weight:700">✓</span>' : '<span style="color:var(--line)">—</span>';
   const val = v => v || '—';
 
-  tbody.innerHTML = data.map((r, i) => `
+  tbody.innerHTML = data.map((r, i) => {
+    const ep = r.enProceso || false;
+    const pr = r.presentada || false;
+    const fi = r.finalizada || '';
+    return `
     <tr>
+      <td style="position:sticky;left:0;background:#fff;z-index:1;box-shadow:2px 0 6px rgba(0,0,0,.04)">
+        <div class="abtns">
+          <button class="ibtn" onclick="editPrenda('${r.id}')" title="Editar">✏️</button>
+          ${isAdmin ? `<button class="ibtn del" onclick="delPrenda('${r.id}')" title="Eliminar">🗑️</button>` : ''}
+          ${isAdmin ? `<button class="ibtn" onclick="openHistorial('${r.id}')" title="Historial">🕐</button>` : ''}
+        </div>
+      </td>
       <td style="color:var(--muted);font-size:11px">${i+1}</td>
       <td style="white-space:nowrap">${hoy}</td>
       <td style="white-space:nowrap">${r.fecha ? r.fecha.split('-').reverse().join('/') : '—'}</td>
@@ -1294,9 +1310,55 @@ function renderPrendas() {
       <td>${val(r.tasa)}</td>
       <td style="font-family:monospace">${r.importe ? '$'+Number(String(r.importe).replace(/[$,]/g,'')).toLocaleString('es-AR') : '—'}</td>
       <td style="max-width:140px;overflow:hidden;text-overflow:ellipsis" title="${r.obs||''}">${val(r.obs)}</td>
-    </tr>`).join('');
+      <td class="chk">${ep ? '<span style="color:var(--green);font-weight:700">✓</span>' : '<span style="color:var(--line)">—</span>'}</td>
+      <td class="chk">${pr ? '<span style="color:var(--green);font-weight:700">✓</span>' : '<span style="color:var(--line)">—</span>'}</td>
+      <td style="white-space:nowrap;font-size:12px">${fi || '<span style="color:var(--muted)">—</span>'}</td>
+    </tr>`;
+  }).join('');
 
   setTimeout(initPrendasMirror, 50);
+}
+
+function editPrenda(id) {
+  const r = RECORDS.find(x => x.id === id);
+  if (!r) return;
+  document.getElementById('prenda-id').value        = id;
+  document.getElementById('prenda-en-proceso').checked = r.enProceso || false;
+  document.getElementById('prenda-presentada').checked = r.presentada || false;
+  document.getElementById('prenda-finalizada').value   = r.finalizada || '';
+  document.getElementById('prenda-cliente').textContent = r.nombrecliente || id;
+  document.getElementById('prendas-edit-overlay').classList.add('open');
+}
+
+async function savePrenda() {
+  const id = document.getElementById('prenda-id').value;
+  const enProceso  = document.getElementById('prenda-en-proceso').checked;
+  const presentada = document.getElementById('prenda-presentada').checked;
+  const finalizada = document.getElementById('prenda-finalizada').value;
+  try {
+    await gas({ action:'editPrenda', id, enProceso:String(enProceso), presentada:String(presentada), finalizada });
+    // Actualizar en memoria
+    const r = RECORDS.find(x => x.id === id);
+    if (r) { r.enProceso = enProceso; r.presentada = presentada; r.finalizada = finalizada; }
+    toast('Prenda actualizada ✓', 'ok');
+    closePrendaEdit();
+    renderPrendas();
+  } catch(e) { toast('Error: ' + e.message, 'er'); }
+}
+
+function closePrendaEdit() {
+  document.getElementById('prendas-edit-overlay').classList.remove('open');
+}
+
+async function delPrenda(id) {
+  if (!confirm('¿Eliminar este registro de Prendas?')) return;
+  try {
+    await gas({ action:'delPrenda', id });
+    const r = RECORDS.find(x => x.id === id);
+    if (r) { r.gestorAsignado = ''; r.enProceso = false; r.presentada = false; r.finalizada = ''; }
+    toast('Registro eliminado de Prendas', 'in');
+    renderPrendas();
+  } catch(e) { toast('Error: ' + e.message, 'er'); }
 }
 
 function initPrendasMirror() {
@@ -2698,6 +2760,7 @@ function renderReportes() {
         <table class="prendas-table">
           <thead>
             <tr>
+              <th>Acciones</th>
               <th>#</th>
               <th>Fecha actual</th>
               <th>Fecha solicitud</th>
@@ -2717,6 +2780,9 @@ function renderReportes() {
               <th>Tasa</th>
               <th>Imp. Solicitado</th>
               <th>Observaciones</th>
+              <th>En proceso</th>
+              <th>Presentada</th>
+              <th>Finalizada</th>
             </tr>
           </thead>
           <tbody id="prendas-tbody"></tbody>
@@ -2730,6 +2796,44 @@ function renderReportes() {
     </div>
     <div class="prendas-scroll-mirror" id="prendas-mirror">
       <div class="prendas-scroll-mirror-inner" id="prendas-mirror-inner"></div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL EDITAR PRENDA -->
+<div class="prendas-edit-overlay" id="prendas-edit-overlay" onclick="if(event.target===this)closePrendaEdit()">
+  <div class="prendas-edit-modal" onclick="event.stopPropagation()">
+    <div class="mh" style="padding:20px 24px;border-bottom:1.5px solid var(--line)">
+      <div>
+        <div class="mt">✏️ Editar prenda</div>
+        <div style="font-size:11.5px;color:var(--muted);margin-top:3px" id="prenda-cliente">—</div>
+      </div>
+      <button class="xbtn" onclick="closePrendaEdit()" style="width:32px;height:32px;font-size:18px">×</button>
+    </div>
+    <div style="padding:22px 24px">
+      <input type="hidden" id="prenda-id">
+      <div class="fg" style="grid-template-columns:1fr 1fr;gap:14px">
+        <div class="fc span2">
+          <label>En proceso</label>
+          <div class="chk-grid" style="grid-template-columns:1fr">
+            <label class="chk-row"><input type="checkbox" id="prenda-en-proceso"> Sí, está en proceso</label>
+          </div>
+        </div>
+        <div class="fc span2">
+          <label>Presentada</label>
+          <div class="chk-grid" style="grid-template-columns:1fr">
+            <label class="chk-row"><input type="checkbox" id="prenda-presentada"> Sí, fue presentada</label>
+          </div>
+        </div>
+        <div class="fc span2">
+          <label>Finalizada (fecha)</label>
+          <input type="date" id="prenda-finalizada">
+        </div>
+      </div>
+      <div class="mfoot">
+        <button class="btn btn-s" onclick="closePrendaEdit()">Cancelar</button>
+        <button class="btn btn-p" onclick="savePrenda()">💾 Guardar</button>
+      </div>
     </div>
   </div>
 </div>
