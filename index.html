@@ -1151,7 +1151,7 @@ function openGestorPanel(id, nombre, localidad, provincia, telefono, email, dire
   btns.className = 'panel-btns';
   btns.style.cssText = 'display:flex;gap:8px;margin-top:10px;';
   btns.innerHTML = `
-    <button class="btn btn-p" style="font-size:12px;padding:6px 12px" onclick="closeGestorPanelSinReabrir();openFormGestor('${id}')">✏️ Editar</button>
+    <button class="btn btn-p" style="font-size:12px;padding:6px 12px" onclick="closeGestorPanelSinReabrir();openGestores().then(()=>openFormGestor('${id}'))">✏️ Editar</button>
     <button class="btn btn-d" style="font-size:12px;padding:6px 12px" onclick="closeGestorPanelSinReabrir();delGestor('${id}')">🗑️ Eliminar</button>
   `;
   panelHead.appendChild(btns);
