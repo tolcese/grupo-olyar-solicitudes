@@ -1042,6 +1042,7 @@ function openSidebar() {
   // Sincronizar nombre de usuario
   if (ME) document.getElementById('sb-username').textContent = '@' + (ME.usr || ME.nom || '');
   // Mostrar config solo si admin
+  document.getElementById('sb-nueva').style.display = ME?.rol === 'admin' ? 'none' : '';
   document.getElementById('sb-config').style.display = ME?.rol === 'admin' ? '' : 'none';
   document.getElementById('sb-backup').style.display = ME?.rol === 'admin' ? '' : 'none';
   document.getElementById('sb-usuarios').style.display = ME?.rol === 'admin' ? '' : 'none';
@@ -3347,7 +3348,7 @@ function renderReportes() {
 
   <div class="sidebar-body">
     <div class="sb-section-label">Gestión</div>
-    <button class="sb-item" onclick="closeSidebar();showV('nueva')">
+    <button class="sb-item" id="sb-nueva" onclick="closeSidebar();showV('nueva')" style="display:none">
       <span class="sb-icon">➕</span> Nueva solicitud
     </button>
     <button class="sb-item" id="sb-gestores" onclick="closeSidebar();openGestores()">
