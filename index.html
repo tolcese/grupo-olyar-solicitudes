@@ -407,10 +407,8 @@ pre{background:#0f172a;color:#7dd3fc;padding:18px;font-family:'JetBrains Mono',m
       <button class="hamburger-btn" id="hamburger-btn" onclick="toggleSidebar()">☰</button>
       <div class="tb-brand"><div class="tb-dot"></div>Grupo Olyar</div>
       <nav class="tb-nav">
-        <button class="tn active" id="tn-sol" onclick="showV('sol')">📋 Solicitudes</button>
-        <button class="tn" id="tn-nueva" onclick="showV('nueva')">➕ Nueva</button>
+        <button class="tn active" id="tn-sol" onclick="showV('sol')">🏠 Inicio</button>
         <button class="tn" id="btn-datero" onclick="copyDatero()" style="display:none">🔗 Link de DATERO</button>
-        <button class="tn" id="tn-usuarios" style="display:none" onclick="showV('usuarios')">👥 Usuarios</button>
         <button class="tn" id="tn-reportes" style="display:none" onclick="showV('reportes')">📊 Reportes</button>
         <button class="tn" id="tn-gestoria" onclick="openGestoria()">📁 Gestoría</button>
         <button class="tn" id="tn-prendas" onclick="openPrendas()">📌 Prendas</button>
@@ -992,7 +990,7 @@ async function enterApp() {
   document.getElementById('tb-uname').textContent = ME.nom;
   document.getElementById('tb-role').textContent = ME.rol === 'admin' ? '⚡ Admin' : '👤 Usuario';
   if (ME.rol === 'admin') {
-    document.getElementById('tn-usuarios').style.display = '';
+    document.getElementById('sb-usuarios').style.display = '';
     document.getElementById('th-acc').style.display = '';
   } else {
     document.getElementById('th-acc').style.display = 'none';
@@ -1026,7 +1024,7 @@ function doLogout() {
   document.getElementById('login-btn').style.display = 'block';
   document.getElementById('login-loading').style.display = 'none';
   // Reset nav
-  document.getElementById('tn-usuarios').style.display = 'none';
+  document.getElementById('sb-usuarios').style.display = 'none';
   closeSidebar();
 }
 
@@ -1046,6 +1044,7 @@ function openSidebar() {
   // Mostrar config solo si admin
   document.getElementById('sb-config').style.display = ME?.rol === 'admin' ? '' : 'none';
   document.getElementById('sb-backup').style.display = ME?.rol === 'admin' ? '' : 'none';
+  document.getElementById('sb-usuarios').style.display = ME?.rol === 'admin' ? '' : 'none';
   document.getElementById('sb-contabilidad').style.display = ME?.rol === 'admin' ? '' : 'none';
 }
 function closeSidebar() {
@@ -3348,6 +3347,9 @@ function renderReportes() {
 
   <div class="sidebar-body">
     <div class="sb-section-label">Gestión</div>
+    <button class="sb-item" onclick="closeSidebar();showV('nueva')">
+      <span class="sb-icon">➕</span> Nueva solicitud
+    </button>
     <button class="sb-item" id="sb-gestores" onclick="closeSidebar();openGestores()">
       <span class="sb-icon">👤</span> Gestores
     </button>
@@ -3371,6 +3373,9 @@ function renderReportes() {
     </button>
     <button class="sb-item" id="sb-config" onclick="closeSidebar();showV('config')" style="display:none">
       <span class="sb-icon">⚙️</span> Configuración
+    </button>
+    <button class="sb-item" id="sb-usuarios" onclick="closeSidebar();showV('usuarios')" style="display:none">
+      <span class="sb-icon">👥</span> Usuarios
     </button>
     <button class="sb-item" id="sb-backup" onclick="closeSidebar();showV('backup')" style="display:none">
       <span class="sb-icon">💾</span> Backup
