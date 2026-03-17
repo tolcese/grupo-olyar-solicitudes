@@ -1052,13 +1052,13 @@ async function loadGestores() {
       return;
     }
     list.innerHTML = gestores.map(g => `
-      <div class="gestor-card">
+      <div class="gestor-card" style="cursor:pointer" onclick="openGestorPanel('${g.id}','${(g.nombre||'').replace(/'/g,"\\'")}','${(g.localidad||'').replace(/'/g,"\\'")}','${(g.provincia||'').replace(/'/g,"\\'")}','${(g.telefono||'').replace(/'/g,"\\'")}','${(g.email||'').replace(/'/g,"\\'")}','${(g.direccion||'').replace(/'/g,"\\'")}')">
         <div class="gestor-av">${(g.nombre||'?')[0].toUpperCase()}</div>
         <div class="gestor-info">
           <div class="gestor-name">${g.nombre||'—'}</div>
           <div class="gestor-sub">${[g.localidad, g.provincia].filter(Boolean).join(', ')||'—'} · ${g.telefono||g.email||'Sin contacto'}</div>
         </div>
-        <div style="display:flex;gap:5px;flex-shrink:0">
+        <div style="display:flex;gap:5px;flex-shrink:0" onclick="event.stopPropagation()">
           <button class="ibtn" onclick="openFormGestor('${g.id}')" title="Editar">✏️</button>
           <button class="ibtn del" onclick="delGestor('${g.id}')" title="Eliminar">🗑️</button>
         </div>
@@ -1099,6 +1099,52 @@ async function openFormGestor(id) {
 function closeFormGestor() {
   document.getElementById('gestores-list-wrap').style.display = '';
   document.getElementById('gestor-form-wrap').style.display = 'none';
+}
+
+function openGestorPanel(id, nombre, localidad, provincia, telefono, email, direccion) {
+  const val = v => v || '—';
+  document.getElementById('gestor-panel-name').textContent = nombre || '—';
+  document.getElementById('gestor-panel-sub').textContent  = [localidad, provincia].filter(Boolean).join(', ') || '—';
+  document.getElementById('gestor-panel-body').innerHTML = `
+    <div class="panel-section">
+      <div class="panel-section-t">Datos del gestor</div>
+      <div class="prow"><span class="pl">Nombre</span><span class="pv bold">${val(nombre)}</span></div>
+      <div class="prow"><span class="pl">Dirección</span><span class="pv">${val(direccion)}</span></div>
+      <div class="prow"><span class="pl">Localidad</span><span class="pv">${val(localidad)}</span></div>
+      <div class="prow"><span class="pl">Provincia</span><span class="pv">${val(provincia)}</span></div>
+    </div>
+    <div class="panel-section">
+      <div class="panel-section-t">Contacto</div>
+      <div class="prow"><span class="pl">Teléfono</span><span class="pv">${val(telefono)}</span></div>
+      <div class="prow"><span class="pl">Email</span><span class="pv">${val(email)}</span></div>
+    </div>
+  `;
+  const panelHead = document.getElementById('gestor-side-panel').querySelector('.panel-head');
+  const existing  = panelHead.querySelector('.panel-btns');
+  if (existing) existing.remove();
+  const btns = document.createElement('div');
+  btns.className = 'panel-btns';
+  btns.style.cssText = 'display:flex;gap:8px;margin-top:10px;';
+  btns.innerHTML = `
+    <button class="btn btn-p" style="font-size:12px;padding:6px 12px" onclick="closeGestorPanelSinReabrir();openFormGestor('${id}')">✏️ Editar</button>
+    <button class="btn btn-d" style="font-size:12px;padding:6px 12px" onclick="closeGestorPanelSinReabrir();delGestor('${id}')">🗑️ Eliminar</button>
+  `;
+  panelHead.appendChild(btns);
+  // Cerrar modal Gestores y abrir panel
+  document.getElementById('gestores-overlay').classList.remove('open');
+  document.getElementById('gestor-panel-overlay').classList.add('open');
+  document.getElementById('gestor-side-panel').classList.add('open');
+}
+
+function closeGestorPanel() {
+  document.getElementById('gestor-panel-overlay').classList.remove('open');
+  document.getElementById('gestor-side-panel').classList.remove('open');
+  document.getElementById('gestores-overlay').classList.add('open');
+}
+
+function closeGestorPanelSinReabrir() {
+  document.getElementById('gestor-panel-overlay').classList.remove('open');
+  document.getElementById('gestor-side-panel').classList.remove('open');
 }
 
 async function saveGestor() {
@@ -1325,8 +1371,8 @@ function renderPrendasEntregadas() {
   };
 
   tbody.innerHTML = data.map((r, i) => `
-    <tr>
-      <td style="position:sticky;left:0;background:#fff;z-index:1;box-shadow:2px 0 6px rgba(0,0,0,.04)">
+    <tr style="cursor:pointer" onclick="openPEPanel('${r.id}')">
+      <td style="position:sticky;left:0;background:#fff;z-index:1;box-shadow:2px 0 6px rgba(0,0,0,.04)" onclick="event.stopPropagation()">
         <div class="abtns">
           <button class="ibtn" onclick="editPERecord('${r.id}')" title="Editar">✏️</button>
           ${isAdmin ? `<button class="ibtn del" onclick="delPERecord('${r.id}')" title="Eliminar">🗑️</button>` : ''}
@@ -1396,6 +1442,72 @@ function initPEMirror() {
   let syncing = false;
   scroll.onscroll = () => { if (syncing) return; syncing = true; mirror.scrollLeft = scroll.scrollLeft; syncing = false; };
   mirror.onscroll = () => { if (syncing) return; syncing = true; scroll.scrollLeft = mirror.scrollLeft; syncing = false; };
+}
+
+function openPEPanel(id) {
+  const r = RECORDS.find(x => x.id === id);
+  if (!r) return;
+  const isAdmin = ME?.rol === 'admin';
+  const val = v => v || '—';
+  const fmtFin = v => {
+    if (!v) return '—';
+    if (v.includes('/')) return v;
+    const p = v.split('-');
+    return p.length === 3 ? p[2]+'/'+p[1]+'/'+p[0] : v;
+  };
+
+  document.getElementById('pe-panel-name').textContent = r.nombrecliente || '—';
+  document.getElementById('pe-panel-sub').textContent  = (r.banco||'—') + ' · ' + (r.gestorAsignado||'Sin gestor');
+
+  document.getElementById('pe-panel-body').innerHTML = `
+    <div class="panel-section">
+      <div class="panel-section-t">Datos generales</div>
+      <div class="prow"><span class="pl">Fecha solicitud</span><span class="pv">${r.fecha ? r.fecha.split('-').reverse().join('/') : '—'}</span></div>
+      <div class="prow"><span class="pl">Fecha finalizada</span><span class="pv bold" style="color:var(--green)">${fmtFin(r.finalizada)}</span></div>
+      <div class="prow"><span class="pl">Gestor asignado</span><span class="pv bold" style="color:var(--blue)">${val(r.gestorAsignado)}</span></div>
+    </div>
+    <div class="panel-section">
+      <div class="panel-section-t">Cliente</div>
+      <div class="prow"><span class="pl">Nombre</span><span class="pv bold">${val(r.nombrecliente)}</span></div>
+      <div class="prow"><span class="pl">DNI</span><span class="pv mono">${val(r.dni)}</span></div>
+      <div class="prow"><span class="pl">Provincia</span><span class="pv">${val(r.provincia)}</span></div>
+      <div class="prow"><span class="pl">Localidad</span><span class="pv">${val(r.localidad)}</span></div>
+    </div>
+    <div class="panel-section">
+      <div class="panel-section-t">Operación</div>
+      <div class="prow"><span class="pl">Banco</span><span class="pv bold">${val(r.banco)}</span></div>
+      <div class="prow"><span class="pl">Concesionaria</span><span class="pv">${val(r.concesionaria)}</span></div>
+      <div class="prow"><span class="pl">Descripción</span><span class="pv">${val(r.descripcion)}</span></div>
+    </div>
+    ${r.obs ? `<div class="panel-section"><div class="panel-section-t">Observaciones</div><div style="font-size:13px;color:var(--ink2);line-height:1.6">${r.obs}</div></div>` : ''}
+  `;
+
+  const panelHead = document.getElementById('pe-side-panel').querySelector('.panel-head');
+  const existing  = panelHead.querySelector('.panel-btns');
+  if (existing) existing.remove();
+  const btns = document.createElement('div');
+  btns.className = 'panel-btns';
+  btns.style.cssText = 'display:flex;gap:8px;margin-top:10px;';
+  btns.innerHTML = `
+    <button class="btn btn-p" style="font-size:12px;padding:6px 12px" onclick="closePEPanelSinReabrir();editPERecord('${r.id}')">✏️ Editar</button>
+    ${isAdmin ? `<button class="btn btn-d" style="font-size:12px;padding:6px 12px" onclick="closePEPanelSinReabrir();delPERecord('${r.id}')">🗑️ Eliminar</button>` : ''}
+  `;
+  panelHead.appendChild(btns);
+
+  document.getElementById('pe-overlay').classList.remove('open');
+  document.getElementById('pe-panel-overlay').classList.add('open');
+  document.getElementById('pe-side-panel').classList.add('open');
+}
+
+function closePEPanel() {
+  document.getElementById('pe-panel-overlay').classList.remove('open');
+  document.getElementById('pe-side-panel').classList.remove('open');
+  document.getElementById('pe-overlay').classList.add('open');
+}
+
+function closePEPanelSinReabrir() {
+  document.getElementById('pe-panel-overlay').classList.remove('open');
+  document.getElementById('pe-side-panel').classList.remove('open');
 }
 
 // ══════════════════════════════════════════════
@@ -2904,6 +3016,32 @@ function toast(msg,type='ok') {
 
 document.addEventListener('keydown',e=>{if(e.key==='Escape')document.querySelectorAll('.overlay.open').forEach(o=>o.classList.remove('open'));});
 </script>
+
+<!-- SLIDE PANEL GESTORES -->
+<div class="panel-overlay" id="gestor-panel-overlay" onclick="closeGestorPanel()"></div>
+<div class="panel" id="gestor-side-panel">
+  <div class="panel-head">
+    <div>
+      <div class="panel-title" id="gestor-panel-name">—</div>
+      <div class="panel-sub" id="gestor-panel-sub">—</div>
+    </div>
+    <button class="xbtn" onclick="closeGestorPanel()" style="width:34px;height:34px;font-size:18px">×</button>
+  </div>
+  <div class="panel-body" id="gestor-panel-body"></div>
+</div>
+
+<!-- SLIDE PANEL PRENDAS ENTREGADAS -->
+<div class="panel-overlay" id="pe-panel-overlay" onclick="closePEPanel()"></div>
+<div class="panel" id="pe-side-panel">
+  <div class="panel-head">
+    <div>
+      <div class="panel-title" id="pe-panel-name">—</div>
+      <div class="panel-sub" id="pe-panel-sub">—</div>
+    </div>
+    <button class="xbtn" onclick="closePEPanel()" style="width:34px;height:34px;font-size:18px">×</button>
+  </div>
+  <div class="panel-body" id="pe-panel-body"></div>
+</div>
 
 <!-- SLIDE PANEL CLIENTES -->
 <div class="panel-overlay" id="clientes-panel-overlay" onclick="closeClientesPanel()"></div>
