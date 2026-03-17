@@ -1445,8 +1445,8 @@ function renderClientes() {
   tbody.innerHTML = data.map((r, i) => {
     const cd = CLIENTES_DATA[r.dni] || {};
     return `
-    <tr>
-      <td style="position:sticky;left:0;background:#fff;z-index:1;box-shadow:2px 0 6px rgba(0,0,0,.04)">
+    <tr style="cursor:pointer" onclick="openClientesPanel('${r.dni}')">
+      <td style="position:sticky;left:0;background:#fff;z-index:1;box-shadow:2px 0 6px rgba(0,0,0,.04)" onclick="event.stopPropagation()">
         <div class="abtns">
           <button class="ibtn" onclick="editCliente('${r.dni}','${(r.nombrecliente||'').replace(/'/g,"\\'")}')" title="Editar">✏️</button>
           ${isAdmin ? `<button class="ibtn del" onclick="delCliente('${r.dni}')" title="Eliminar">🗑️</button>` : ''}
@@ -1529,6 +1529,66 @@ function initClientesMirror() {
   let syncing = false;
   scroll.onscroll = () => { if (syncing) return; syncing = true; mirror.scrollLeft = scroll.scrollLeft; syncing = false; };
   mirror.onscroll = () => { if (syncing) return; syncing = true; scroll.scrollLeft = mirror.scrollLeft; syncing = false; };
+}
+
+function openClientesPanel(dni) {
+  const r = RECORDS.find(x => x.dni === dni);
+  const cd = CLIENTES_DATA[dni] || {};
+  const isAdmin = ME?.rol === 'admin';
+  const val = v => v || '—';
+
+  // Cerrar modal Clientes
+  document.getElementById('clientes-overlay').classList.remove('open');
+
+  document.getElementById('clientes-panel-name').textContent = r ? (r.nombrecliente || '—') : '—';
+  document.getElementById('clientes-panel-sub').textContent  = 'DNI: ' + (dni || '—');
+
+  document.getElementById('clientes-panel-body').innerHTML = `
+    <div class="panel-section">
+      <div class="panel-section-t">Datos personales</div>
+      <div class="prow"><span class="pl">Nombre</span><span class="pv bold">${val(r?.nombrecliente)}</span></div>
+      <div class="prow"><span class="pl">DNI</span><span class="pv mono">${val(dni)}</span></div>
+    </div>
+    <div class="panel-section">
+      <div class="panel-section-t">Contacto</div>
+      <div class="prow"><span class="pl">Teléfono</span><span class="pv">${val(cd.telefono)}</span></div>
+      <div class="prow"><span class="pl">Email</span><span class="pv">${val(cd.email)}</span></div>
+    </div>
+    <div class="panel-section">
+      <div class="panel-section-t">Domicilio</div>
+      <div class="prow"><span class="pl">Dirección</span><span class="pv">${val(cd.direccion)}</span></div>
+      <div class="prow"><span class="pl">Localidad</span><span class="pv">${val(cd.localidad)}</span></div>
+      <div class="prow"><span class="pl">Provincia</span><span class="pv">${val(cd.provincia)}</span></div>
+    </div>
+  `;
+
+  // Botones
+  const panelHead = document.getElementById('clientes-side-panel').querySelector('.panel-head');
+  const existing  = panelHead.querySelector('.panel-btns');
+  if (existing) existing.remove();
+  const btns = document.createElement('div');
+  btns.className = 'panel-btns';
+  btns.style.cssText = 'display:flex;gap:8px;margin-top:10px;';
+  const nombre = r ? (r.nombrecliente||'').replace(/'/g,"\\'") : '';
+  btns.innerHTML = `
+    <button class="btn btn-p" style="font-size:12px;padding:6px 12px" onclick="closeClientesPanelSinReabrir();editCliente('${dni}','${nombre}')">✏️ Editar</button>
+    ${isAdmin ? `<button class="btn btn-d" style="font-size:12px;padding:6px 12px" onclick="closeClientesPanelSinReabrir();delCliente('${dni}')">🗑️ Eliminar</button>` : ''}
+  `;
+  panelHead.appendChild(btns);
+
+  document.getElementById('clientes-panel-overlay').classList.add('open');
+  document.getElementById('clientes-side-panel').classList.add('open');
+}
+
+function closeClientesPanel() {
+  document.getElementById('clientes-panel-overlay').classList.remove('open');
+  document.getElementById('clientes-side-panel').classList.remove('open');
+  document.getElementById('clientes-overlay').classList.add('open');
+}
+
+function closeClientesPanelSinReabrir() {
+  document.getElementById('clientes-panel-overlay').classList.remove('open');
+  document.getElementById('clientes-side-panel').classList.remove('open');
 }
 
 // ══════════════════════════════════════════════
@@ -2844,6 +2904,19 @@ function toast(msg,type='ok') {
 
 document.addEventListener('keydown',e=>{if(e.key==='Escape')document.querySelectorAll('.overlay.open').forEach(o=>o.classList.remove('open'));});
 </script>
+
+<!-- SLIDE PANEL CLIENTES -->
+<div class="panel-overlay" id="clientes-panel-overlay" onclick="closeClientesPanel()"></div>
+<div class="panel" id="clientes-side-panel">
+  <div class="panel-head">
+    <div>
+      <div class="panel-title" id="clientes-panel-name">—</div>
+      <div class="panel-sub" id="clientes-panel-sub">—</div>
+    </div>
+    <button class="xbtn" onclick="closeClientesPanel()" style="width:34px;height:34px;font-size:18px">×</button>
+  </div>
+  <div class="panel-body" id="clientes-panel-body"></div>
+</div>
 
 <!-- SLIDE PANEL PRENDAS -->
 <div class="panel-overlay" id="prendas-panel-overlay" onclick="closePrendasPanel()"></div>
