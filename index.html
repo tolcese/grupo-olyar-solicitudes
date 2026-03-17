@@ -1589,8 +1589,8 @@ function renderPrendas() {
     const pr = r.presentada || false;
     const fi = r.finalizada || '';
     return `
-    <tr>
-      <td style="position:sticky;left:0;background:#fff;z-index:1;box-shadow:2px 0 6px rgba(0,0,0,.04)">
+    <tr style="cursor:pointer" onclick="openPrendasPanel('${r.id}')">
+      <td style="position:sticky;left:0;background:#fff;z-index:1;box-shadow:2px 0 6px rgba(0,0,0,.04)" onclick="event.stopPropagation()">
         <div class="abtns">
           <button class="ibtn" onclick="editPrenda('${r.id}')" title="Editar">✏️</button>
           ${isAdmin ? `<button class="ibtn del" onclick="delPrenda('${r.id}')" title="Eliminar">🗑️</button>` : ''}
@@ -1677,6 +1677,94 @@ function initPrendasMirror() {
   let syncing = false;
   scroll.onscroll = () => { if (syncing) return; syncing = true; mirror.scrollLeft = scroll.scrollLeft; syncing = false; };
   mirror.onscroll = () => { if (syncing) return; syncing = true; scroll.scrollLeft = mirror.scrollLeft; syncing = false; };
+}
+
+function openPrendasPanel(id) {
+  const r = RECORDS.find(x => x.id === id);
+  if (!r) return;
+
+  const isAdmin = ME?.rol === 'admin';
+  const val  = v => v || '—';
+  const mon  = v => v ? '$'+Number(String(v).replace(/[$,]/g,'')).toLocaleString('es-AR') : '—';
+  const chk  = v => v ? '<span class="pchk yes">✓ Sí</span>' : '<span class="pchk no">— No</span>';
+  const fmtFin = v => {
+    if (!v) return '—';
+    if (v.includes('/')) return v;
+    const p = v.split('-');
+    return p.length === 3 ? p[2]+'/'+p[1]+'/'+p[0] : v;
+  };
+
+  document.getElementById('prendas-panel-name').textContent = r.nombrecliente || '—';
+  document.getElementById('prendas-panel-sub').textContent  = (r.banco||'—') + ' · ' + (r.gestorAsignado||'Sin gestor');
+
+  document.getElementById('prendas-panel-body').innerHTML = `
+    <div class="panel-section">
+      <div class="panel-section-t">Datos generales</div>
+      <div class="prow"><span class="pl">Fecha solicitud</span><span class="pv">${r.fecha ? r.fecha.split('-').reverse().join('/') : '—'}</span></div>
+      <div class="prow"><span class="pl">Banco</span><span class="pv bold">${val(r.banco)}</span></div>
+      <div class="prow"><span class="pl">Concesionaria</span><span class="pv">${val(r.concesionaria)}</span></div>
+      <div class="prow"><span class="pl">Estado</span><span class="pv">${r.estado ? '<span class="badge b-'+r.estado.toLowerCase()+'"><span class="bd"></span>'+r.estado+'</span>' : '—'}</span></div>
+      <div class="prow"><span class="pl">Gestor asignado</span><span class="pv bold" style="color:var(--blue)">${val(r.gestorAsignado)}</span></div>
+      <div class="prow"><span class="pl">Usuario</span><span class="pv">${val(r.usuario)}</span></div>
+    </div>
+    <div class="panel-section">
+      <div class="panel-section-t">Cliente</div>
+      <div class="prow"><span class="pl">Nombre</span><span class="pv bold">${val(r.nombrecliente)}</span></div>
+      <div class="prow"><span class="pl">DNI</span><span class="pv mono">${val(r.dni)}</span></div>
+      <div class="prow"><span class="pl">Provincia</span><span class="pv">${val(r.provincia)}</span></div>
+      <div class="prow"><span class="pl">Localidad</span><span class="pv">${val(r.localidad)}</span></div>
+    </div>
+    <div class="panel-section">
+      <div class="panel-section-t">Vehículo</div>
+      <div class="prow"><span class="pl">Dominio</span><span class="pv mono">${val(r.dominio)}</span></div>
+      <div class="prow"><span class="pl">Marca</span><span class="pv">${val(r.marca)}</span></div>
+      <div class="prow"><span class="pl">Descripción</span><span class="pv">${val(r.descripcion)}</span></div>
+    </div>
+    <div class="panel-section">
+      <div class="panel-section-t">Financiamiento</div>
+      <div class="prow"><span class="pl">Tipo CTA</span><span class="pv">${val(r.tipocta)}</span></div>
+      <div class="prow"><span class="pl">Tasa</span><span class="pv">${val(r.tasa)}</span></div>
+      <div class="prow"><span class="pl">Importe solicitado</span><span class="pv mono bold">${mon(r.importe)}</span></div>
+      <div class="prow"><span class="pl">Monto agencia</span><span class="pv mono">${mon(r.agencia)}</span></div>
+      <div class="prow"><span class="pl">Monto vehículo</span><span class="pv mono">${mon(r.vehiculo)}</span></div>
+      <div class="prow"><span class="pl">Comisión</span><span class="pv mono bold" style="color:var(--green)">${mon(r.comision)}</span></div>
+    </div>
+    <div class="panel-section">
+      <div class="panel-section-t">Documentación</div>
+      <div class="prow"><span class="pl">Documento 01/08</span><span class="pv">${chk(r.doc01)}</span></div>
+      <div class="prow"><span class="pl">Título unidad</span><span class="pv">${chk(r.titulo)}</span></div>
+      <div class="prow"><span class="pl">Verif. policial</span><span class="pv">${chk(r.verif)}</span></div>
+      <div class="prow"><span class="pl">Informe dominio</span><span class="pv">${chk(r.infdom)}</span></div>
+    </div>
+    <div class="panel-section">
+      <div class="panel-section-t">Estado de prenda</div>
+      <div class="prow"><span class="pl">En proceso</span><span class="pv">${chk(r.enProceso)}</span></div>
+      <div class="prow"><span class="pl">Presentada</span><span class="pv">${chk(r.presentada)}</span></div>
+      <div class="prow"><span class="pl">Finalizada</span><span class="pv" style="color:var(--green);font-weight:600">${fmtFin(r.finalizada)}</span></div>
+    </div>
+    ${r.obs ? `<div class="panel-section"><div class="panel-section-t">Observaciones</div><div style="font-size:13px;color:var(--ink2);line-height:1.6">${r.obs}</div></div>` : ''}
+  `;
+
+  // Botones en el head
+  const panelHead = document.getElementById('prendas-side-panel').querySelector('.panel-head');
+  const existing  = panelHead.querySelector('.panel-btns');
+  if (existing) existing.remove();
+  const btns = document.createElement('div');
+  btns.className = 'panel-btns';
+  btns.style.cssText = 'display:flex;gap:8px;margin-top:10px;';
+  btns.innerHTML = `
+    <button class="btn btn-p" style="font-size:12px;padding:6px 12px" onclick="closePrendasPanel();editPrenda('${r.id}')">✏️ Editar</button>
+    ${isAdmin ? `<button class="btn btn-d" style="font-size:12px;padding:6px 12px" onclick="closePrendasPanel();delPrenda('${r.id}')">🗑️ Eliminar</button>` : ''}
+  `;
+  panelHead.appendChild(btns);
+
+  document.getElementById('prendas-panel-overlay').classList.add('open');
+  document.getElementById('prendas-side-panel').classList.add('open');
+}
+
+function closePrendasPanel() {
+  document.getElementById('prendas-panel-overlay').classList.remove('open');
+  document.getElementById('prendas-side-panel').classList.remove('open');
 }
 
 document.getElementById('l-p').addEventListener('keydown', e => { if(e.key==='Enter') doLogin(); });
@@ -2746,6 +2834,19 @@ function toast(msg,type='ok') {
 
 document.addEventListener('keydown',e=>{if(e.key==='Escape')document.querySelectorAll('.overlay.open').forEach(o=>o.classList.remove('open'));});
 </script>
+
+<!-- SLIDE PANEL PRENDAS -->
+<div class="panel-overlay" id="prendas-panel-overlay" onclick="closePrendasPanel()"></div>
+<div class="panel" id="prendas-side-panel">
+  <div class="panel-head">
+    <div>
+      <div class="panel-title" id="prendas-panel-name">—</div>
+      <div class="panel-sub" id="prendas-panel-sub">—</div>
+    </div>
+    <button class="xbtn" onclick="closePrendasPanel()" style="width:34px;height:34px;font-size:18px">×</button>
+  </div>
+  <div class="panel-body" id="prendas-panel-body"></div>
+</div>
 
 <!-- SLIDE PANEL -->
 <div class="panel-overlay" id="panel-overlay" onclick="closePanel()"></div>
