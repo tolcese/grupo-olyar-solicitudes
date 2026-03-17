@@ -18,6 +18,8 @@
 }
 *{box-sizing:border-box;margin:0;padding:0;}
 body{font-family:'Inter',sans-serif;background:#fff;color:var(--ink);font-size:13.5px;min-height:100vh;}
+.admin-only { display: none !important; }
+body.is-admin .admin-only { display: revert !important; }
 body::-webkit-scrollbar{width:6px;}
 body::-webkit-scrollbar-track{background:#fff;}
 body::-webkit-scrollbar-thumb{background:#e2e8f0;border-radius:10px;}
@@ -499,7 +501,7 @@ pre{background:#0f172a;color:#7dd3fc;padding:18px;font-family:'JetBrains Mono',m
               <th class="th-sort" onclick="sortBy('importe')" id="th-importe">Imp. Solicitado <span class="sort-icon">↕</span></th>
               <th class="th-sort" onclick="sortBy('agencia')" id="th-agencia">Monto Agencia <span class="sort-icon">↕</span></th>
               <th class="th-sort" onclick="sortBy('vehiculo')" id="th-vehiculo">Monto Vehículo <span class="sort-icon">↕</span></th>
-              <th class="th-sort" onclick="sortBy('comision')" id="th-comision">Comisión <span class="sort-icon">↕</span></th>
+              <th class="th-sort admin-only" onclick="sortBy('comision')" id="th-comision">Comisión <span class="sort-icon">↕</span></th>
               <th class="th-sort" onclick="sortBy('estado')" id="th-estado">Estado <span class="sort-icon">↕</span></th>
               <th title="Documento 01/08">Doc 01/08</th>
               <th title="Título Unidad">Título</th>
@@ -579,7 +581,7 @@ pre{background:#0f172a;color:#7dd3fc;padding:18px;font-family:'JetBrains Mono',m
             <div class="cur"><span class="cur-s">$</span><input id="f-agencia" type="number" min="0" placeholder="0"></div></div>
           <div class="fc"><label>Monto vehículo ($)</label>
             <div class="cur"><span class="cur-s">$</span><input id="f-vehiculo" type="number" min="0" placeholder="0"></div></div>
-          <div class="fc"><label>Comisión ($)</label>
+          <div class="fc admin-only"><label>Comisión ($)</label>
             <div class="cur"><span class="cur-s">$</span><input id="f-comision" type="number" min="0" placeholder="0" style="background:#f0fdf4"></div></div>
           <div class="fc"><label>Estado</label>
             <select id="f-estado"><option value="">— Seleccioná —</option><option>APROBADO</option><option>RECHAZADO</option><option>AVANZA</option></select></div>
@@ -1008,6 +1010,8 @@ async function enterApp() {
   document.getElementById('f-usu').style.display = ME.rol === 'admin' ? '' : 'none';
   document.getElementById('tn-reportes').style.display = ME.rol === 'admin' ? '' : 'none';
   document.getElementById('tn-pe').style.display = ME.rol === 'admin' ? '' : 'none';
+  if (ME.rol === 'admin') document.body.classList.add('is-admin');
+  else document.body.classList.remove('is-admin');
   document.getElementById('btn-datero').style.display = ME.rol === 'admin' ? 'none' : '';
   document.getElementById('cfg-wh').value = WH;
   syncUI(WH ? 'ok' : 'idle');
@@ -1299,7 +1303,7 @@ function renderGestoria() {
       <td style="font-family:monospace">${mon(r.vehiculo)}</td>
       <td style="font-family:monospace">${mon(r.importe)}</td>
       <td style="font-family:monospace">${mon(r.agencia)}</td>
-      <td style="font-family:monospace;color:var(--green);font-weight:600">${mon(r.comision)}</td>
+      ${ME?.rol==='admin' ? `<td style="font-family:monospace;color:var(--green);font-weight:600">${mon(r.comision)}</td>` : ''}
       <td>${r.estado ? `<span class="badge b-${r.estado.toLowerCase()}"><span class="bd"></span>${r.estado}</span>` : '—'}</td>
       <td style="font-size:12px;color:var(--blue);font-weight:600">${r.gestorAsignado || '<span style="color:var(--muted)">Sin asignar</span>'}</td>
     </tr>`).join('');
@@ -1999,7 +2003,7 @@ function openPrendasPanel(id) {
       <div class="prow"><span class="pl">Importe solicitado</span><span class="pv mono bold">${mon(r.importe)}</span></div>
       <div class="prow"><span class="pl">Monto agencia</span><span class="pv mono">${mon(r.agencia)}</span></div>
       <div class="prow"><span class="pl">Monto vehículo</span><span class="pv mono">${mon(r.vehiculo)}</span></div>
-      <div class="prow"><span class="pl">Comisión</span><span class="pv mono bold" style="color:var(--green)">${mon(r.comision)}</span></div>
+      ${ME?.rol==='admin' ? `<div class="prow"><span class="pl">Comisión</span><span class="pv mono bold" style="color:var(--green)">${mon(r.comision)}</span></div>` : ''}
     </div>
     <div class="panel-section">
       <div class="panel-section-t">Documentación</div>
@@ -2488,7 +2492,7 @@ function renderTablePage() {
         <td class="td-mono">${$(r.importe)}</td>
         <td class="td-mono">${$(r.agencia)}</td>
         <td class="td-mono">${$(r.vehiculo)}</td>
-        <td class="td-mono" style="color:var(--green);font-weight:600">${$(r.comision)}</td>
+        ${isAdmin ? `<td class="td-mono" style="color:var(--green);font-weight:600">${$(r.comision)}</td>` : ''}
         <td>${r.estado?`<span class="badge b-${r.estado.toLowerCase()}"><span class="bd"></span>${r.estado}</span>`:'—'}</td>
         <td class="chk">${chk(r.doc01)}</td>
         <td class="chk">${chk(r.titulo)}</td>
@@ -2760,7 +2764,7 @@ function exportPDF() {
       <td>${mon(r.importe)}</td>
       <td>${mon(r.agencia)}</td>
       <td>${mon(r.vehiculo)}</td>
-      <td style="color:#059669"><b>${mon(r.comision)}</b></td>
+      ${ME?.rol==='admin' ? `<td style="color:#059669"><b>${mon(r.comision)}</b></td>` : ''}
       <td><span class="est est-${(r.estado||'').toLowerCase()}">${val(r.estado)}</span></td>
       <td>${chk(r.doc01)}</td>
       <td>${chk(r.titulo)}</td>
@@ -2962,7 +2966,7 @@ function openStatModal(tipo) {
               <th style="padding:8px 10px;text-align:left;font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;border-bottom:2px solid var(--line);white-space:nowrap">Imp. Solicitado</th>
               <th style="padding:8px 10px;text-align:left;font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;border-bottom:2px solid var(--line);white-space:nowrap">Monto Agencia</th>
               <th style="padding:8px 10px;text-align:left;font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;border-bottom:2px solid var(--line);white-space:nowrap">Monto Vehículo</th>
-              <th style="padding:8px 10px;text-align:left;font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;border-bottom:2px solid var(--line);white-space:nowrap">Comisión</th>
+              <th style="padding:8px 10px;text-align:left;font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;border-bottom:2px solid var(--line);white-space:nowrap" class="admin-only">Comisión</th>
               <th style="padding:8px 10px;text-align:left;font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;border-bottom:2px solid var(--line);white-space:nowrap">Estado</th>
               <th style="padding:8px 10px;text-align:left;font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;border-bottom:2px solid var(--line);white-space:nowrap">Doc 01/08</th>
               <th style="padding:8px 10px;text-align:left;font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;border-bottom:2px solid var(--line);white-space:nowrap">Título</th>
@@ -2991,7 +2995,7 @@ function openStatModal(tipo) {
                 <td style="padding:8px 10px;font-family:monospace;font-weight:700;white-space:nowrap">${mon(r.importe)}</td>
                 <td style="padding:8px 10px;font-family:monospace;white-space:nowrap">${mon(r.agencia)}</td>
                 <td style="padding:8px 10px;font-family:monospace;white-space:nowrap">${mon(r.vehiculo)}</td>
-                <td style="padding:8px 10px;font-family:monospace;color:var(--green);white-space:nowrap">${mon(r.comision)}</td>
+                ${ME?.rol==='admin' ? `<td style="padding:8px 10px;font-family:monospace;color:var(--green);white-space:nowrap">${mon(r.comision)}</td>` : ''}
                 <td style="padding:8px 10px;white-space:nowrap">${r.estado?`<span class="badge b-${r.estado.toLowerCase()}"><span class="bd"></span>${r.estado}</span>`:'-'}</td>
                 <td style="padding:8px 10px;text-align:center">${chk(r.doc01)}</td>
                 <td style="padding:8px 10px;text-align:center">${chk(r.titulo)}</td>
@@ -3073,7 +3077,7 @@ function openPanel(id) {
       <div class="prow"><span class="pl">Importe solicitado</span><span class="pv mono bold">${mon(r.importe)}</span></div>
       <div class="prow"><span class="pl">Monto agencia</span><span class="pv mono">${mon(r.agencia)}</span></div>
       <div class="prow"><span class="pl">Monto vehículo</span><span class="pv mono">${mon(r.vehiculo)}</span></div>
-      <div class="prow"><span class="pl">Comisión</span><span class="pv mono bold" style="color:var(--green)">${mon(r.comision)}</span></div>
+      ${ME?.rol==='admin' ? `<div class="prow"><span class="pl">Comisión</span><span class="pv mono bold" style="color:var(--green)">${mon(r.comision)}</span></div>` : ''}
     </div>
     <div class="panel-section">
       <div class="panel-section-t">Documentación</div>
@@ -3516,7 +3520,7 @@ function renderReportes() {
               <th>Monto Vehículo</th>
               <th>Imp. Solicitado</th>
               <th>Monto Agencia</th>
-              <th>Comisión</th>
+              <th class="admin-only">Comisión</th>
               <th>Estado</th>
               <th>Gestor asignado</th>
             </tr>
