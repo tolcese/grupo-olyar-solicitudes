@@ -1085,7 +1085,7 @@ async function loadGestores() {
         </div>
         <div style="display:flex;gap:5px;flex-shrink:0" onclick="event.stopPropagation()">
           <button class="ibtn" onclick="openFormGestor('${g.id}')" title="Editar">✏️</button>
-          <button class="ibtn del" onclick="delGestor('${g.id}')" title="Eliminar">🗑️</button>
+          ${ME?.rol === 'admin' ? `<button class="ibtn del" onclick="delGestor('${g.id}')" title="Eliminar">🗑️</button>` : ''}
         </div>
       </div>`).join('');
   } catch(e) {
