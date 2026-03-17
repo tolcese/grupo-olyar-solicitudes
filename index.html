@@ -918,7 +918,7 @@ function doPost(e) { return doGet(e); }`;
 // ══════════════════════════════════════════════
 // CONFIG — URL del Apps Script
 // ══════════════════════════════════════════════
-let WH = 'https://script.google.com/macros/s/AKfycbyXw5SLJ_LyS7R0xxvRBNmLGYLhzX97YmljGk_SPyXCn7WbqD9g5JxshCjyMzJlkYlj/exec';
+let WH = 'https://script.google.com/macros/s/AKfycbwAPd2XSuNgED-FdjJ9EB_uM9USClitaxWUB-_881pCaQnPeeHUXRLi28fuwZr-y2sj/exec';
 const SHEET_NAME = 'Solicitudes';
 
 // ══════════════════════════════════════════════
@@ -1077,7 +1077,7 @@ async function loadGestores() {
       return;
     }
     list.innerHTML = gestores.map(g => `
-      <div class="gestor-card" style="cursor:pointer" onclick="openGestorPanel('${g.id}','${(g.nombre||'').replace(/'/g,"\\'")}','${(g.localidad||'').replace(/'/g,"\\'")}','${(g.provincia||'').replace(/'/g,"\\'")}','${(g.telefono||'').replace(/'/g,"\\'")}','${(g.email||'').replace(/'/g,"\\'")}','${(g.direccion||'').replace(/'/g,"\\'")}')">
+      <div class="gestor-card" style="cursor:pointer" onclick="openGestorPanel('${g.id}','${(g.nombre||'').replace(/'/g,"\\'")}','${(g.localidad||'').replace(/'/g,"\\'")}','${(g.provincia||'').replace(/'/g,"\\'")}','${(g.telefono||'').replace(/'/g,"\\'")}','${(g.email||'').replace(/'/g,"\\'")}','${(g.direccion||'').replace(/'/g,"\\'")}','${(g.cp||'').replace(/'/g,"\\'")}')">
         <div class="gestor-av">${(g.nombre||'?')[0].toUpperCase()}</div>
         <div class="gestor-info">
           <div class="gestor-name">${g.nombre||'—'}</div>
@@ -1099,7 +1099,7 @@ async function openFormGestor(id) {
   document.getElementById('gestores-list-wrap').style.display = 'none';
   document.getElementById('gestor-form-wrap').style.display = '';
   // Limpiar
-  ['g-nombre','g-telefono','g-email','g-direccion','g-localidad','g-provincia'].forEach(f => document.getElementById(f).value = '');
+  ['g-nombre','g-telefono','g-email','g-direccion','g-localidad','g-provincia','g-cp'].forEach(f => document.getElementById(f).value = '');
   document.getElementById('g-id').value = '';
 
   if (id) {
@@ -1115,6 +1115,7 @@ async function openFormGestor(id) {
       document.getElementById('g-direccion').value = g.direccion || '';
       document.getElementById('g-localidad').value = g.localidad || '';
       document.getElementById('g-provincia').value = g.provincia || '';
+      document.getElementById('g-cp').value        = g.cp        || '';
     }
   } else {
     document.getElementById('gestor-form-title').textContent = 'Nuevo gestor';
@@ -1126,7 +1127,7 @@ function closeFormGestor() {
   document.getElementById('gestor-form-wrap').style.display = 'none';
 }
 
-function openGestorPanel(id, nombre, localidad, provincia, telefono, email, direccion) {
+function openGestorPanel(id, nombre, localidad, provincia, telefono, email, direccion, cp) {
   const val = v => v || '—';
   document.getElementById('gestor-panel-name').textContent = nombre || '—';
   document.getElementById('gestor-panel-sub').textContent  = [localidad, provincia].filter(Boolean).join(', ') || '—';
@@ -1137,6 +1138,7 @@ function openGestorPanel(id, nombre, localidad, provincia, telefono, email, dire
       <div class="prow"><span class="pl">Dirección</span><span class="pv">${val(direccion)}</span></div>
       <div class="prow"><span class="pl">Localidad</span><span class="pv">${val(localidad)}</span></div>
       <div class="prow"><span class="pl">Provincia</span><span class="pv">${val(provincia)}</span></div>
+      <div class="prow"><span class="pl">C.P.</span><span class="pv">${val(cp)}</span></div>
     </div>
     <div class="panel-section">
       <div class="panel-section-t">Contacto</div>
@@ -1186,6 +1188,7 @@ async function saveGestor() {
     direccion:  document.getElementById('g-direccion').value.trim(),
     localidad:  document.getElementById('g-localidad').value.trim(),
     provincia:  document.getElementById('g-provincia').value.trim(),
+    cp:         document.getElementById('g-cp').value.trim(),
   };
   try {
     await gas(params);
@@ -3435,6 +3438,7 @@ function renderReportes() {
         <div class="fc span2"><label>Dirección</label><input id="g-direccion" placeholder="Ej: Av. Colón 1234"></div>
         <div class="fc"><label>Localidad</label><input id="g-localidad" placeholder="Ej: Córdoba"></div>
         <div class="fc"><label>Provincia</label><input id="g-provincia" placeholder="Ej: Córdoba"></div>
+        <div class="fc"><label>C.P.</label><input id="g-cp" placeholder="Ej: 5000"></div>
       </div>
       <input type="hidden" id="g-id">
       <div class="mfoot">
