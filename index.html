@@ -421,7 +421,10 @@ pre{background:#0f172a;color:#7dd3fc;padding:18px;font-family:'JetBrains Mono',m
       </nav>
     </div>
     <div class="tb-right">
-      <div class="sync-badge"><div class="sdot" id="sdot"></div><span id="stxt">—</span></div>
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:2px">
+        <div class="sync-badge"><div class="sdot" id="sdot"></div><span id="stxt">—</span></div>
+        <div id="tb-datetime" style="font-size:10.5px;color:var(--muted);font-weight:500"></div>
+      </div>
       <div class="tb-user" style="display:flex;align-items:center;gap:8px">
         <div class="tb-av" id="tb-av">?</div>
         <div><div class="tb-uname" id="tb-uname">—</div><div class="tb-role" id="tb-role">—</div></div>
@@ -3120,6 +3123,23 @@ function toast(msg,type='ok') {
 }
 
 document.addEventListener('keydown',e=>{if(e.key==='Escape')document.querySelectorAll('.overlay.open').forEach(o=>o.classList.remove('open'));});
+
+// Reloj en tiempo real
+(function() {
+  function updateClock() {
+    const el = document.getElementById('tb-datetime');
+    if (!el) return;
+    const now = new Date();
+    const d = String(now.getDate()).padStart(2,'0');
+    const m = String(now.getMonth()+1).padStart(2,'0');
+    const y = now.getFullYear();
+    const h = String(now.getHours()).padStart(2,'0');
+    const min = String(now.getMinutes()).padStart(2,'0');
+    el.textContent = `${d}/${m}/${y} ${h}:${min}`;
+  }
+  updateClock();
+  setInterval(updateClock, 1000);
+})();
 
 // Auto refresh cada 1 minuto
 setInterval(() => {
