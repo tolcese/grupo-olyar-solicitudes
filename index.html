@@ -3015,6 +3015,11 @@ function toast(msg,type='ok') {
 }
 
 document.addEventListener('keydown',e=>{if(e.key==='Escape')document.querySelectorAll('.overlay.open').forEach(o=>o.classList.remove('open'));});
+
+// Auto refresh cada 30 segundos
+setInterval(() => {
+  if (ME) loadRecords();
+}, 30000);
 </script>
 
 <!-- SLIDE PANEL GESTORES -->
