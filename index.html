@@ -368,7 +368,7 @@ pre{background:#0f172a;color:#7dd3fc;padding:18px;font-family:'JetBrains Mono',m
 <body>
 
 <!-- OVERLAY MANTENIMIENTO -->
-<div id="mant-overlay" style="display:none;position:fixed;inset:0;z-index:9998;background:linear-gradient(145deg,#0f172a 0%,#1e3a8a 60%,#1d4ed8 100%);display:none;align-items:center;justify-content:center;flex-direction:column;text-align:center;padding:32px">
+<div id="mant-overlay" style="display:none;position:fixed;inset:0;z-index:9998;background:linear-gradient(145deg,#0f172a 0%,#1e3a8a 60%,#1d4ed8 100%);align-items:center;justify-content:center;flex-direction:column;text-align:center;padding:32px">
   <div style="font-size:56px;margin-bottom:20px">🔧</div>
   <div style="font-size:24px;font-weight:800;color:#fff;margin-bottom:10px">Sistema en mantenimiento</div>
   <div style="font-size:15px;color:#93c5fd;max-width:420px;line-height:1.6">Estamos realizando mejoras. El sistema estará disponible nuevamente en breve.<br><br>Disculpá las molestias.</div>
@@ -1009,9 +1009,9 @@ async function enterApp() {
   // Cargar datos
   loading(true, 'Cargando datos...');
   await Promise.all([loadLists(), loadRecords(), loadClientes()]);
-  checkMantenimiento();
   loading(false);
-  showV('sol');
+  const enMant = await checkMantenimiento();
+  if (!enMant) showV('sol');
 }
 
 function doLogout() {
@@ -1732,13 +1732,19 @@ async function checkMantenimiento() {
   try {
     const res = await gas({ action: 'getMantenimiento' });
     const activo = res.activo === true || res.activo === 'true';
-    // Si es usuario (no admin) y mantenimiento está activo, mostrar pantalla
     if (activo && ME?.rol !== 'admin') {
+      // Ocultar todo y mostrar pantalla de mantenimiento
       document.getElementById('app').style.display = 'none';
+      document.getElementById('login-wrap').style.display = 'none';
       const el = document.getElementById('mant-overlay');
       el.style.display = 'flex';
+      return true; // está en mantenimiento
+    } else {
+      // Asegurarse de ocultar el overlay si el admin lo desactivó
+      document.getElementById('mant-overlay').style.display = 'none';
+      return false;
     }
-  } catch(e) {}
+  } catch(e) { return false; }
 }
 
 async function loadMantenimientoStatus() {
