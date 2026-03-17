@@ -314,6 +314,25 @@ pre{background:#0f172a;color:#7dd3fc;padding:18px;font-family:'JetBrains Mono',m
 .prendas-table tbody tr:last-child td{border-bottom:none;}
 .prendas-table tbody tr:hover td{background:#f8faff;}
 
+/* CLIENTES */
+.clientes-overlay{position:fixed;inset:0;background:rgba(15,23,42,.55);backdrop-filter:blur(4px);z-index:500;display:flex;align-items:center;justify-content:center;padding:16px;opacity:0;pointer-events:none;transition:opacity .2s;}
+.clientes-overlay.open{opacity:1;pointer-events:all;}
+.clientes-modal{background:#fff;border-radius:18px;width:100%;max-width:1100px;max-height:92vh;display:flex;flex-direction:column;box-shadow:var(--sh-lg);transform:scale(.96) translateY(10px);transition:transform .25s cubic-bezier(.34,1.56,.64,1);}
+.clientes-overlay.open .clientes-modal{transform:scale(1) translateY(0);}
+.clientes-head{padding:20px 28px;border-bottom:1.5px solid var(--line);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
+.clientes-body{overflow-y:auto;overflow-x:hidden;flex:1;padding:0;}
+.clientes-scroll-x{overflow-x:auto;overflow-y:visible;scrollbar-width:none;}
+.clientes-scroll-x::-webkit-scrollbar{display:none;}
+.clientes-scroll-mirror{overflow-x:auto;overflow-y:hidden;height:14px;border-top:1.5px solid var(--line);flex-shrink:0;background:#fff;}
+.clientes-scroll-mirror-inner{height:1px;}
+.clientes-table{width:100%;border-collapse:collapse;min-width:900px;font-size:13px;}
+.clientes-table thead th{position:sticky;top:0;z-index:2;background:var(--surface);}
+.clientes-table thead tr{border-bottom:1.5px solid var(--line);}
+.clientes-table th{padding:10px 13px;text-align:left;font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;white-space:nowrap;}
+.clientes-table td{padding:11px 13px;color:var(--ink2);border-bottom:1px solid var(--line);vertical-align:middle;white-space:nowrap;}
+.clientes-table tbody tr:last-child td{border-bottom:none;}
+.clientes-table tbody tr:hover td{background:#f8faff;}
+
 /* MODAL EDITAR PRENDA */
 .prendas-edit-overlay{position:fixed;inset:0;background:rgba(15,23,42,.55);backdrop-filter:blur(4px);z-index:700;display:flex;align-items:center;justify-content:center;padding:16px;opacity:0;pointer-events:none;transition:opacity .2s;}
 .prendas-edit-overlay.open{opacity:1;pointer-events:all;}
@@ -861,7 +880,7 @@ function doPost(e) { return doGet(e); }`;
 // ══════════════════════════════════════════════
 // CONFIG — URL del Apps Script
 // ══════════════════════════════════════════════
-let WH = 'https://script.google.com/macros/s/AKfycbyBlURfQpa8XZvR7gH_imZ99bzTyhuf8A13eQe9cGKnHJlyYPpAbuOb3FGY5E82SEhQ/exec';
+let WH = 'https://script.google.com/macros/s/AKfycbzSEvD5XHeXTVsfFswHupnIn9GvlasL4f-bvcM71NRfJGe_wMqbVX0bx3opkpWEt7PM/exec';
 const SHEET_NAME = 'Solicitudes';
 
 // ══════════════════════════════════════════════
@@ -869,6 +888,7 @@ const SHEET_NAME = 'Solicitudes';
 // ══════════════════════════════════════════════
 let ME = null;
 let RECORDS = [];
+let CLIENTES_DATA = {}; // { dni: { direccion, localidad, provincia, telefono, email } }
 let LISTS = { banco:['Columbia','San Cristóbal'], concesionaria:[], provincia:[], localidad:[], marca:[], descripcion:[], dni:[], nombrecliente:[], dominio:[], tasa:[] };
 let editId = null;
 
@@ -948,7 +968,7 @@ async function enterApp() {
 
   // Cargar datos
   loading(true, 'Cargando datos...');
-  await Promise.all([loadLists(), loadRecords()]);
+  await Promise.all([loadLists(), loadRecords(), loadClientes()]);
   loading(false);
   showV('sol');
 }
@@ -1237,6 +1257,137 @@ async function syncGestoriaSheet() {
 }
 
 // ══════════════════════════════════════════════
+// CLIENTES
+// ══════════════════════════════════════════════
+function openClientes() {
+  document.getElementById('clientes-overlay').classList.add('open');
+  renderClientes();
+  setTimeout(initClientesMirror, 150);
+}
+
+function closeClientes() {
+  document.getElementById('clientes-overlay').classList.remove('open');
+}
+
+function renderClientes() {
+  const q = (document.getElementById('clientes-srch')?.value || '').toLowerCase();
+  const isAdmin = ME?.rol === 'admin';
+
+  // Deduplicar por DNI — un registro por cliente
+  const vistos = {};
+  RECORDS.forEach(r => {
+    if (r.dni && !vistos[r.dni]) vistos[r.dni] = r;
+  });
+  let data = Object.values(vistos);
+  if (q) data = data.filter(r =>
+    [(r.nombrecliente||''), (r.dni||'')].some(v => v.toLowerCase().includes(q))
+  );
+
+  const tbody  = document.getElementById('clientes-tbody');
+  const empty  = document.getElementById('clientes-empty');
+  const count  = document.getElementById('clientes-count');
+
+  count.textContent = data.length + ' cliente' + (data.length !== 1 ? 's' : '');
+
+  if (!data.length) {
+    tbody.innerHTML = '';
+    empty.style.display = '';
+    setTimeout(initClientesMirror, 50);
+    return;
+  }
+  empty.style.display = 'none';
+  const val = v => v || '—';
+
+  tbody.innerHTML = data.map((r, i) => {
+    const cd = CLIENTES_DATA[r.dni] || {};
+    return `
+    <tr>
+      <td style="position:sticky;left:0;background:#fff;z-index:1;box-shadow:2px 0 6px rgba(0,0,0,.04)">
+        <div class="abtns">
+          <button class="ibtn" onclick="editCliente('${r.dni}','${(r.nombrecliente||'').replace(/'/g,"\\'")}')" title="Editar">✏️</button>
+          ${isAdmin ? `<button class="ibtn del" onclick="delCliente('${r.dni}')" title="Eliminar">🗑️</button>` : ''}
+          ${isAdmin ? `<button class="ibtn" onclick="openHistorialCliente('${r.dni}','${(r.nombrecliente||'').replace(/'/g,"\\'")}') " title="Historial">🕐</button>` : ''}
+        </div>
+      </td>
+      <td style="color:var(--muted);font-size:11px">${i+1}</td>
+      <td style="font-weight:700;min-width:150px">${val(r.nombrecliente)}</td>
+      <td style="font-family:monospace">${val(r.dni)}</td>
+      <td>${val(cd.direccion)}</td>
+      <td>${val(cd.localidad)}</td>
+      <td>${val(cd.provincia)}</td>
+      <td>${val(cd.telefono)}</td>
+      <td>${val(cd.email)}</td>
+    </tr>`;
+  }).join('');
+
+  setTimeout(initClientesMirror, 50);
+}
+
+function editCliente(dni, nombre) {
+  const cd = CLIENTES_DATA[dni] || {};
+  document.getElementById('cliente-edit-dni').value      = dni;
+  document.getElementById('cliente-edit-nombre').textContent = nombre;
+  document.getElementById('cliente-direccion').value     = cd.direccion || '';
+  document.getElementById('cliente-localidad').value     = cd.localidad || '';
+  document.getElementById('cliente-provincia').value     = cd.provincia || '';
+  document.getElementById('cliente-telefono').value      = cd.telefono  || '';
+  document.getElementById('cliente-email').value         = cd.email     || '';
+  document.getElementById('cliente-edit-overlay').classList.add('open');
+}
+
+function closeClienteEdit() {
+  document.getElementById('cliente-edit-overlay').classList.remove('open');
+}
+
+async function saveCliente() {
+  const dni       = document.getElementById('cliente-edit-dni').value;
+  const direccion = document.getElementById('cliente-direccion').value.trim();
+  const localidad = document.getElementById('cliente-localidad').value.trim();
+  const provincia = document.getElementById('cliente-provincia').value.trim();
+  const telefono  = document.getElementById('cliente-telefono').value.trim();
+  const email     = document.getElementById('cliente-email').value.trim();
+  try {
+    await gas({ action:'saveCliente', dni, direccion, localidad, provincia, telefono, email });
+    CLIENTES_DATA[dni] = { direccion, localidad, provincia, telefono, email };
+    toast('Cliente guardado ✓', 'ok');
+    closeClienteEdit();
+    renderClientes();
+  } catch(e) { toast('Error: ' + e.message, 'er'); }
+}
+
+async function delCliente(dni) {
+  if (!confirm('¿Eliminar los datos de este cliente?')) return;
+  try {
+    await gas({ action:'delCliente', dni });
+    delete CLIENTES_DATA[dni];
+    toast('Cliente eliminado', 'in');
+    renderClientes();
+  } catch(e) { toast('Error: ' + e.message, 'er'); }
+}
+
+function openHistorialCliente(dni, nombre) {
+  // Buscar el registro de solicitud más reciente con ese DNI para usar su ID
+  const r = RECORDS.find(x => x.dni === dni);
+  if (r) {
+    openHistorial(r.id);
+  } else {
+    toast('Sin historial para este cliente', 'in');
+  }
+}
+
+function initClientesMirror() {
+  const scroll = document.getElementById('clientes-scroll');
+  const mirror = document.getElementById('clientes-mirror');
+  const inner  = document.getElementById('clientes-mirror-inner');
+  if (!scroll || !mirror || !inner) return;
+  inner.style.width = scroll.scrollWidth + 'px';
+  mirror.style.display = scroll.scrollWidth > scroll.clientWidth + 2 ? 'block' : 'none';
+  let syncing = false;
+  scroll.onscroll = () => { if (syncing) return; syncing = true; mirror.scrollLeft = scroll.scrollLeft; syncing = false; };
+  mirror.onscroll = () => { if (syncing) return; syncing = true; scroll.scrollLeft = mirror.scrollLeft; syncing = false; };
+}
+
+// ══════════════════════════════════════════════
 // CONTABILIDAD
 // ══════════════════════════════════════════════
 function openContabilidad() {
@@ -1426,6 +1577,17 @@ async function loadLists() {
       Object.keys(res.lists).forEach(k => { if (LISTS[k] !== undefined) LISTS[k] = res.lists[k]; else LISTS[k] = res.lists[k]; });
     }
     initBanco(); initAllDD();
+  } catch(e) {}
+}
+
+async function loadClientes() {
+  if (!WH) return;
+  try {
+    const res = await gas({ action:'getClientes' });
+    if (res.clientes) {
+      CLIENTES_DATA = {};
+      res.clientes.forEach(c => { CLIENTES_DATA[c.dni] = c; });
+    }
   } catch(e) {}
 }
 
@@ -2635,6 +2797,9 @@ function renderReportes() {
     <button class="sb-item" id="sb-gestores" onclick="closeSidebar();openGestores()">
       <span class="sb-icon">👤</span> Gestores
     </button>
+    <button class="sb-item" onclick="closeSidebar();openClientes()">
+      <span class="sb-icon">🧑‍💼</span> Clientes
+    </button>
     <button class="sb-item" onclick="closeSidebar();openGestoria()">
       <span class="sb-icon">📁</span> Gestoría
     </button>
@@ -2759,6 +2924,78 @@ function renderReportes() {
     <!-- Barra scroll espejo fija al fondo del modal -->
     <div class="gestoria-scroll-mirror" id="gestoria-mirror">
       <div class="gestoria-scroll-mirror-inner" id="gestoria-mirror-inner"></div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL CLIENTES -->
+<div class="clientes-overlay" id="clientes-overlay" onclick="if(event.target===this)closeClientes()">
+  <div class="clientes-modal" onclick="event.stopPropagation()">
+    <div class="clientes-head">
+      <div>
+        <div style="font-size:17px;font-weight:800;color:var(--ink)">🧑‍💼 Clientes</div>
+        <div style="font-size:12px;color:var(--muted);margin-top:2px" id="clientes-count">—</div>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <div class="searchbox" style="min-width:220px">
+          <span style="color:var(--muted)">🔍</span>
+          <input id="clientes-srch" placeholder="Buscar nombre, DNI..." oninput="renderClientes()">
+        </div>
+        <button class="xbtn" onclick="closeClientes()" style="width:34px;height:34px;font-size:18px">×</button>
+      </div>
+    </div>
+    <div class="clientes-body">
+      <div class="clientes-scroll-x" id="clientes-scroll">
+        <table class="clientes-table">
+          <thead>
+            <tr>
+              <th>Acciones</th>
+              <th>#</th>
+              <th>Nombre y Apellido</th>
+              <th>DNI</th>
+              <th>Dirección</th>
+              <th>Localidad</th>
+              <th>Provincia</th>
+              <th>Teléfono</th>
+              <th>Email</th>
+            </tr>
+          </thead>
+          <tbody id="clientes-tbody"></tbody>
+        </table>
+      </div>
+      <div id="clientes-empty" class="empty-state" style="display:none">
+        <div class="ei">🧑‍💼</div>
+        <h3>Sin clientes</h3>
+        <p>Los clientes se generan automáticamente desde las solicitudes cargadas</p>
+      </div>
+    </div>
+    <div class="clientes-scroll-mirror" id="clientes-mirror">
+      <div class="clientes-scroll-mirror-inner" id="clientes-mirror-inner"></div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL EDITAR CLIENTE -->
+<div class="overlay" id="cliente-edit-overlay" onclick="if(event.target===this)closeClienteEdit()" style="z-index:700">
+  <div class="modal" style="max-width:480px" onclick="event.stopPropagation()">
+    <div class="mh">
+      <div>
+        <div class="mt">✏️ Editar cliente</div>
+        <div style="font-size:11.5px;color:var(--muted);margin-top:3px" id="cliente-edit-nombre">—</div>
+      </div>
+      <button class="xbtn" onclick="closeClienteEdit()">×</button>
+    </div>
+    <input type="hidden" id="cliente-edit-dni">
+    <div class="fg" style="grid-template-columns:repeat(2,1fr);gap:14px">
+      <div class="fc span2"><label>Dirección</label><input id="cliente-direccion" placeholder="Av. Ejemplo 1234"></div>
+      <div class="fc"><label>Localidad</label><input id="cliente-localidad" placeholder="Córdoba"></div>
+      <div class="fc"><label>Provincia</label><input id="cliente-provincia" placeholder="Córdoba"></div>
+      <div class="fc"><label>Teléfono</label><input id="cliente-telefono" placeholder="351-1234567"></div>
+      <div class="fc"><label>Email</label><input id="cliente-email" type="email" placeholder="cliente@email.com"></div>
+    </div>
+    <div class="mfoot">
+      <button class="btn btn-s" onclick="closeClienteEdit()">Cancelar</button>
+      <button class="btn btn-p" onclick="saveCliente()">💾 Guardar</button>
     </div>
   </div>
 </div>
