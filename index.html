@@ -367,6 +367,14 @@ pre{background:#0f172a;color:#7dd3fc;padding:18px;font-family:'JetBrains Mono',m
 </head>
 <body>
 
+<!-- OVERLAY MANTENIMIENTO -->
+<div id="mant-overlay" style="display:none;position:fixed;inset:0;z-index:9998;background:linear-gradient(145deg,#0f172a 0%,#1e3a8a 60%,#1d4ed8 100%);display:none;align-items:center;justify-content:center;flex-direction:column;text-align:center;padding:32px">
+  <div style="font-size:56px;margin-bottom:20px">🔧</div>
+  <div style="font-size:24px;font-weight:800;color:#fff;margin-bottom:10px">Sistema en mantenimiento</div>
+  <div style="font-size:15px;color:#93c5fd;max-width:420px;line-height:1.6">Estamos realizando mejoras. El sistema estará disponible nuevamente en breve.<br><br>Disculpá las molestias.</div>
+  <div style="margin-top:28px;font-size:12px;color:#60a5fa">Grupo Olyar — Sistema de Solicitudes</div>
+</div>
+
 <!-- LOADING -->
 <div class="loading-overlay" id="loading-overlay">
   <div class="loading-box">
@@ -622,6 +630,19 @@ pre{background:#0f172a;color:#7dd3fc;padding:18px;font-family:'JetBrains Mono',m
         <div style="display:flex;gap:10px;flex-wrap:wrap">
           <button class="btn btn-p" onclick="saveCfg()">💾 Guardar</button>
           <button class="btn btn-s" onclick="testWH()">🧪 Probar conexión</button>
+        </div>
+      </div>
+
+      <!-- MANTENIMIENTO -->
+      <div class="card" style="max-width:500px">
+        <div class="card-t">🔧 Modo mantenimiento</div>
+        <div class="card-s" style="margin-bottom:16px">Cuando está activo, los usuarios ven una pantalla de mantenimiento al ingresar. El admin puede seguir usando el sistema normalmente.</div>
+        <div style="display:flex;align-items:center;gap:14px;margin-bottom:14px">
+          <div id="mant-status" style="font-size:13px;font-weight:600;color:var(--muted)">Verificando...</div>
+        </div>
+        <div style="display:flex;gap:10px">
+          <button class="btn btn-p" id="btn-mant-activar" onclick="toggleMantenimiento(true)" style="display:none">🔧 Activar mantenimiento</button>
+          <button class="btn btn-d" id="btn-mant-desactivar" onclick="toggleMantenimiento(false)" style="display:none">✅ Desactivar mantenimiento</button>
         </div>
       </div>
     </div>
@@ -899,7 +920,7 @@ function doPost(e) { return doGet(e); }`;
 // ══════════════════════════════════════════════
 // CONFIG — URL del Apps Script
 // ══════════════════════════════════════════════
-let WH = 'https://script.google.com/macros/s/AKfycbwXvOmJmO0RfpAHuu59KSpA8tuTB797mUR6ncTVV7NTqWsG2y90Bw-gtrNaSvem0nGs/exec';
+let WH = 'https://script.google.com/macros/s/AKfycbwynv-MivL9_BKGRwb3ZWL_OZhkUnasWnl80DTU3uJazz7CbRfPq0M_omNYWmYVy9k/exec';
 const SHEET_NAME = 'Solicitudes';
 
 // ══════════════════════════════════════════════
@@ -988,6 +1009,7 @@ async function enterApp() {
   // Cargar datos
   loading(true, 'Cargando datos...');
   await Promise.all([loadLists(), loadRecords(), loadClientes()]);
+  checkMantenimiento();
   loading(false);
   showV('sol');
 }
@@ -1704,6 +1726,55 @@ function closeClientesPanelSinReabrir() {
 }
 
 // ══════════════════════════════════════════════
+// MANTENIMIENTO
+// ══════════════════════════════════════════════
+async function checkMantenimiento() {
+  try {
+    const res = await gas({ action: 'getMantenimiento' });
+    const activo = res.activo === true || res.activo === 'true';
+    // Si es usuario (no admin) y mantenimiento está activo, mostrar pantalla
+    if (activo && ME?.rol !== 'admin') {
+      document.getElementById('app').style.display = 'none';
+      const el = document.getElementById('mant-overlay');
+      el.style.display = 'flex';
+    }
+  } catch(e) {}
+}
+
+async function loadMantenimientoStatus() {
+  try {
+    const res = await gas({ action: 'getMantenimiento' });
+    const activo = res.activo === true || res.activo === 'true';
+    const status = document.getElementById('mant-status');
+    const btnAct  = document.getElementById('btn-mant-activar');
+    const btnDes  = document.getElementById('btn-mant-desactivar');
+    if (activo) {
+      status.textContent = '🔴 Mantenimiento ACTIVO — los usuarios ven pantalla de mantenimiento';
+      status.style.color = 'var(--red)';
+      btnAct.style.display = 'none';
+      btnDes.style.display = '';
+    } else {
+      status.textContent = '🟢 Sistema operativo — todos los usuarios pueden ingresar';
+      status.style.color = 'var(--green)';
+      btnAct.style.display = '';
+      btnDes.style.display = 'none';
+    }
+  } catch(e) {}
+}
+
+async function toggleMantenimiento(activar) {
+  const msg = activar
+    ? '¿Activar modo mantenimiento? Los usuarios no podrán usar el sistema.'
+    : '¿Desactivar mantenimiento? Los usuarios podrán ingresar normalmente.';
+  if (!confirm(msg)) return;
+  try {
+    await gas({ action: 'setMantenimiento', activo: String(activar) });
+    toast(activar ? '🔧 Mantenimiento activado' : '✅ Sistema reactivado', activar ? 'wa' : 'ok');
+    loadMantenimientoStatus();
+  } catch(e) { toast('Error: ' + e.message, 'er'); }
+}
+
+// ══════════════════════════════════════════════
 // CONTABILIDAD
 // ══════════════════════════════════════════════
 function openContabilidad() {
@@ -1967,7 +2038,7 @@ function showV(v) {
   if (v==='sol')      renderTable();
   if (v==='nueva' && !editId) { resetForm(); document.getElementById('form-title').textContent='Nueva solicitud'; document.getElementById('save-btn').textContent='💾 Guardar solicitud'; }
   if (v==='usuarios') loadUsers();
-  if (v==='config')   { document.getElementById('cfg-wh').value=WH; }
+  if (v==='config')   { document.getElementById('cfg-wh').value=WH; loadMantenimientoStatus(); }
 }
 
 // ══════════════════════════════════════════════
@@ -3018,7 +3089,10 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape')document.querySelect
 
 // Auto refresh cada 30 segundos
 setInterval(() => {
-  if (ME) loadRecords();
+  if (ME) {
+    loadRecords();
+    checkMantenimiento();
+  }
 }, 30000);
 </script>
 
