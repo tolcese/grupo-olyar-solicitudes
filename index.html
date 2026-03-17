@@ -3111,13 +3111,13 @@ function toast(msg,type='ok') {
 
 document.addEventListener('keydown',e=>{if(e.key==='Escape')document.querySelectorAll('.overlay.open').forEach(o=>o.classList.remove('open'));});
 
-// Auto refresh cada 30 segundos
+// Auto refresh cada 1 minuto
 setInterval(() => {
   if (ME) {
     loadRecords();
     checkMantenimiento();
   }
-}, 30000);
+}, 60000);
 </script>
 
 <!-- SLIDE PANEL GESTORES -->
