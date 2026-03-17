@@ -988,7 +988,6 @@ function showErr(msg) {
 
 async function enterApp() {
   document.getElementById('login-wrap').style.display = 'none';
-  document.getElementById('app').style.display = 'block';
   document.getElementById('tb-av').textContent = ME.nom[0].toUpperCase();
   document.getElementById('tb-uname').textContent = ME.nom;
   document.getElementById('tb-role').textContent = ME.rol === 'admin' ? '⚡ Admin' : '👤 Usuario';
@@ -1006,12 +1005,16 @@ async function enterApp() {
   document.getElementById('cfg-wh').value = WH;
   syncUI(WH ? 'ok' : 'idle');
 
-  // Cargar datos
-  loading(true, 'Cargando datos...');
+  // Verificar mantenimiento ANTES de mostrar la app
+  loading(true, 'Cargando...');
+  const enMant = await checkMantenimiento();
+  if (enMant) { loading(false); return; }
+
+  // Mostrar app y cargar datos
+  document.getElementById('app').style.display = 'block';
   await Promise.all([loadLists(), loadRecords(), loadClientes()]);
   loading(false);
-  const enMant = await checkMantenimiento();
-  if (!enMant) showV('sol');
+  showV('sol');
 }
 
 function doLogout() {
