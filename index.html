@@ -1261,8 +1261,10 @@ async function syncGestoriaSheet() {
 // ══════════════════════════════════════════════
 function openClientes() {
   document.getElementById('clientes-overlay').classList.add('open');
-  renderClientes();
-  setTimeout(initClientesMirror, 150);
+  loadClientes().then(() => {
+    renderClientes();
+    setTimeout(initClientesMirror, 150);
+  });
 }
 
 function closeClientes() {
