@@ -923,7 +923,7 @@ function doPost(e) { return doGet(e); }`;
 // ══════════════════════════════════════════════
 // CONFIG — URL del Apps Script
 // ══════════════════════════════════════════════
-let WH = 'https://script.google.com/macros/s/AKfycbwf39c81g4EoD56Dme8Ip-26IoZ57_61dOldm1gi9HAc8wFJNt2Etmq1ybfMDenoXVx/exec';
+let WH = 'https://script.google.com/macros/s/AKfycbwVT94mhAi60TUWAcZHKVGODEawowVAXQLCgOiRu__U1AzpFkWIWfkblcvRQbWt6NdG/exec';
 const SHEET_NAME = 'Solicitudes';
 
 // ══════════════════════════════════════════════
@@ -1417,6 +1417,7 @@ function renderPrendasEntregadas() {
       <td style="color:var(--muted);font-size:11px">${i+1}</td>
       <td style="white-space:nowrap">${hoy}</td>
       <td style="white-space:nowrap;color:var(--green);font-weight:600">${fmtFin(r.finalizada)}</td>
+      <td style="white-space:nowrap;color:var(--purple);font-weight:600">${fmtFin(r.fechaEntregada)}</td>
       <td style="font-weight:700;color:var(--blue)">${val(r.gestorAsignado)}</td>
       <td style="font-weight:700;min-width:130px">${val(r.nombrecliente)}</td>
       <td style="font-weight:600">${val(r.banco)}</td>
@@ -1436,6 +1437,7 @@ function editPERecord(id) {
   document.getElementById('pe-edit-id').value = id;
   document.getElementById('pe-edit-nombre').textContent = r.nombrecliente || id;
   document.getElementById('pe-edit-obs').value = r.obs || '';
+  document.getElementById('pe-edit-fecha-entregada').value = r.fechaEntregada || '';
   document.getElementById('pe-edit-overlay').classList.add('open');
 }
 
@@ -1444,12 +1446,13 @@ function closePEEdit() {
 }
 
 async function savePEEdit() {
-  const id  = document.getElementById('pe-edit-id').value;
-  const obs = document.getElementById('pe-edit-obs').value.trim();
+  const id             = document.getElementById('pe-edit-id').value;
+  const obs            = document.getElementById('pe-edit-obs').value.trim();
+  const fechaEntregada = document.getElementById('pe-edit-fecha-entregada').value;
   try {
-    await gas({ action:'editPERecord', id, obs });
+    await gas({ action:'editPERecord', id, obs, fechaEntregada });
     const r = RECORDS.find(x => x.id === id);
-    if (r) r.obs = obs;
+    if (r) { r.obs = obs; r.fechaEntregada = fechaEntregada; }
     toast('Guardado ✓', 'ok');
     closePEEdit();
     renderPrendasEntregadas();
@@ -1499,6 +1502,7 @@ function openPEPanel(id) {
       <div class="panel-section-t">Datos generales</div>
       <div class="prow"><span class="pl">Fecha solicitud</span><span class="pv">${r.fecha ? r.fecha.split('-').reverse().join('/') : '—'}</span></div>
       <div class="prow"><span class="pl">Fecha finalizada</span><span class="pv bold" style="color:var(--green)">${fmtFin(r.finalizada)}</span></div>
+      <div class="prow"><span class="pl">Fecha entregada</span><span class="pv bold" style="color:var(--purple)">${fmtFin(r.fechaEntregada)}</span></div>
       <div class="prow"><span class="pl">Gestor asignado</span><span class="pv bold" style="color:var(--blue)">${val(r.gestorAsignado)}</span></div>
     </div>
     <div class="panel-section">
@@ -3538,6 +3542,7 @@ function renderReportes() {
               <th>#</th>
               <th>Fecha actual</th>
               <th>Fecha finalizada</th>
+              <th>Fecha entregada</th>
               <th>Gestor asignado</th>
               <th>Cliente</th>
               <th>Banco</th>
@@ -3575,6 +3580,7 @@ function renderReportes() {
     </div>
     <input type="hidden" id="pe-edit-id">
     <div class="fg" style="grid-template-columns:1fr;gap:14px">
+      <div class="fc"><label>Fecha entregada</label><input type="date" id="pe-edit-fecha-entregada"></div>
       <div class="fc"><label>Observaciones</label><textarea id="pe-edit-obs" style="min-height:80px"></textarea></div>
     </div>
     <div class="mfoot">
