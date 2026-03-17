@@ -333,6 +333,25 @@ pre{background:#0f172a;color:#7dd3fc;padding:18px;font-family:'JetBrains Mono',m
 .clientes-table tbody tr:last-child td{border-bottom:none;}
 .clientes-table tbody tr:hover td{background:#f8faff;}
 
+/* PRENDAS ENTREGADAS */
+.pe-overlay{position:fixed;inset:0;background:rgba(15,23,42,.55);backdrop-filter:blur(4px);z-index:500;display:flex;align-items:center;justify-content:center;padding:16px;opacity:0;pointer-events:none;transition:opacity .2s;}
+.pe-overlay.open{opacity:1;pointer-events:all;}
+.pe-modal{background:#fff;border-radius:18px;width:100%;max-width:1200px;max-height:92vh;display:flex;flex-direction:column;box-shadow:var(--sh-lg);transform:scale(.96) translateY(10px);transition:transform .25s cubic-bezier(.34,1.56,.64,1);}
+.pe-overlay.open .pe-modal{transform:scale(1) translateY(0);}
+.pe-head{padding:20px 28px;border-bottom:1.5px solid var(--line);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
+.pe-body{overflow-y:auto;overflow-x:hidden;flex:1;padding:0;}
+.pe-scroll-x{overflow-x:auto;overflow-y:visible;scrollbar-width:none;}
+.pe-scroll-x::-webkit-scrollbar{display:none;}
+.pe-scroll-mirror{overflow-x:auto;overflow-y:hidden;height:14px;border-top:1.5px solid var(--line);flex-shrink:0;background:#fff;}
+.pe-scroll-mirror-inner{height:1px;}
+.pe-table{width:100%;border-collapse:collapse;min-width:1000px;font-size:13px;}
+.pe-table thead th{position:sticky;top:0;z-index:2;background:var(--surface);}
+.pe-table thead tr{border-bottom:1.5px solid var(--line);}
+.pe-table th{padding:10px 13px;text-align:left;font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;white-space:nowrap;}
+.pe-table td{padding:11px 13px;color:var(--ink2);border-bottom:1px solid var(--line);vertical-align:middle;white-space:nowrap;}
+.pe-table tbody tr:last-child td{border-bottom:none;}
+.pe-table tbody tr:hover td{background:#f8faff;}
+
 /* MODAL EDITAR PRENDA */
 .prendas-edit-overlay{position:fixed;inset:0;background:rgba(15,23,42,.55);backdrop-filter:blur(4px);z-index:700;display:flex;align-items:center;justify-content:center;padding:16px;opacity:0;pointer-events:none;transition:opacity .2s;}
 .prendas-edit-overlay.open{opacity:1;pointer-events:all;}
@@ -880,7 +899,7 @@ function doPost(e) { return doGet(e); }`;
 // ══════════════════════════════════════════════
 // CONFIG — URL del Apps Script
 // ══════════════════════════════════════════════
-let WH = 'https://script.google.com/macros/s/AKfycbzSEvD5XHeXTVsfFswHupnIn9GvlasL4f-bvcM71NRfJGe_wMqbVX0bx3opkpWEt7PM/exec';
+let WH = 'https://script.google.com/macros/s/AKfycbwXvOmJmO0RfpAHuu59KSpA8tuTB797mUR6ncTVV7NTqWsG2y90Bw-gtrNaSvem0nGs/exec';
 const SHEET_NAME = 'Solicitudes';
 
 // ══════════════════════════════════════════════
@@ -1254,6 +1273,129 @@ async function confirmarAsignacion(gestorId, gestorNombre) {
 
 async function syncGestoriaSheet() {
   try { await gas({ action: 'syncGestoria' }); } catch(e) {}
+}
+
+// ══════════════════════════════════════════════
+// PRENDAS ENTREGADAS
+// ══════════════════════════════════════════════
+function openPrendasEntregadas() {
+  document.getElementById('pe-overlay').classList.add('open');
+  renderPrendasEntregadas();
+  setTimeout(initPEMirror, 150);
+}
+
+function closePrendasEntregadas() {
+  document.getElementById('pe-overlay').classList.remove('open');
+}
+
+function renderPrendasEntregadas() {
+  const q = (document.getElementById('pe-srch')?.value || '').toLowerCase();
+  const isAdmin = ME?.rol === 'admin';
+
+  // Solo registros con fecha finalizada
+  let data = RECORDS.filter(r => r.gestorAsignado && r.finalizada && r.finalizada.trim() !== '');
+  if (q) data = data.filter(r =>
+    [r.nombrecliente, r.banco, r.concesionaria, r.provincia, r.localidad, r.gestorAsignado].some(v => (v||'').toLowerCase().includes(q))
+  );
+
+  const tbody = document.getElementById('pe-tbody');
+  const empty = document.getElementById('pe-empty');
+  const count = document.getElementById('pe-count');
+
+  count.textContent = data.length + ' registro' + (data.length !== 1 ? 's' : '');
+
+  if (!data.length) {
+    tbody.innerHTML = '';
+    empty.style.display = '';
+    setTimeout(initPEMirror, 50);
+    return;
+  }
+  empty.style.display = 'none';
+
+  const hoy = new Date().toLocaleDateString('es-AR', {day:'2-digit', month:'2-digit', year:'numeric'});
+  const val = v => v || '—';
+
+  // Formatear fecha finalizada de yyyy-mm-dd a dd/mm/yyyy
+  const fmtFin = v => {
+    if (!v) return '—';
+    if (v.includes('/')) return v;
+    const parts = v.split('-');
+    if (parts.length === 3) return parts[2]+'/'+parts[1]+'/'+parts[0];
+    return v;
+  };
+
+  tbody.innerHTML = data.map((r, i) => `
+    <tr>
+      <td style="position:sticky;left:0;background:#fff;z-index:1;box-shadow:2px 0 6px rgba(0,0,0,.04)">
+        <div class="abtns">
+          <button class="ibtn" onclick="editPERecord('${r.id}')" title="Editar">✏️</button>
+          ${isAdmin ? `<button class="ibtn del" onclick="delPERecord('${r.id}')" title="Eliminar">🗑️</button>` : ''}
+          ${isAdmin ? `<button class="ibtn" onclick="closePrendasEntregadas();openHistorial('${r.id}')" title="Historial">🕐</button>` : ''}
+        </div>
+      </td>
+      <td style="color:var(--muted);font-size:11px">${i+1}</td>
+      <td style="white-space:nowrap">${hoy}</td>
+      <td style="white-space:nowrap;color:var(--green);font-weight:600">${fmtFin(r.finalizada)}</td>
+      <td style="font-weight:700;color:var(--blue)">${val(r.gestorAsignado)}</td>
+      <td style="font-weight:700;min-width:130px">${val(r.nombrecliente)}</td>
+      <td style="font-weight:600">${val(r.banco)}</td>
+      <td>${val(r.concesionaria)}</td>
+      <td>${val(r.localidad)}</td>
+      <td>${val(r.provincia)}</td>
+      <td style="max-width:140px;overflow:hidden;text-overflow:ellipsis" title="${r.descripcion||''}">${val(r.descripcion)}</td>
+      <td style="max-width:140px;overflow:hidden;text-overflow:ellipsis" title="${r.obs||''}">${val(r.obs)}</td>
+    </tr>`).join('');
+
+  setTimeout(initPEMirror, 50);
+}
+
+function editPERecord(id) {
+  const r = RECORDS.find(x => x.id === id);
+  if (!r) return;
+  document.getElementById('pe-edit-id').value = id;
+  document.getElementById('pe-edit-nombre').textContent = r.nombrecliente || id;
+  document.getElementById('pe-edit-obs').value = r.obs || '';
+  document.getElementById('pe-edit-overlay').classList.add('open');
+}
+
+function closePEEdit() {
+  document.getElementById('pe-edit-overlay').classList.remove('open');
+}
+
+async function savePEEdit() {
+  const id  = document.getElementById('pe-edit-id').value;
+  const obs = document.getElementById('pe-edit-obs').value.trim();
+  try {
+    await gas({ action:'editPERecord', id, obs });
+    const r = RECORDS.find(x => x.id === id);
+    if (r) r.obs = obs;
+    toast('Guardado ✓', 'ok');
+    closePEEdit();
+    renderPrendasEntregadas();
+  } catch(e) { toast('Error: ' + e.message, 'er'); }
+}
+
+async function delPERecord(id) {
+  if (!confirm('¿Eliminar este registro de Prendas entregadas?')) return;
+  try {
+    await gas({ action:'delPERecord', id });
+    const r = RECORDS.find(x => x.id === id);
+    if (r) { r.finalizada = ''; r.gestorAsignado = ''; }
+    toast('Registro eliminado', 'in');
+    renderPrendasEntregadas();
+  } catch(e) { toast('Error: ' + e.message, 'er'); }
+}
+
+function initPEMirror() {
+  const scroll = document.getElementById('pe-scroll');
+  const mirror = document.getElementById('pe-mirror');
+  const inner  = document.getElementById('pe-mirror-inner');
+  if (!scroll || !mirror || !inner) return;
+  inner.style.width = scroll.scrollWidth + 'px';
+  mirror.style.display = scroll.scrollWidth > scroll.clientWidth + 2 ? 'block' : 'none';
+  let syncing = false;
+  scroll.onscroll = () => { if (syncing) return; syncing = true; mirror.scrollLeft = scroll.scrollLeft; syncing = false; };
+  mirror.onscroll = () => { if (syncing) return; syncing = true; scroll.scrollLeft = mirror.scrollLeft; syncing = false; };
 }
 
 // ══════════════════════════════════════════════
@@ -2808,6 +2950,9 @@ function renderReportes() {
     <button class="sb-item" onclick="closeSidebar();openPrendas()">
       <span class="sb-icon">📌</span> Prendas
     </button>
+    <button class="sb-item" onclick="closeSidebar();openPrendasEntregadas()">
+      <span class="sb-icon">✅</span> Prendas entregadas
+    </button>
 
     <div class="sb-divider"></div>
     <div class="sb-section-label">Cuenta</div>
@@ -2926,6 +3071,77 @@ function renderReportes() {
     <!-- Barra scroll espejo fija al fondo del modal -->
     <div class="gestoria-scroll-mirror" id="gestoria-mirror">
       <div class="gestoria-scroll-mirror-inner" id="gestoria-mirror-inner"></div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL PRENDAS ENTREGADAS -->
+<div class="pe-overlay" id="pe-overlay" onclick="if(event.target===this)closePrendasEntregadas()">
+  <div class="pe-modal" onclick="event.stopPropagation()">
+    <div class="pe-head">
+      <div>
+        <div style="font-size:17px;font-weight:800;color:var(--ink)">✅ Prendas entregadas</div>
+        <div style="font-size:12px;color:var(--muted);margin-top:2px" id="pe-count">—</div>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <div class="searchbox" style="min-width:220px">
+          <span style="color:var(--muted)">🔍</span>
+          <input id="pe-srch" placeholder="Buscar cliente, banco, gestor..." oninput="renderPrendasEntregadas()">
+        </div>
+        <button class="xbtn" onclick="closePrendasEntregadas()" style="width:34px;height:34px;font-size:18px">×</button>
+      </div>
+    </div>
+    <div class="pe-body">
+      <div class="pe-scroll-x" id="pe-scroll">
+        <table class="pe-table">
+          <thead>
+            <tr>
+              <th>Acciones</th>
+              <th>#</th>
+              <th>Fecha actual</th>
+              <th>Fecha finalizada</th>
+              <th>Gestor asignado</th>
+              <th>Cliente</th>
+              <th>Banco</th>
+              <th>Concesionaria</th>
+              <th>Localidad</th>
+              <th>Provincia</th>
+              <th>Descripción vehículo</th>
+              <th>Observaciones</th>
+            </tr>
+          </thead>
+          <tbody id="pe-tbody"></tbody>
+        </table>
+      </div>
+      <div id="pe-empty" class="empty-state" style="display:none">
+        <div class="ei">✅</div>
+        <h3>Sin prendas entregadas</h3>
+        <p>Aparecen acá los registros que tienen fecha de finalización en Prendas</p>
+      </div>
+    </div>
+    <div class="pe-scroll-mirror" id="pe-mirror">
+      <div class="pe-scroll-mirror-inner" id="pe-mirror-inner"></div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL EDITAR PRENDA ENTREGADA -->
+<div class="overlay" id="pe-edit-overlay" onclick="if(event.target===this)closePEEdit()" style="z-index:700">
+  <div class="modal" style="max-width:420px" onclick="event.stopPropagation()">
+    <div class="mh">
+      <div>
+        <div class="mt">✏️ Editar prenda entregada</div>
+        <div style="font-size:11.5px;color:var(--muted);margin-top:3px" id="pe-edit-nombre">—</div>
+      </div>
+      <button class="xbtn" onclick="closePEEdit()">×</button>
+    </div>
+    <input type="hidden" id="pe-edit-id">
+    <div class="fg" style="grid-template-columns:1fr;gap:14px">
+      <div class="fc"><label>Observaciones</label><textarea id="pe-edit-obs" style="min-height:80px"></textarea></div>
+    </div>
+    <div class="mfoot">
+      <button class="btn btn-s" onclick="closePEEdit()">Cancelar</button>
+      <button class="btn btn-p" onclick="savePEEdit()">💾 Guardar</button>
     </div>
   </div>
 </div>
