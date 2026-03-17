@@ -416,6 +416,7 @@ pre{background:#0f172a;color:#7dd3fc;padding:18px;font-family:'JetBrains Mono',m
         <button class="tn" id="tn-reportes" style="display:none" onclick="showV('reportes')">📊 Reportes</button>
         <button class="tn" id="tn-gestoria" onclick="openGestoria()">📁 Gestoría</button>
         <button class="tn" id="tn-prendas" onclick="openPrendas()">📌 Prendas</button>
+        <button class="tn" id="tn-pe" onclick="openPrendasEntregadas()" style="display:none">✅ Prendas entregadas</button>
         <button class="tn" id="tn-micuenta" onclick="showV('micuenta')">🔑 Mi cuenta</button>
       </nav>
     </div>
@@ -1003,6 +1004,7 @@ async function enterApp() {
   document.getElementById('sc-imp').style.display = ME.rol === 'admin' ? '' : 'none';
   document.getElementById('f-usu').style.display = ME.rol === 'admin' ? '' : 'none';
   document.getElementById('tn-reportes').style.display = ME.rol === 'admin' ? '' : 'none';
+  document.getElementById('tn-pe').style.display = ME.rol === 'admin' ? '' : 'none';
   document.getElementById('btn-datero').style.display = ME.rol === 'admin' ? 'none' : '';
   document.getElementById('cfg-wh').value = WH;
   syncUI(WH ? 'ok' : 'idle');
