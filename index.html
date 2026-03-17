@@ -1368,9 +1368,9 @@ async function delCliente(dni) {
 }
 
 function openHistorialCliente(dni, nombre) {
-  // Buscar el registro de solicitud más reciente con ese DNI para usar su ID
   const r = RECORDS.find(x => x.dni === dni);
   if (r) {
+    closeClientes();
     openHistorial(r.id);
   } else {
     toast('Sin historial para este cliente', 'in');
