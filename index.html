@@ -1683,6 +1683,9 @@ function openPrendasPanel(id) {
   const r = RECORDS.find(x => x.id === id);
   if (!r) return;
 
+  // Cerrar el modal de Prendas primero
+  document.getElementById('prendas-overlay').classList.remove('open');
+
   const isAdmin = ME?.rol === 'admin';
   const val  = v => v || '—';
   const mon  = v => v ? '$'+Number(String(v).replace(/[$,]/g,'')).toLocaleString('es-AR') : '—';
@@ -1753,8 +1756,8 @@ function openPrendasPanel(id) {
   btns.className = 'panel-btns';
   btns.style.cssText = 'display:flex;gap:8px;margin-top:10px;';
   btns.innerHTML = `
-    <button class="btn btn-p" style="font-size:12px;padding:6px 12px" onclick="closePrendasPanel();editPrenda('${r.id}')">✏️ Editar</button>
-    ${isAdmin ? `<button class="btn btn-d" style="font-size:12px;padding:6px 12px" onclick="closePrendasPanel();delPrenda('${r.id}')">🗑️ Eliminar</button>` : ''}
+    <button class="btn btn-p" style="font-size:12px;padding:6px 12px" onclick="closePrendasPanelSinReabrir();editPrenda('${r.id}')">✏️ Editar</button>
+    ${isAdmin ? `<button class="btn btn-d" style="font-size:12px;padding:6px 12px" onclick="closePrendasPanelSinReabrir();delPrenda('${r.id}')">🗑️ Eliminar</button>` : ''}
   `;
   panelHead.appendChild(btns);
 
@@ -1763,6 +1766,13 @@ function openPrendasPanel(id) {
 }
 
 function closePrendasPanel() {
+  document.getElementById('prendas-panel-overlay').classList.remove('open');
+  document.getElementById('prendas-side-panel').classList.remove('open');
+  // Reabrir el modal de Prendas
+  document.getElementById('prendas-overlay').classList.add('open');
+}
+
+function closePrendasPanelSinReabrir() {
   document.getElementById('prendas-panel-overlay').classList.remove('open');
   document.getElementById('prendas-side-panel').classList.remove('open');
 }
