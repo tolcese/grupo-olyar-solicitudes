@@ -494,7 +494,7 @@ pre{background:#0f172a;color:#7dd3fc;padding:18px;font-family:'JetBrains Mono',m
               <th class="th-sort" onclick="sortBy('localidad')" id="th-localidad">Localidad <span class="sort-icon">↕</span></th>
               <th class="th-sort" onclick="sortBy('dni')" id="th-dni">DNI <span class="sort-icon">↕</span></th>
               <th class="th-sort" onclick="sortBy('nombrecliente')" id="th-nombrecliente">Cliente <span class="sort-icon">↕</span></th>
-              <th class="th-sort" onclick="sortBy('dominio')" id="th-dominio">Dominio <span class="sort-icon">↕</span></th>
+              <th class="th-sort admin-only" onclick="sortBy('dominio')" id="th-dominio">Dominio <span class="sort-icon">↕</span></th>
               <th class="th-sort" onclick="sortBy('marca')" id="th-marca">Marca <span class="sort-icon">↕</span></th>
               <th class="th-sort" onclick="sortBy('descripcion')" id="th-descripcion">Descripción <span class="sort-icon">↕</span></th>
               <th class="th-sort" onclick="sortBy('tipocta')" id="th-tipocta">Tipo CTA <span class="sort-icon">↕</span></th>
@@ -503,10 +503,10 @@ pre{background:#0f172a;color:#7dd3fc;padding:18px;font-family:'JetBrains Mono',m
               <th class="th-sort" onclick="sortBy('vehiculo')" id="th-vehiculo">Monto Vehículo <span class="sort-icon">↕</span></th>
               <th class="th-sort admin-only" onclick="sortBy('comision')" id="th-comision">Comisión <span class="sort-icon">↕</span></th>
               <th class="th-sort" onclick="sortBy('estado')" id="th-estado">Estado <span class="sort-icon">↕</span></th>
-              <th title="Documento 01/08">Doc 01/08</th>
-              <th title="Título Unidad">Título</th>
-              <th title="Verificación Policial (12)">Ver. Pol.</th>
-              <th title="Informe Dominio">Inf. Dom.</th>
+              <th title="Documento 01/08" class="admin-only">Doc 01/08</th>
+              <th title="Título Unidad" class="admin-only">Título</th>
+              <th title="Verificación Policial (12)" class="admin-only">Ver. Pol.</th>
+              <th title="Informe Dominio" class="admin-only">Inf. Dom.</th>
               <th class="th-sort" onclick="sortBy('tasa')" id="th-tasa">Tasa <span class="sort-icon">↕</span></th>
               <th>Observaciones</th>
               <th class="th-sort" onclick="sortBy('usuario')" id="th-usuario">Usuario <span class="sort-icon">↕</span></th>
@@ -561,7 +561,7 @@ pre{background:#0f172a;color:#7dd3fc;padding:18px;font-family:'JetBrains Mono',m
             <div class="combo"><input id="f-nombrecliente" placeholder="Apellido, Nombre">
               <div class="combo-btns"><button class="cb" onclick="toggleDD('nombrecliente')" type="button">▾</button></div>
               <div class="cdd" id="dd-nombrecliente"></div></div></div>
-          <div class="fc"><label>Dominio vehículo</label>
+          <div class="fc admin-only"><label>Dominio vehículo</label>
             <div class="combo"><input id="f-dominio" placeholder="Ej. ABC123" style="text-transform:uppercase">
               <div class="combo-btns"><button class="cb" onclick="toggleDD('dominio')" type="button">▾</button></div>
               <div class="cdd" id="dd-dominio"></div></div></div>
@@ -589,7 +589,7 @@ pre{background:#0f172a;color:#7dd3fc;padding:18px;font-family:'JetBrains Mono',m
             <div class="combo"><input id="f-tasa" placeholder="Ej. 3.2" oninput="calcMontoAgencia()">
               <div class="combo-btns"><button class="cb" onclick="toggleDD('tasa')" type="button">▾</button><button class="cb" onclick="addOpt('tasa')" type="button">＋</button></div>
               <div class="cdd" id="dd-tasa"></div></div></div>
-          <div class="fc span3"><label>Documentación</label>
+          <div class="fc span3 admin-only"><label>Documentación</label>
             <div class="chk-grid">
               <label class="chk-row"><input type="checkbox" id="f-doc01"><span>Documento 01/08</span></label>
               <label class="chk-row"><input type="checkbox" id="f-titulo"><span>Título unidad</span></label>
@@ -2485,7 +2485,7 @@ function renderTablePage() {
         <td>${r.localidad||'—'}</td>
         <td class="td-mono">${r.dni||'—'}</td>
         <td class="td-bold" style="white-space:nowrap">${r.nombrecliente||'—'}</td>
-        <td class="td-mono">${r.dominio||'—'}</td>
+        ${isAdmin ? `<td class="td-mono">${r.dominio||'—'}</td>` : ''}
         <td>${r.marca||'—'}</td>
         <td style="white-space:nowrap">${r.descripcion||'—'}</td>
         <td>${r.tipocta||'—'}</td>
@@ -2494,10 +2494,10 @@ function renderTablePage() {
         <td class="td-mono">${$(r.vehiculo)}</td>
         ${isAdmin ? `<td class="td-mono" style="color:var(--green);font-weight:600">${$(r.comision)}</td>` : ''}
         <td>${r.estado?`<span class="badge b-${r.estado.toLowerCase()}"><span class="bd"></span>${r.estado}</span>`:'—'}</td>
-        <td class="chk">${chk(r.doc01)}</td>
-        <td class="chk">${chk(r.titulo)}</td>
-        <td class="chk">${chk(r.verif)}</td>
-        <td class="chk">${chk(r.infdom)}</td>
+        ${isAdmin ? `<td class="chk">${chk(r.doc01)}</td>` : ''}
+        ${isAdmin ? `<td class="chk">${chk(r.titulo)}</td>` : ''}
+        ${isAdmin ? `<td class="chk">${chk(r.verif)}</td>` : ''}
+        ${isAdmin ? `<td class="chk">${chk(r.infdom)}</td>` : ''}
         <td>${r.tasa||'—'}</td>
         <td style="max-width:140px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${r.obs||''}">${r.obs||'—'}</td>
         <td style="font-size:11.5px;color:var(--muted)">${r.usuario||'—'}</td>
