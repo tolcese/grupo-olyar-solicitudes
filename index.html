@@ -1989,15 +1989,15 @@ function calcContLiquidar() {
   const r        = RECORDS.find(x => x.id === document.getElementById('cont-edit-id').value);
   const importe  = parseFloat(r?.importe||0) || 0;
   // 1,2 Imp. Crédito = importe * 1.2%
-  const impCredito = importe * 1.2 / 100;
-  document.getElementById('cont-imp-credito').value = impCredito.toFixed(2);
+  const impCredito = Math.ceil(importe * 1.2 / 100);
+  document.getElementById('cont-imp-credito').value = impCredito;
   // Comisión LUKAYA = importe * 0.032 - impCredito
-  const comLukaya = (importe * 0.032) - impCredito;
-  document.getElementById('cont-com-lukaya').value = comLukaya.toFixed(2);
+  const comLukaya = Math.ceil((importe * 0.032) - impCredito);
+  document.getElementById('cont-com-lukaya').value = comLukaya;
   // A liquidar agencia = importe - comLukaya - gastosGestoria - impCredito
   const gastosGest = parseFloat(document.getElementById('cont-gastos-gestoria').value||0) || 0;
-  const resultado  = importe - comLukaya - gastosGest - impCredito;
-  document.getElementById('cont-a-liquidar').value = resultado.toFixed(2);
+  const resultado  = Math.ceil(importe - comLukaya - gastosGest - impCredito);
+  document.getElementById('cont-a-liquidar').value = resultado;
 }
 
 function closeContEdit() {
