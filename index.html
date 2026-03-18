@@ -488,6 +488,7 @@ pre{background:#0f172a;color:#7dd3fc;padding:18px;font-family:'JetBrains Mono',m
             <thead><tr>
               <th>#</th>
               <th class="th-sort" onclick="sortBy('fecha')" id="th-fecha">Fecha <span class="sort-icon">↕</span></th>
+              <th class="th-sort" onclick="sortBy('anio')" id="th-anio">Año <span class="sort-icon">↕</span></th>
               <th class="th-sort" onclick="sortBy('banco')" id="th-banco">Banco <span class="sort-icon">↕</span></th>
               <th class="th-sort" onclick="sortBy('concesionaria')" id="th-concesionaria">Concesionaria <span class="sort-icon">↕</span></th>
               <th class="th-sort" onclick="sortBy('provincia')" id="th-provincia">Provincia <span class="sort-icon">↕</span></th>
@@ -540,6 +541,11 @@ pre{background:#0f172a;color:#7dd3fc;padding:18px;font-family:'JetBrains Mono',m
       <div class="card" style="padding:26px">
         <div class="fg">
           <div class="fc"><label>Fecha de solicitud *</label><input type="date" id="f-fecha"></div>
+          <div class="fc"><label>Año</label>
+            <select id="f-anio">
+              <option value="">— Seleccioná —</option>
+              ${(()=>{const y=new Date().getFullYear();const opts=[];for(let i=2016;i<=y+1;i++)opts.push(`<option>${i}</option>`);return opts.join('');})()}
+            </select></div>
           <div class="fc"><label>Banco *</label><select id="f-banco"></select></div>
           <div class="fc"><label>Concesionaria</label>
             <div class="combo"><input id="f-concesionaria" placeholder="Seleccioná o escribí...">
@@ -928,7 +934,7 @@ function doPost(e) { return doGet(e); }`;
 // ══════════════════════════════════════════════
 // CONFIG — URL del Apps Script
 // ══════════════════════════════════════════════
-let WH = 'https://script.google.com/macros/s/AKfycbwVT94mhAi60TUWAcZHKVGODEawowVAXQLCgOiRu__U1AzpFkWIWfkblcvRQbWt6NdG/exec';
+let WH = 'https://script.google.com/macros/s/AKfycbzayM5BpVSU8wOMz2BRepBGc2WHF75Ii9tGJj77w3_i9_KlYC7q-re-VM2WhR-JA9Yd/exec';
 const SHEET_NAME = 'Solicitudes';
 
 // ══════════════════════════════════════════════
@@ -1290,6 +1296,7 @@ function renderGestoria() {
       <td style="color:var(--muted);font-size:11px">${i+1}</td>
       <td><button class="btn-asignar" onclick="asignarGestoria('${r.id}')">Asignar</button></td>
       <td>${r.fecha ? r.fecha.split('-').reverse().join('/') : '—'}</td>
+      <td>${val(r.anio)}</td>
       <td style="font-weight:700;min-width:130px">${val(r.nombrecliente)}</td>
       <td style="font-family:monospace">${val(r.dni)}</td>
       <td style="font-weight:600">${val(r.banco)}</td>
@@ -1426,6 +1433,7 @@ function renderPrendasEntregadas() {
       <td style="white-space:nowrap;color:var(--green);font-weight:600">${fmtFin(r.finalizada)}</td>
       <td style="white-space:nowrap;color:var(--purple);font-weight:600">${fmtFin(r.fechaEntregada)}</td>
       <td style="font-weight:700;color:var(--blue)">${val(r.gestorAsignado)}</td>
+      <td>${val(r.anio)}</td>
       <td style="font-weight:700;min-width:130px">${val(r.nombrecliente)}</td>
       <td style="font-weight:600">${val(r.banco)}</td>
       <td>${val(r.concesionaria)}</td>
@@ -1508,6 +1516,7 @@ function openPEPanel(id) {
     <div class="panel-section">
       <div class="panel-section-t">Datos generales</div>
       <div class="prow"><span class="pl">Fecha solicitud</span><span class="pv">${r.fecha ? r.fecha.split('-').reverse().join('/') : '—'}</span></div>
+      <div class="prow"><span class="pl">Año</span><span class="pv">${val(r.anio)}</span></div>
       <div class="prow"><span class="pl">Fecha finalizada</span><span class="pv bold" style="color:var(--green)">${fmtFin(r.finalizada)}</span></div>
       <div class="prow"><span class="pl">Fecha entregada</span><span class="pv bold" style="color:var(--purple)">${fmtFin(r.fechaEntregada)}</span></div>
       <div class="prow"><span class="pl">Gestor asignado</span><span class="pv bold" style="color:var(--blue)">${val(r.gestorAsignado)}</span></div>
@@ -1873,6 +1882,7 @@ function renderPrendas() {
       <td style="color:var(--muted);font-size:11px">${i+1}</td>
       <td style="white-space:nowrap">${hoy}</td>
       <td style="white-space:nowrap">${r.fecha ? r.fecha.split('-').reverse().join('/') : '—'}</td>
+      <td>${val(r.anio)}</td>
       <td style="font-weight:700;color:var(--blue)">${val(r.gestorAsignado)}</td>
       <td style="font-weight:700;min-width:130px">${val(r.nombrecliente)}</td>
       <td style="font-weight:600">${val(r.banco)}</td>
@@ -1977,6 +1987,7 @@ function openPrendasPanel(id) {
     <div class="panel-section">
       <div class="panel-section-t">Datos generales</div>
       <div class="prow"><span class="pl">Fecha solicitud</span><span class="pv">${r.fecha ? r.fecha.split('-').reverse().join('/') : '—'}</span></div>
+      <div class="prow"><span class="pl">Año</span><span class="pv">${val(r.anio)}</span></div>
       <div class="prow"><span class="pl">Banco</span><span class="pv bold">${val(r.banco)}</span></div>
       <div class="prow"><span class="pl">Concesionaria</span><span class="pv">${val(r.concesionaria)}</span></div>
       <div class="prow"><span class="pl">Estado</span><span class="pv">${r.estado ? '<span class="badge b-'+r.estado.toLowerCase()+'"><span class="bd"></span>'+r.estado+'</span>' : '—'}</span></div>
@@ -2227,6 +2238,7 @@ function calcMontoAgencia() {
 function resetForm() {
   editId = null;
   document.getElementById('f-fecha').value = new Date().toISOString().slice(0,10);
+  document.getElementById('f-anio').value = new Date().getFullYear();
   document.getElementById('f-banco').value = '';
   COMBO_KEYS.forEach(k => { const el=document.getElementById('f-'+k); if(el) el.value=''; });
   ['importe','agencia','vehiculo','comision'].forEach(k=>document.getElementById('f-'+k).value='');
@@ -2238,6 +2250,7 @@ function resetForm() {
 function getForm() {
   return {
     fecha:document.getElementById('f-fecha').value,
+    anio:document.getElementById('f-anio').value,
     banco:document.getElementById('f-banco').value,
     concesionaria:document.getElementById('f-concesionaria').value,
     provincia:document.getElementById('f-provincia').value,
@@ -2264,6 +2277,7 @@ function getForm() {
 
 function fillForm(r) {
   document.getElementById('f-fecha').value=r.fecha||'';
+  document.getElementById('f-anio').value=r.anio||'';
   document.getElementById('f-banco').value=r.banco||'';
   document.getElementById('f-concesionaria').value=r.concesionaria||'';
   document.getElementById('f-provincia').value=r.provincia||'';
@@ -2479,6 +2493,7 @@ function renderTablePage() {
       <tr style="cursor:pointer" onclick="openPanel('${r.id}')">
         <td class="td-id">${start+idx+1}</td>
         <td style="white-space:nowrap">${fmtFecha(r.fecha)}</td>
+        <td>${r.anio||'—'}</td>
         <td class="td-bold">${r.banco||'—'}</td>
         <td>${r.concesionaria||'—'}</td>
         <td>${r.provincia||'—'}</td>
@@ -3051,6 +3066,8 @@ function openPanel(id) {
     <div class="panel-section">
       <div class="panel-section-t">Datos generales</div>
       <div class="prow"><span class="pl">Fecha solicitud</span><span class="pv">${fmtFecha(r.fecha)}</span></div>
+      <div class="prow"><span class="pl">Año</span><span class="pv">${val(r.anio)}</span></div>
+      <div class="prow"><span class="pl">Año</span><span class="pv">${val(r.anio)}</span></div>
       <div class="prow"><span class="pl">Banco</span><span class="pv bold">${val(r.banco)}</span></div>
       <div class="prow"><span class="pl">Concesionaria</span><span class="pv">${val(r.concesionaria)}</span></div>
       <div class="prow"><span class="pl">Estado</span><span class="pv">${r.estado?'<span class="badge b-'+r.estado.toLowerCase()+'"><span class="bd"></span>'+r.estado+'</span>':'—'}</span></div>
@@ -3507,6 +3524,7 @@ function renderReportes() {
               <th>#</th>
               <th>Acción</th>
               <th>Fecha</th>
+              <th>Año</th>
               <th>Cliente</th>
               <th>DNI</th>
               <th>Banco</th>
@@ -3568,6 +3586,7 @@ function renderReportes() {
               <th>Fecha finalizada</th>
               <th>Fecha entregada</th>
               <th>Gestor asignado</th>
+              <th>Año</th>
               <th>Cliente</th>
               <th>Banco</th>
               <th>Concesionaria</th>
@@ -3726,6 +3745,7 @@ function renderReportes() {
               <th>#</th>
               <th>Fecha actual</th>
               <th>Fecha solicitud</th>
+              <th>Año</th>
               <th>Gestor asignado</th>
               <th>Cliente</th>
               <th>Banco</th>
