@@ -18,6 +18,26 @@
 }
 *{box-sizing:border-box;margin:0;padding:0;}
 body{font-family:'Inter',sans-serif;background:#fff;color:var(--ink);font-size:13.5px;min-height:100vh;}
+/* CONTABILIDAD */
+.cont-overlay{position:fixed;inset:0;background:rgba(15,23,42,.55);backdrop-filter:blur(4px);z-index:500;display:flex;align-items:center;justify-content:center;padding:16px;opacity:0;pointer-events:none;transition:opacity .2s;}
+.cont-overlay.open{opacity:1;pointer-events:all;}
+.cont-modal{background:#fff;border-radius:18px;width:100%;max-width:1400px;max-height:92vh;display:flex;flex-direction:column;box-shadow:var(--sh-lg);transform:scale(.96) translateY(10px);transition:transform .25s cubic-bezier(.34,1.56,.64,1);}
+.cont-overlay.open .cont-modal{transform:scale(1) translateY(0);}
+.cont-head{padding:20px 28px;border-bottom:1.5px solid var(--line);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
+.cont-body{overflow-y:auto;overflow-x:hidden;flex:1;padding:0;}
+.cont-scroll-x{overflow-x:auto;overflow-y:visible;scrollbar-width:none;}
+.cont-scroll-x::-webkit-scrollbar{display:none;}
+.cont-scroll-mirror{overflow-x:auto;overflow-y:hidden;height:14px;border-top:1.5px solid var(--line);flex-shrink:0;background:#fff;}
+.cont-scroll-mirror-inner{height:1px;}
+.cont-table{width:100%;border-collapse:collapse;min-width:2200px;font-size:12px;}
+.cont-table thead th{position:sticky;top:0;z-index:2;background:var(--surface);}
+.cont-table thead tr{border-bottom:1.5px solid var(--line);}
+.cont-table th{padding:8px 10px;text-align:left;font-size:9.5px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;white-space:nowrap;}
+.cont-table td{padding:9px 10px;color:var(--ink2);border-bottom:1px solid var(--line);vertical-align:middle;white-space:nowrap;}
+.cont-table tbody tr:last-child td{border-bottom:none;}
+.cont-table tbody tr:hover td{background:#f8faff;}
+
+/* MODAL EDITAR CONT */
 .admin-only { display: none !important; }
 body.is-admin .admin-only { display: revert !important; }
 body::-webkit-scrollbar{width:6px;}
@@ -931,7 +951,7 @@ function doPost(e) { return doGet(e); }`;
 // ══════════════════════════════════════════════
 // CONFIG — URL del Apps Script
 // ══════════════════════════════════════════════
-let WH = 'https://script.google.com/macros/s/AKfycbzayM5BpVSU8wOMz2BRepBGc2WHF75Ii9tGJj77w3_i9_KlYC7q-re-VM2WhR-JA9Yd/exec';
+let WH = 'https://script.google.com/macros/s/AKfycbxwuyK8wktrXcbfFM6EXin_tO6Cnko4EmdmLQxKXRiASRlNFDLA_TmlVWOFbFgNBdIG/exec';
 const SHEET_NAME = 'Solicitudes';
 
 // ══════════════════════════════════════════════
@@ -939,7 +959,8 @@ const SHEET_NAME = 'Solicitudes';
 // ══════════════════════════════════════════════
 let ME = null;
 let RECORDS = [];
-let CLIENTES_DATA = {}; // { dni: { direccion, localidad, provincia, telefono, email } }
+let CLIENTES_DATA = {};
+let CONT_DATA = {};
 let LISTS = { banco:['Columbia','San Cristóbal'], concesionaria:[], provincia:[], localidad:[], marca:[], descripcion:[], dni:[], nombrecliente:[], dominio:[], tasa:[] };
 let editId = null;
 
@@ -1026,7 +1047,7 @@ async function enterApp() {
 
   // Mostrar app y cargar datos
   document.getElementById('app').style.display = 'block';
-  await Promise.all([loadLists(), loadRecords(), loadClientes()]);
+  await Promise.all([loadLists(), loadRecords(), loadClientes(), loadContabilidad()]);
   loading(false);
   showV('sol');
 }
@@ -1813,11 +1834,178 @@ async function toggleMantenimiento(activar) {
 // ══════════════════════════════════════════════
 // CONTABILIDAD
 // ══════════════════════════════════════════════
-function openContabilidad() {
+let CONT_DATA = {}; // { id: { aLiquidar, impCredito, ... } }
+
+async function openContabilidad() {
   document.getElementById('contabilidad-overlay').classList.add('open');
+  await loadContabilidad();
+  renderContabilidad();
+  setTimeout(initContMirror, 150);
 }
+
 function closeContabilidad() {
   document.getElementById('contabilidad-overlay').classList.remove('open');
+}
+
+async function loadContabilidad() {
+  try {
+    const res = await gas({ action: 'getContabilidad' });
+    CONT_DATA = {};
+    if (res.contabilidad) {
+      res.contabilidad.forEach(c => { CONT_DATA[c.id] = c; });
+    }
+  } catch(e) {}
+}
+
+function renderContabilidad() {
+  const q = (document.getElementById('cont-srch')?.value || '').toLowerCase();
+  let data = [...RECORDS];
+  if (q) data = data.filter(r =>
+    [r.nombrecliente, r.banco, r.dni, r.concesionaria, r.provincia, r.localidad].some(v => (v||'').toLowerCase().includes(q))
+  );
+
+  const tbody = document.getElementById('cont-tbody');
+  const empty = document.getElementById('cont-empty');
+  const count = document.getElementById('cont-count');
+  const isAdmin = ME?.rol === 'admin';
+
+  count.textContent = data.length + ' registro' + (data.length !== 1 ? 's' : '');
+
+  if (!data.length) {
+    tbody.innerHTML = '';
+    empty.style.display = '';
+    setTimeout(initContMirror, 50);
+    return;
+  }
+  empty.style.display = 'none';
+
+  const mon  = v => v ? '$'+Number(String(v).replace(/[$,]/g,'')).toLocaleString('es-AR') : '—';
+  const val  = v => (v && v !== 'undefined') ? v : '—';
+  const fmtD = v => { if (!v) return '—'; if (v.includes('/')) return v; const p=v.split('-'); return p.length===3?p[2]+'/'+p[1]+'/'+p[0]:v; };
+  const chkV = v => v ? '<span style="color:var(--green);font-weight:700">✓</span>' : '<span style="color:var(--line)">—</span>';
+
+  tbody.innerHTML = data.map((r, i) => {
+    const c  = CONT_DATA[r.id] || {};
+    const cd = CLIENTES_DATA[r.dni] || {};
+    return `
+    <tr style="cursor:pointer" onclick="openContPanel('${r.id}')">
+      <td style="position:sticky;left:0;background:#fff;z-index:1;box-shadow:2px 0 6px rgba(0,0,0,.04)" onclick="event.stopPropagation()">
+        <div class="abtns">
+          <button class="ibtn" onclick="editCont('${r.id}')" title="Editar">✏️</button>
+        </div>
+      </td>
+      <td style="color:var(--muted);font-size:11px">${i+1}</td>
+      <td>${r.fecha ? r.fecha.split('-').reverse().join('/') : '—'}</td>
+      <td>${r.estado ? `<span class="badge b-${r.estado.toLowerCase()}"><span class="bd"></span>${r.estado}</span>` : '—'}</td>
+      <td style="font-weight:600">${val(r.banco)}</td>
+      <td>${val(r.concesionaria)}</td>
+      <td>${val(r.localidad)}</td>
+      <td>${val(r.provincia)}</td>
+      <td style="font-weight:700">${val(r.nombrecliente)}</td>
+      <td style="font-family:monospace">${val(r.dni)}</td>
+      <td>${val(cd.telefono)}</td>
+      <td>${val(cd.email)}</td>
+      <td style="font-family:monospace">${val(r.dominio)}</td>
+      <td>${val(r.descripcion)}</td>
+      <td>${val(r.tipocta)}</td>
+      <td style="font-family:monospace">${mon(r.importe)}</td>
+      <td>${val(r.tasa)}</td>
+      <td style="font-family:monospace">${mon(c.aLiquidar)}</td>
+      <td style="font-family:monospace">${mon(c.impCredito)}</td>
+      <td style="font-family:monospace">${mon(c.gastosGestoria)}</td>
+      <td style="font-family:monospace">${mon(c.comLukaya)}</td>
+      <td>${fmtD(c.fechaLiq)}</td>
+      <td style="font-family:monospace">${mon(c.comComercial)}</td>
+      <td style="font-family:monospace">${mon(c.comOperativo)}</td>
+      <td style="font-family:monospace">${mon(c.comGestora)}</td>
+      <td style="font-family:monospace">${mon(c.retribBanco)}</td>
+      <td style="font-family:monospace;color:var(--green);font-weight:600">${mon(c.ganancia)}</td>
+      <td class="chk">${chkV(c.pagado)}</td>
+      <td>${fmtD(c.fechaPagado)}</td>
+      <td class="chk">${chkV(c.pagoGest)}</td>
+      <td>${fmtD(c.fechaPagoGest)}</td>
+      <td style="max-width:140px;overflow:hidden;text-overflow:ellipsis" title="${c.obs||''}">${val(c.obs)}</td>
+    </tr>`;
+  }).join('');
+
+  setTimeout(initContMirror, 50);
+}
+
+function editCont(id) {
+  const r = RECORDS.find(x => x.id === id);
+  const c = CONT_DATA[id] || {};
+  document.getElementById('cont-edit-id').value = id;
+  document.getElementById('cont-edit-nombre').textContent = r ? (r.nombrecliente||id) : id;
+  document.getElementById('cont-a-liquidar').value    = c.aLiquidar    || '';
+  document.getElementById('cont-imp-credito').value   = c.impCredito   || '';
+  document.getElementById('cont-gastos-gestoria').value = c.gastosGestoria || '';
+  document.getElementById('cont-com-lukaya').value    = c.comLukaya    || '';
+  document.getElementById('cont-fecha-liq').value     = c.fechaLiq     || '';
+  document.getElementById('cont-com-comercial').value = c.comComercial || '';
+  document.getElementById('cont-com-operativo').value = c.comOperativo || '';
+  document.getElementById('cont-com-gestora').value   = c.comGestora   || '';
+  document.getElementById('cont-retrib-banco').value  = c.retribBanco  || '';
+  document.getElementById('cont-ganancia').value      = c.ganancia     || '';
+  document.getElementById('cont-pagado').checked      = !!c.pagado;
+  document.getElementById('cont-fecha-pagado').value  = c.fechaPagado  || '';
+  document.getElementById('cont-pago-gest').checked   = !!c.pagoGest;
+  document.getElementById('cont-fecha-pago-gest').value = c.fechaPagoGest || '';
+  document.getElementById('cont-obs').value           = c.obs          || '';
+  document.getElementById('cont-edit-overlay').classList.add('open');
+}
+
+function closeContEdit() {
+  document.getElementById('cont-edit-overlay').classList.remove('open');
+}
+
+async function saveContEdit() {
+  const id = document.getElementById('cont-edit-id').value;
+  const data = {
+    action:         'saveContabilidad',
+    id,
+    aLiquidar:      document.getElementById('cont-a-liquidar').value,
+    impCredito:     document.getElementById('cont-imp-credito').value,
+    gastosGestoria: document.getElementById('cont-gastos-gestoria').value,
+    comLukaya:      document.getElementById('cont-com-lukaya').value,
+    fechaLiq:       document.getElementById('cont-fecha-liq').value,
+    comComercial:   document.getElementById('cont-com-comercial').value,
+    comOperativo:   document.getElementById('cont-com-operativo').value,
+    comGestora:     document.getElementById('cont-com-gestora').value,
+    retribBanco:    document.getElementById('cont-retrib-banco').value,
+    ganancia:       document.getElementById('cont-ganancia').value,
+    pagado:         String(document.getElementById('cont-pagado').checked),
+    fechaPagado:    document.getElementById('cont-fecha-pagado').value,
+    pagoGest:       String(document.getElementById('cont-pago-gest').checked),
+    fechaPagoGest:  document.getElementById('cont-fecha-pago-gest').value,
+    obs:            document.getElementById('cont-obs').value,
+  };
+  try {
+    await gas(data);
+    CONT_DATA[id] = { ...data };
+    CONT_DATA[id].pagado  = document.getElementById('cont-pagado').checked;
+    CONT_DATA[id].pagoGest = document.getElementById('cont-pago-gest').checked;
+    toast('Guardado ✓', 'ok');
+    closeContEdit();
+    renderContabilidad();
+  } catch(e) { toast('Error: ' + e.message, 'er'); }
+}
+
+function openContPanel(id) {
+  // Reusar panel lateral de solicitudes
+  closeContabilidad();
+  openPanel(id);
+}
+
+function initContMirror() {
+  const scroll = document.getElementById('cont-scroll');
+  const mirror = document.getElementById('cont-mirror');
+  const inner  = document.getElementById('cont-mirror-inner');
+  if (!scroll || !mirror || !inner) return;
+  inner.style.width = scroll.scrollWidth + 'px';
+  mirror.style.display = scroll.scrollWidth > scroll.clientWidth + 2 ? 'block' : 'none';
+  let syncing = false;
+  scroll.onscroll = () => { if (syncing) return; syncing = true; mirror.scrollLeft = scroll.scrollLeft; syncing = false; };
+  mirror.onscroll = () => { if (syncing) return; syncing = true; scroll.scrollLeft = mirror.scrollLeft; syncing = false; };
 }
 
 // ══════════════════════════════════════════════
@@ -3721,16 +3909,114 @@ function renderReportes() {
 </div>
 
 <!-- MODAL CONTABILIDAD -->
-<div class="overlay" id="contabilidad-overlay" onclick="if(event.target===this)closeContabilidad()">
-  <div class="modal" style="max-width:700px" onclick="event.stopPropagation()">
-    <div class="mh">
-      <div class="mt">🧾 Contabilidad</div>
-      <button class="xbtn" onclick="closeContabilidad()">×</button>
+<div class="cont-overlay" id="contabilidad-overlay" onclick="if(event.target===this)closeContabilidad()">
+  <div class="cont-modal" onclick="event.stopPropagation()">
+    <div class="cont-head">
+      <div>
+        <div style="font-size:17px;font-weight:800;color:var(--ink)">🧾 Contabilidad</div>
+        <div style="font-size:12px;color:var(--muted);margin-top:2px" id="cont-count">—</div>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <div class="searchbox" style="min-width:220px">
+          <span style="color:var(--muted)">🔍</span>
+          <input id="cont-srch" placeholder="Buscar cliente, banco, DNI..." oninput="renderContabilidad()">
+        </div>
+        <button class="xbtn" onclick="closeContabilidad()" style="width:34px;height:34px;font-size:18px">×</button>
+      </div>
     </div>
-    <div style="text-align:center;padding:48px 20px;color:var(--muted)">
-      <div style="font-size:48px;margin-bottom:12px">🧾</div>
-      <div style="font-size:15px;font-weight:700;color:var(--ink2);margin-bottom:6px">Sección en construcción</div>
-      <div style="font-size:13px">Próximamente vas a poder gestionar datos contables desde acá.</div>
+    <div class="cont-body">
+      <div class="cont-scroll-x" id="cont-scroll">
+        <table class="cont-table">
+          <thead>
+            <tr>
+              <th>Acciones</th>
+              <th>#</th>
+              <th>Fecha solicitud</th>
+              <th>Estado</th>
+              <th>Banco</th>
+              <th>Concesionaria</th>
+              <th>Localidad</th>
+              <th>Provincia</th>
+              <th>Cliente</th>
+              <th>DNI</th>
+              <th>Teléfono</th>
+              <th>Email</th>
+              <th>Dominio</th>
+              <th>Vehículo</th>
+              <th>Tipo CTA</th>
+              <th>Imp. Solicitado</th>
+              <th>Tasa</th>
+              <th>A liquidar agencia</th>
+              <th>1,2 Imp. Crédito</th>
+              <th>Gastos Gestoría</th>
+              <th>Comisión LUKAYA</th>
+              <th>Fecha liquidación</th>
+              <th>Comisión comercial</th>
+              <th>Comisión operativo</th>
+              <th>Comisión gestora</th>
+              <th>Retribución banco</th>
+              <th>Ganancia LUKAYA</th>
+              <th>Pagado</th>
+              <th>Fecha pagado</th>
+              <th>Pago com. gest.</th>
+              <th>Fecha pagado com. gest.</th>
+              <th>Observaciones</th>
+            </tr>
+          </thead>
+          <tbody id="cont-tbody"></tbody>
+        </table>
+      </div>
+      <div id="cont-empty" class="empty-state" style="display:none">
+        <div class="ei">🧾</div>
+        <h3>Sin registros contables</h3>
+        <p>Se generan automáticamente desde las solicitudes</p>
+      </div>
+    </div>
+    <div class="cont-scroll-mirror" id="cont-mirror">
+      <div class="cont-scroll-mirror-inner" id="cont-mirror-inner"></div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL EDITAR CONTABILIDAD -->
+<div class="overlay" id="cont-edit-overlay" onclick="if(event.target===this)closeContEdit()" style="z-index:700">
+  <div class="modal" style="max-width:560px" onclick="event.stopPropagation()">
+    <div class="mh">
+      <div>
+        <div class="mt">✏️ Editar registro contable</div>
+        <div style="font-size:11.5px;color:var(--muted);margin-top:3px" id="cont-edit-nombre">—</div>
+      </div>
+      <button class="xbtn" onclick="closeContEdit()">×</button>
+    </div>
+    <input type="hidden" id="cont-edit-id">
+    <div class="fg" style="grid-template-columns:repeat(2,1fr);gap:12px">
+      <div class="fc"><label>A liquidar agencia</label><input id="cont-a-liquidar" type="number" placeholder="0"></div>
+      <div class="fc"><label>1,2 Imp. Crédito</label><input id="cont-imp-credito" type="number" placeholder="0"></div>
+      <div class="fc"><label>Gastos Gestoría</label><input id="cont-gastos-gestoria" type="number" placeholder="0"></div>
+      <div class="fc"><label>Comisión LUKAYA</label><input id="cont-com-lukaya" type="number" placeholder="0"></div>
+      <div class="fc"><label>Fecha liquidación</label><input id="cont-fecha-liq" type="date"></div>
+      <div class="fc"><label>Comisión comercial</label><input id="cont-com-comercial" type="number" placeholder="0"></div>
+      <div class="fc"><label>Comisión operativo</label><input id="cont-com-operativo" type="number" placeholder="0"></div>
+      <div class="fc"><label>Comisión gestora</label><input id="cont-com-gestora" type="number" placeholder="0"></div>
+      <div class="fc"><label>Retribución banco</label><input id="cont-retrib-banco" type="number" placeholder="0"></div>
+      <div class="fc"><label>Ganancia LUKAYA</label><input id="cont-ganancia" type="number" placeholder="0"></div>
+      <div class="fc"><label>Pagado</label>
+        <div class="chk-grid" style="grid-template-columns:1fr">
+          <label class="chk-row"><input type="checkbox" id="cont-pagado"> Sí, pagado</label>
+        </div>
+      </div>
+      <div class="fc"><label>Fecha pagado</label><input id="cont-fecha-pagado" type="date"></div>
+      <div class="fc"><label>Pago com. gest.</label>
+        <div class="chk-grid" style="grid-template-columns:1fr">
+          <label class="chk-row"><input type="checkbox" id="cont-pago-gest"> Sí, pagado</label>
+        </div>
+      </div>
+      <div class="fc"><label>Fecha pagado com. gest.</label><input id="cont-fecha-pago-gest" type="date"></div>
+      <div class="fc span2"><label>Observaciones</label><textarea id="cont-obs" style="min-height:60px"></textarea></div>
+    </div>
+    <div class="mfoot">
+      <button class="btn btn-s" onclick="closeContEdit()">Cancelar</button>
+      <button class="btn btn-p" onclick="saveContEdit()">💾 Guardar</button>
     </div>
   </div>
 </div>
