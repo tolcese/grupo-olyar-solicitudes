@@ -1994,6 +1994,9 @@ function calcContLiquidar() {
   // Comisión LUKAYA = importe * 0.032 - impCredito
   const comLukaya = Math.round((importe * 0.032) - impCredito);
   document.getElementById('cont-com-lukaya').value = comLukaya.toFixed(2);
+  // Comisión gestor = importe * 0.005
+  const comGestora = Math.round(importe * 0.005);
+  document.getElementById('cont-com-gestora').value = comGestora.toFixed(2);
   // A liquidar agencia = importe - comLukaya - gastosGestoria - impCredito
   const gastosGest = parseFloat(document.getElementById('cont-gastos-gestoria').value||0) || 0;
   const resultado  = Math.round(importe - comLukaya - gastosGest - impCredito);
@@ -3998,7 +4001,7 @@ function renderReportes() {
               <th>Fecha liquidación</th>
               <th>Comisión comercial</th>
               <th>Comisión operativo</th>
-              <th>Comisión gestora</th>
+              <th>Comisión gestor</th>
               <th>Retribución banco</th>
               <th>Ganancia LUKAYA</th>
               <th>Pagado</th>
@@ -4043,7 +4046,7 @@ function renderReportes() {
       <div class="fc"><label>Fecha liquidación</label><input id="cont-fecha-liq" type="date"></div>
       <div class="fc"><label>Comisión comercial</label><input id="cont-com-comercial" type="number" placeholder="0"></div>
       <div class="fc"><label>Comisión operativo</label><input id="cont-com-operativo" type="number" placeholder="0"></div>
-      <div class="fc"><label>Comisión gestora</label><input id="cont-com-gestora" type="number" placeholder="0"></div>
+      <div class="fc"><label>Comisión gestor <span style="color:var(--green);font-size:10px">(calculado)</span></label><input id="cont-com-gestora" type="number" placeholder="0" readonly style="background:#f0fdf4;font-weight:700;color:var(--green)"></div>
       <div class="fc"><label>Retribución banco</label><input id="cont-retrib-banco" type="number" placeholder="0"></div>
       <div class="fc"><label>Ganancia LUKAYA</label><input id="cont-ganancia" type="number" placeholder="0"></div>
       <div class="fc"><label>Pagado</label>
