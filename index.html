@@ -541,11 +541,6 @@ pre{background:#0f172a;color:#7dd3fc;padding:18px;font-family:'JetBrains Mono',m
       <div class="card" style="padding:26px">
         <div class="fg">
           <div class="fc"><label>Fecha de solicitud *</label><input type="date" id="f-fecha"></div>
-          <div class="fc"><label>Año</label>
-            <select id="f-anio">
-              <option value="">— Seleccioná —</option>
-              ${(()=>{const y=new Date().getFullYear();const opts=[];for(let i=2016;i<=y+1;i++)opts.push(`<option>${i}</option>`);return opts.join('');})()}
-            </select></div>
           <div class="fc"><label>Banco *</label><select id="f-banco"></select></div>
           <div class="fc"><label>Concesionaria</label>
             <div class="combo"><input id="f-concesionaria" placeholder="Seleccioná o escribí...">
@@ -579,6 +574,8 @@ pre{background:#0f172a;color:#7dd3fc;padding:18px;font-family:'JetBrains Mono',m
             <div class="combo"><input id="f-descripcion" placeholder="Modelo, año, versión...">
               <div class="combo-btns"><button class="cb" onclick="toggleDD('descripcion')" type="button">▾</button></div>
               <div class="cdd" id="dd-descripcion"></div></div></div>
+          <div class="fc"><label>Año</label>
+            <select id="f-anio"><option value="">— Seleccioná —</option></select></div>
           <div class="fc"><label>Tipo de CTA</label>
             <select id="f-tipocta"><option value="">— Seleccioná —</option><option>FIJA</option><option>UVA</option></select></div>
           <div class="fc"><label>Importe solicitado ($)</label>
@@ -3160,6 +3157,24 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape')document.querySelect
   }
   updateClock();
   setInterval(updateClock, 1000);
+})();
+
+// Poblar selector de años
+(function() {
+  function fillAnios() {
+    const sel = document.getElementById('f-anio');
+    if (!sel) return;
+    const y = new Date().getFullYear();
+    for (let i = 2016; i <= y + 1; i++) {
+      const opt = document.createElement('option');
+      opt.value = i;
+      opt.textContent = i;
+      sel.appendChild(opt);
+    }
+    sel.value = y; // pre-seleccionar año actual
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', fillAnios);
+  else fillAnios();
 })();
 
 // Auto refresh cada 1 minuto
