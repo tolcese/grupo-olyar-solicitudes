@@ -1933,8 +1933,36 @@ function renderContabilidad() {
 function editCont(id) {
   const r = RECORDS.find(x => x.id === id);
   const c = CONT_DATA[id] || {};
+  const cd = CLIENTES_DATA[r?.dni] || {};
+  const val = v => (v && v !== 'undefined') ? v : '—';
+  const mon = v => v ? '$'+Number(String(v).replace(/[$,]/g,'')).toLocaleString('es-AR') : '—';
+
   document.getElementById('cont-edit-id').value = id;
   document.getElementById('cont-edit-nombre').textContent = r ? (r.nombrecliente||id) : id;
+
+  // Mostrar datos del registro en el encabezado del modal
+  const infoEl = document.getElementById('cont-edit-info');
+  if (infoEl && r) {
+    infoEl.innerHTML = `
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;background:var(--surface);border-radius:10px;padding:14px;margin-bottom:16px;font-size:12px">
+        <div><span style="color:var(--muted);font-weight:600;display:block;font-size:10px;text-transform:uppercase;letter-spacing:.05em">Fecha</span>${r.fecha ? r.fecha.split('-').reverse().join('/') : '—'}</div>
+        <div><span style="color:var(--muted);font-weight:600;display:block;font-size:10px;text-transform:uppercase;letter-spacing:.05em">Año</span>${val(r.anio)}</div>
+        <div><span style="color:var(--muted);font-weight:600;display:block;font-size:10px;text-transform:uppercase;letter-spacing:.05em">Estado</span>${val(r.estado)}</div>
+        <div><span style="color:var(--muted);font-weight:600;display:block;font-size:10px;text-transform:uppercase;letter-spacing:.05em">Banco</span>${val(r.banco)}</div>
+        <div><span style="color:var(--muted);font-weight:600;display:block;font-size:10px;text-transform:uppercase;letter-spacing:.05em">Concesionaria</span>${val(r.concesionaria)}</div>
+        <div><span style="color:var(--muted);font-weight:600;display:block;font-size:10px;text-transform:uppercase;letter-spacing:.05em">Provincia</span>${val(r.provincia)}</div>
+        <div><span style="color:var(--muted);font-weight:600;display:block;font-size:10px;text-transform:uppercase;letter-spacing:.05em">Localidad</span>${val(r.localidad)}</div>
+        <div><span style="color:var(--muted);font-weight:600;display:block;font-size:10px;text-transform:uppercase;letter-spacing:.05em">DNI</span>${val(r.dni)}</div>
+        <div><span style="color:var(--muted);font-weight:600;display:block;font-size:10px;text-transform:uppercase;letter-spacing:.05em">Teléfono</span>${val(cd.telefono)}</div>
+        <div><span style="color:var(--muted);font-weight:600;display:block;font-size:10px;text-transform:uppercase;letter-spacing:.05em">Email</span>${val(cd.email)}</div>
+        <div><span style="color:var(--muted);font-weight:600;display:block;font-size:10px;text-transform:uppercase;letter-spacing:.05em">Dominio</span>${val(r.dominio)}</div>
+        <div><span style="color:var(--muted);font-weight:600;display:block;font-size:10px;text-transform:uppercase;letter-spacing:.05em">Vehículo</span>${val(r.descripcion)}</div>
+        <div><span style="color:var(--muted);font-weight:600;display:block;font-size:10px;text-transform:uppercase;letter-spacing:.05em">Tipo CTA</span>${val(r.tipocta)}</div>
+        <div><span style="color:var(--muted);font-weight:600;display:block;font-size:10px;text-transform:uppercase;letter-spacing:.05em">Imp. Solicitado</span>${mon(r.importe)}</div>
+        <div><span style="color:var(--muted);font-weight:600;display:block;font-size:10px;text-transform:uppercase;letter-spacing:.05em">Tasa</span>${val(r.tasa)}</div>
+      </div>`;
+  }
+
   document.getElementById('cont-a-liquidar').value    = c.aLiquidar    || '';
   document.getElementById('cont-imp-credito').value   = c.impCredito   || '';
   document.getElementById('cont-gastos-gestoria').value = c.gastosGestoria || '';
@@ -3977,7 +4005,7 @@ function renderReportes() {
 
 <!-- MODAL EDITAR CONTABILIDAD -->
 <div class="overlay" id="cont-edit-overlay" onclick="if(event.target===this)closeContEdit()" style="z-index:700">
-  <div class="modal" style="max-width:560px" onclick="event.stopPropagation()">
+  <div class="modal" style="max-width:720px;max-height:92vh;overflow-y:auto" onclick="event.stopPropagation()">
     <div class="mh">
       <div>
         <div class="mt">✏️ Editar registro contable</div>
@@ -3986,6 +4014,7 @@ function renderReportes() {
       <button class="xbtn" onclick="closeContEdit()">×</button>
     </div>
     <input type="hidden" id="cont-edit-id">
+    <div id="cont-edit-info"></div>
     <div class="fg" style="grid-template-columns:repeat(2,1fr);gap:12px">
       <div class="fc"><label>A liquidar agencia</label><input id="cont-a-liquidar" type="number" placeholder="0"></div>
       <div class="fc"><label>1,2 Imp. Crédito</label><input id="cont-imp-credito" type="number" placeholder="0"></div>
