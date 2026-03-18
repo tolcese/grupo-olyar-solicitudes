@@ -2000,6 +2000,11 @@ function calcContLiquidar() {
   // Retribución banco = importe * 0.04
   const retribBanco = Math.round(importe * 0.04);
   document.getElementById('cont-retrib-banco').value = retribBanco.toFixed(2);
+  // Ganancia LUKAYA = comLukaya - comComercial - comOperativo - comGestora + retribBanco
+  const comComercial = parseFloat(document.getElementById('cont-com-comercial').value||0) || 0;
+  const comOperativo = parseFloat(document.getElementById('cont-com-operativo').value||0) || 0;
+  const ganancia = Math.round(comLukaya - comComercial - comOperativo - comGestora + retribBanco);
+  document.getElementById('cont-ganancia').value = ganancia.toFixed(2);
   // A liquidar agencia = importe - comLukaya - gastosGestoria - impCredito
   const gastosGest = parseFloat(document.getElementById('cont-gastos-gestoria').value||0) || 0;
   const resultado  = Math.round(importe - comLukaya - gastosGest - impCredito);
@@ -4047,11 +4052,11 @@ function renderReportes() {
       <div class="fc"><label>Gastos Gestoría</label><input id="cont-gastos-gestoria" type="number" placeholder="0" oninput="calcContLiquidar()"></div>
       <div class="fc"><label>Comisión LUKAYA <span style="color:var(--green);font-size:10px">(calculado)</span></label><input id="cont-com-lukaya" type="number" placeholder="0" readonly style="background:#f0fdf4;font-weight:700;color:var(--green)"></div>
       <div class="fc"><label>Fecha liquidación</label><input id="cont-fecha-liq" type="date"></div>
-      <div class="fc"><label>Comisión comercial</label><input id="cont-com-comercial" type="number" placeholder="0"></div>
-      <div class="fc"><label>Comisión operativo</label><input id="cont-com-operativo" type="number" placeholder="0"></div>
+      <div class="fc"><label>Comisión comercial</label><input id="cont-com-comercial" type="number" placeholder="0" oninput="calcContLiquidar()"></div>
+      <div class="fc"><label>Comisión operativo</label><input id="cont-com-operativo" type="number" placeholder="0" oninput="calcContLiquidar()"></div>
       <div class="fc"><label>Comisión gestor <span style="color:var(--green);font-size:10px">(calculado)</span></label><input id="cont-com-gestora" type="number" placeholder="0" readonly style="background:#f0fdf4;font-weight:700;color:var(--green)"></div>
       <div class="fc"><label>Retribución banco <span style="color:var(--green);font-size:10px">(calculado)</span></label><input id="cont-retrib-banco" type="number" placeholder="0" readonly style="background:#f0fdf4;font-weight:700;color:var(--green)"></div>
-      <div class="fc"><label>Ganancia LUKAYA</label><input id="cont-ganancia" type="number" placeholder="0"></div>
+      <div class="fc"><label>Ganancia LUKAYA <span style="color:var(--green);font-size:10px">(calculado)</span></label><input id="cont-ganancia" type="number" placeholder="0" readonly style="background:#f0fdf4;font-weight:700;color:var(--green)"></div>
       <div class="fc"><label>Pagado</label>
         <div class="chk-grid" style="grid-template-columns:1fr">
           <label class="chk-row"><input type="checkbox" id="cont-pagado"> Sí, pagado</label>
