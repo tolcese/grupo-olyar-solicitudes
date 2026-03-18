@@ -1988,11 +1988,13 @@ function editCont(id) {
 function calcContLiquidar() {
   const r        = RECORDS.find(x => x.id === document.getElementById('cont-edit-id').value);
   const importe  = parseFloat(r?.importe||0) || 0;
-  // Calcular 1,2 Imp. Crédito = importe * 1.2%
+  // 1,2 Imp. Crédito = importe * 1.2%
   const impCredito = importe * 1.2 / 100;
   document.getElementById('cont-imp-credito').value = impCredito.toFixed(2);
-  // Calcular A liquidar agencia
-  const comLukaya  = parseFloat(document.getElementById('cont-com-lukaya').value||0) || 0;
+  // Comisión LUKAYA = importe * 0.032 - impCredito
+  const comLukaya = (importe * 0.032) - impCredito;
+  document.getElementById('cont-com-lukaya').value = comLukaya.toFixed(2);
+  // A liquidar agencia = importe - comLukaya - gastosGestoria - impCredito
   const gastosGest = parseFloat(document.getElementById('cont-gastos-gestoria').value||0) || 0;
   const resultado  = importe - comLukaya - gastosGest - impCredito;
   document.getElementById('cont-a-liquidar').value = resultado.toFixed(2);
@@ -4037,7 +4039,7 @@ function renderReportes() {
       <div class="fc"><label>A liquidar agencia <span style="color:var(--green);font-size:10px">(calculado)</span></label><input id="cont-a-liquidar" type="number" placeholder="0" readonly style="background:#f0fdf4;font-weight:700;color:var(--green)"></div>
       <div class="fc"><label>1,2 Imp. Crédito <span style="color:var(--green);font-size:10px">(calculado)</span></label><input id="cont-imp-credito" type="number" placeholder="0" readonly style="background:#f0fdf4;font-weight:700;color:var(--green)"></div>
       <div class="fc"><label>Gastos Gestoría</label><input id="cont-gastos-gestoria" type="number" placeholder="0" oninput="calcContLiquidar()"></div>
-      <div class="fc"><label>Comisión LUKAYA</label><input id="cont-com-lukaya" type="number" placeholder="0" oninput="calcContLiquidar()"></div>
+      <div class="fc"><label>Comisión LUKAYA <span style="color:var(--green);font-size:10px">(calculado)</span></label><input id="cont-com-lukaya" type="number" placeholder="0" readonly style="background:#f0fdf4;font-weight:700;color:var(--green)"></div>
       <div class="fc"><label>Fecha liquidación</label><input id="cont-fecha-liq" type="date"></div>
       <div class="fc"><label>Comisión comercial</label><input id="cont-com-comercial" type="number" placeholder="0"></div>
       <div class="fc"><label>Comisión operativo</label><input id="cont-com-operativo" type="number" placeholder="0"></div>
