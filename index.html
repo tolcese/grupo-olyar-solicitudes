@@ -1969,6 +1969,8 @@ function editCont(id) {
   document.getElementById('cont-imp-credito').value   = c.impCredito   || '';
   document.getElementById('cont-gastos-gestoria').value = c.gastosGestoria || '';
   document.getElementById('cont-com-lukaya').value    = c.comLukaya    || '';
+  // Recalcular A liquidar agencia
+  setTimeout(calcContLiquidar, 50);
   document.getElementById('cont-fecha-liq').value     = c.fechaLiq     || '';
   document.getElementById('cont-com-comercial').value = c.comComercial || '';
   document.getElementById('cont-com-operativo').value = c.comOperativo || '';
@@ -1981,6 +1983,16 @@ function editCont(id) {
   document.getElementById('cont-fecha-pago-gest').value = c.fechaPagoGest || '';
   document.getElementById('cont-obs').value           = c.obs          || '';
   document.getElementById('cont-edit-overlay').classList.add('open');
+}
+
+function calcContLiquidar() {
+  const r  = RECORDS.find(x => x.id === document.getElementById('cont-edit-id').value);
+  const importe      = parseFloat(r?.importe||0) || 0;
+  const comLukaya    = parseFloat(document.getElementById('cont-com-lukaya').value||0) || 0;
+  const gastosGest   = parseFloat(document.getElementById('cont-gastos-gestoria').value||0) || 0;
+  const impCredito   = parseFloat(document.getElementById('cont-imp-credito').value||0) || 0;
+  const resultado    = importe - comLukaya - gastosGest - impCredito;
+  document.getElementById('cont-a-liquidar').value = resultado.toFixed(2);
 }
 
 function closeContEdit() {
@@ -4019,10 +4031,10 @@ function renderReportes() {
     <input type="hidden" id="cont-edit-id">
     <div id="cont-edit-info"></div>
     <div class="fg" style="grid-template-columns:repeat(2,1fr);gap:12px">
-      <div class="fc"><label>A liquidar agencia</label><input id="cont-a-liquidar" type="number" placeholder="0"></div>
-      <div class="fc"><label>1,2 Imp. Crédito</label><input id="cont-imp-credito" type="number" placeholder="0"></div>
-      <div class="fc"><label>Gastos Gestoría</label><input id="cont-gastos-gestoria" type="number" placeholder="0"></div>
-      <div class="fc"><label>Comisión LUKAYA</label><input id="cont-com-lukaya" type="number" placeholder="0"></div>
+      <div class="fc"><label>A liquidar agencia <span style="color:var(--green);font-size:10px">(calculado)</span></label><input id="cont-a-liquidar" type="number" placeholder="0" readonly style="background:#f0fdf4;font-weight:700;color:var(--green)"></div>
+      <div class="fc"><label>1,2 Imp. Crédito</label><input id="cont-imp-credito" type="number" placeholder="0" oninput="calcContLiquidar()"></div>
+      <div class="fc"><label>Gastos Gestoría</label><input id="cont-gastos-gestoria" type="number" placeholder="0" oninput="calcContLiquidar()"></div>
+      <div class="fc"><label>Comisión LUKAYA</label><input id="cont-com-lukaya" type="number" placeholder="0" oninput="calcContLiquidar()"></div>
       <div class="fc"><label>Fecha liquidación</label><input id="cont-fecha-liq" type="date"></div>
       <div class="fc"><label>Comisión comercial</label><input id="cont-com-comercial" type="number" placeholder="0"></div>
       <div class="fc"><label>Comisión operativo</label><input id="cont-com-operativo" type="number" placeholder="0"></div>
