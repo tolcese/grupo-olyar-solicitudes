@@ -951,7 +951,7 @@ function doPost(e) { return doGet(e); }`;
 // ══════════════════════════════════════════════
 // CONFIG — URL del Apps Script
 // ══════════════════════════════════════════════
-let WH = 'https://script.google.com/macros/s/AKfycbxwuyK8wktrXcbfFM6EXin_tO6Cnko4EmdmLQxKXRiASRlNFDLA_TmlVWOFbFgNBdIG/exec';
+let WH = 'https://script.google.com/macros/s/AKfycbwuSa5Bk0ZPK0Zyz2rW6WMVVbWka2yJxB5IBdBE07yb94Fh_pGMDziJf7CntuNzpPh4/exec';
 const SHEET_NAME = 'Solicitudes';
 
 // ══════════════════════════════════════════════
@@ -1905,6 +1905,7 @@ function renderContabilidad() {
       <td>${val(cd.telefono)}</td>
       <td>${val(cd.email)}</td>
       <td style="font-family:monospace">${val(r.dominio)}</td>
+      <td style="font-weight:600;color:var(--blue)">${val(r.gestorAsignado)}</td>
       <td>${val(r.descripcion)}</td>
       <td>${val(r.tipocta)}</td>
       <td style="font-family:monospace">${mon(r.importe)}</td>
@@ -1960,6 +1961,7 @@ function editCont(id) {
         <div><span style="color:var(--muted);font-weight:600;display:block;font-size:10px;text-transform:uppercase;letter-spacing:.05em">Tipo CTA</span>${val(r.tipocta)}</div>
         <div><span style="color:var(--muted);font-weight:600;display:block;font-size:10px;text-transform:uppercase;letter-spacing:.05em">Imp. Solicitado</span>${mon(r.importe)}</div>
         <div><span style="color:var(--muted);font-weight:600;display:block;font-size:10px;text-transform:uppercase;letter-spacing:.05em">Tasa</span>${val(r.tasa)}</div>
+        <div><span style="color:var(--muted);font-weight:600;display:block;font-size:10px;text-transform:uppercase;letter-spacing:.05em">Gestor asignado</span><b style="color:var(--blue)">${val(r.gestorAsignado)}</b></div>
       </div>`;
   }
 
@@ -3967,6 +3969,7 @@ function renderReportes() {
               <th>Teléfono</th>
               <th>Email</th>
               <th>Dominio</th>
+              <th>Gestor</th>
               <th>Vehículo</th>
               <th>Tipo CTA</th>
               <th>Imp. Solicitado</th>
