@@ -770,6 +770,18 @@ pre{background:#0f172a;color:#7dd3fc;padding:18px;font-family:'JetBrains Mono',m
       </div>
     </div>
 
+    <!-- SISTEMA DE CRÉDITOS -->
+    <div id="v-creditos" style="display:none">
+      <div class="ph">
+        <div><div class="ph-t">💳 Sistema de créditos</div><div class="ph-s">Seguimiento de créditos</div></div>
+      </div>
+      <div style="text-align:center;padding:80px 20px;color:var(--muted)">
+        <div style="font-size:64px;margin-bottom:20px">🚧</div>
+        <div style="font-size:22px;font-weight:800;color:var(--ink2);margin-bottom:10px">En construcción</div>
+        <div style="font-size:14px;max-width:380px;margin:0 auto;line-height:1.6">Esta sección está siendo desarrollada. Pronto vas a poder gestionar el seguimiento de créditos desde acá.</div>
+      </div>
+    </div>
+
     <!-- CONTABILIDAD -->
     <div id="v-contabilidad" style="display:none">
       <div class="ph">
@@ -2898,7 +2910,7 @@ document.getElementById('l-u').addEventListener('keydown', e => { if(e.key==='En
 // ══════════════════════════════════════════════
 function showV(v) {
   if (v === 'reportes') setTimeout(renderReportes, 50);
-  ['sol','nueva','usuarios','config','micuenta','reportes','backup','contabilidad'].forEach(id => {
+  ['sol','nueva','usuarios','config','micuenta','reportes','backup','contabilidad','creditos'].forEach(id => {
     const el = document.getElementById('v-'+id);
     if (el) el.style.display = id===v ? '' : 'none';
     const tn = document.getElementById('tn-'+id);
@@ -4302,7 +4314,7 @@ function renderReportes() {
     <button class="sb-item" onclick="closeSidebar();openPrendas()">
       <span class="sb-icon">📌</span> Prendas
     </button>
-    <button class="sb-item" onclick="closeSidebar();toast('Sistema de créditos — próximamente','in')">
+    <button class="sb-item" onclick="closeSidebar();showV('creditos')">
       <span class="sb-icon">💳</span> Sistema de créditos
     </button>
     <button class="sb-item" onclick="closeSidebar();openPrendasEntregadas()">
