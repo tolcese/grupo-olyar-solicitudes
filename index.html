@@ -770,10 +770,91 @@ pre{background:#0f172a;color:#7dd3fc;padding:18px;font-family:'JetBrains Mono',m
       </div>
     </div>
 
+    <!-- CONTABILIDAD -->
+    <div id="v-contabilidad" style="display:none">
+      <div class="ph">
+        <div><div class="ph-t">🧾 Contabilidad</div><div class="ph-s">Gestión contable y coeficientes</div></div>
+      </div>
+      <!-- TABS -->
+      <div style="display:flex;gap:4px;margin-bottom:20px;border-bottom:2px solid var(--line);padding-bottom:0">
+        <button id="cont-tab-liq" onclick="showContTab('liquidaciones')" style="padding:10px 22px;border:none;border-bottom:3px solid var(--blue);background:none;cursor:pointer;font-size:13px;font-weight:700;color:var(--blue);margin-bottom:-2px">💰 Liquidaciones</button>
+        <button id="cont-tab-coef" onclick="showContTab('coeficientes')" style="padding:10px 22px;border:none;border-bottom:3px solid transparent;background:none;cursor:pointer;font-size:13px;font-weight:600;color:var(--muted);margin-bottom:-2px">📊 Cambio de Coeficientes</button>
+      </div>
+
+      <!-- TAB LIQUIDACIONES -->
+      <div id="cont-tab-liquidaciones">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap">
+          <div class="searchbox" style="min-width:240px">
+            <span style="color:var(--muted)">🔍</span>
+            <input id="cont-srch" placeholder="Buscar cliente, banco, DNI..." oninput="renderContabilidad()">
+          </div>
+          <div id="cont-count" style="font-size:12px;color:var(--muted)">—</div>
+        </div>
+        <div style="overflow-x:auto;border-radius:12px;border:1.5px solid var(--line)">
+          <div class="cont-scroll-x" id="cont-scroll">
+            <table class="cont-table">
+              <thead>
+                <tr>
+                  <th>Acciones</th>
+                  <th>#</th>
+                  <th>Fecha solicitud</th>
+                  <th>Estado</th>
+                  <th>Banco</th>
+                  <th>Concesionaria</th>
+                  <th>Localidad</th>
+                  <th>Provincia</th>
+                  <th>Cliente</th>
+                  <th>DNI</th>
+                  <th>Teléfono</th>
+                  <th>Email</th>
+                  <th>Dominio</th>
+                  <th>Gestor</th>
+                  <th>Vehículo</th>
+                  <th>Tipo CTA</th>
+                  <th>Imp. Solicitado</th>
+                  <th>Tasa</th>
+                  <th>A liquidar agencia</th>
+                  <th>1,2 Imp. Crédito</th>
+                  <th>Gastos Gestoría</th>
+                  <th>Comisión LUKAYA</th>
+                  <th>Fecha liquidación</th>
+                  <th>Comisión comercial</th>
+                  <th>Comisión operativo</th>
+                  <th>Comisión gestor</th>
+                  <th>Retribución banco</th>
+                  <th>Ganancia LUKAYA</th>
+                  <th>Pagado</th>
+                  <th>Fecha pagado</th>
+                  <th>Pago com. gest.</th>
+                  <th>Fecha pagado com. gest.</th>
+                  <th>Observaciones</th>
+                </tr>
+              </thead>
+              <tbody id="cont-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+        <div id="cont-empty" class="empty-state" style="display:none">
+          <div class="ei">🧾</div>
+          <h3>Sin registros contables</h3>
+          <p>Se generan automáticamente desde las solicitudes con estado AVANZA</p>
+        </div>
+        <div class="cont-scroll-mirror" id="cont-mirror" style="margin-top:4px">
+          <div class="cont-scroll-mirror-inner" id="cont-mirror-inner"></div>
+        </div>
+      </div>
+
+      <!-- TAB COEFICIENTES -->
+      <div id="cont-tab-coeficientes" style="display:none">
+        <div class="card" style="max-width:500px">
+          <div class="card-t">📊 Cambio de Coeficientes</div>
+          <div class="card-s">Próximamente podés gestionar los coeficientes desde acá.</div>
+        </div>
+      </div>
+    </div>
+
   </div>
 </div>
-
-<!-- MODAL USUARIO -->
 <div class="overlay" id="user-modal" onclick="if(event.target===this)this.classList.remove('open')">
   <div class="modal" style="max-width:400px">
     <div class="mh">
@@ -1105,7 +1186,7 @@ function openSidebar() {
   document.getElementById('sb-config').style.display = ME?.rol === 'admin' ? '' : 'none';
   document.getElementById('sb-backup').style.display = ME?.rol === 'admin' ? '' : 'none';
   document.getElementById('sb-usuarios').style.display = ME?.rol === 'admin' ? '' : 'none';
-  document.getElementById('sb-contabilidad').style.display = ME?.rol === 'admin' ? '' : 'none';
+  document.getElementById('sb-contabilidad').style.display = '';
 }
 function closeSidebar() {
   document.getElementById('sidebar').classList.remove('open');
@@ -2107,14 +2188,11 @@ function closeConcHist() {
 // ══════════════════════════════════════════════
 
 async function openContabilidad() {
-  document.getElementById('contabilidad-overlay').classList.add('open');
-  await loadContabilidad();
-  renderContabilidad();
-  setTimeout(initContMirror, 150);
+  showV('contabilidad');
 }
 
 function closeContabilidad() {
-  document.getElementById('contabilidad-overlay').classList.remove('open');
+  showV('sol');
 }
 
 async function loadContabilidad() {
@@ -2254,6 +2332,22 @@ function editCont(id) {
   document.getElementById('cont-fecha-pago-gest').value = c.fechaPagoGest || '';
   document.getElementById('cont-obs').value           = c.obs          || '';
   document.getElementById('cont-edit-overlay').classList.add('open');
+}
+
+function showContTab(tab) {
+  ['liquidaciones','coeficientes'].forEach(t => {
+    document.getElementById('cont-tab-'+t).style.display = t === tab ? '' : 'none';
+    const btn = document.getElementById('cont-tab-'+t.replace('liquidaciones','liq').replace('coeficientes','coef'));
+    if (btn) {
+      btn.style.borderBottomColor = t === tab ? 'var(--blue)' : 'transparent';
+      btn.style.color = t === tab ? 'var(--blue)' : 'var(--muted)';
+      btn.style.fontWeight = t === tab ? '700' : '600';
+    }
+  });
+  if (tab === 'liquidaciones') {
+    renderContabilidad();
+    setTimeout(initContMirror, 100);
+  }
 }
 
 function calcContLiquidar() {
@@ -2580,7 +2674,7 @@ document.getElementById('l-u').addEventListener('keydown', e => { if(e.key==='En
 // ══════════════════════════════════════════════
 function showV(v) {
   if (v === 'reportes') setTimeout(renderReportes, 50);
-  ['sol','nueva','usuarios','config','micuenta','reportes','backup'].forEach(id => {
+  ['sol','nueva','usuarios','config','micuenta','reportes','backup','contabilidad'].forEach(id => {
     const el = document.getElementById('v-'+id);
     if (el) el.style.display = id===v ? '' : 'none';
     const tn = document.getElementById('tn-'+id);
@@ -2591,6 +2685,7 @@ function showV(v) {
   if (v==='nueva' && !editId) { resetForm(); document.getElementById('form-title').textContent='Nueva solicitud'; document.getElementById('save-btn').textContent='💾 Guardar solicitud'; }
   if (v==='usuarios') loadUsers();
   if (v==='config')   { document.getElementById('cfg-wh').value=WH; loadMantenimientoStatus(); }
+  if (v==='contabilidad') { showContTab('liquidaciones'); }
 }
 
 // ══════════════════════════════════════════════
@@ -3979,7 +4074,7 @@ function renderReportes() {
     <button class="sb-item" id="sb-backup" onclick="closeSidebar();showV('backup')" style="display:none">
       <span class="sb-icon">💾</span> Backup
     </button>
-    <button class="sb-item" id="sb-contabilidad" onclick="closeSidebar();openContabilidad()" style="display:none">
+    <button class="sb-item" id="sb-contabilidad" onclick="closeSidebar();showV('contabilidad')" style="display:none">
       <span class="sb-icon">🧾</span> Contabilidad
     </button>
 
@@ -4243,76 +4338,7 @@ function renderReportes() {
   </div>
 </div>
 
-<!-- MODAL CONTABILIDAD -->
-<div class="cont-overlay" id="contabilidad-overlay" onclick="if(event.target===this)closeContabilidad()">
-  <div class="cont-modal" onclick="event.stopPropagation()">
-    <div class="cont-head">
-      <div>
-        <div style="font-size:17px;font-weight:800;color:var(--ink)">🧾 Contabilidad</div>
-        <div style="font-size:12px;color:var(--muted);margin-top:2px" id="cont-count">—</div>
-      </div>
-      <div style="display:flex;gap:8px;align-items:center">
-        <div class="searchbox" style="min-width:220px">
-          <span style="color:var(--muted)">🔍</span>
-          <input id="cont-srch" placeholder="Buscar cliente, banco, DNI..." oninput="renderContabilidad()">
-        </div>
-        <button class="xbtn" onclick="closeContabilidad()" style="width:34px;height:34px;font-size:18px">×</button>
-      </div>
-    </div>
-    <div class="cont-body">
-      <div class="cont-scroll-x" id="cont-scroll">
-        <table class="cont-table">
-          <thead>
-            <tr>
-              <th>Acciones</th>
-              <th>#</th>
-              <th>Fecha solicitud</th>
-              <th>Estado</th>
-              <th>Banco</th>
-              <th>Concesionaria</th>
-              <th>Localidad</th>
-              <th>Provincia</th>
-              <th>Cliente</th>
-              <th>DNI</th>
-              <th>Teléfono</th>
-              <th>Email</th>
-              <th>Dominio</th>
-              <th>Gestor</th>
-              <th>Vehículo</th>
-              <th>Tipo CTA</th>
-              <th>Imp. Solicitado</th>
-              <th>Tasa</th>
-              <th>A liquidar agencia</th>
-              <th>1,2 Imp. Crédito</th>
-              <th>Gastos Gestoría</th>
-              <th>Comisión LUKAYA</th>
-              <th>Fecha liquidación</th>
-              <th>Comisión comercial</th>
-              <th>Comisión operativo</th>
-              <th>Comisión gestor</th>
-              <th>Retribución banco</th>
-              <th>Ganancia LUKAYA</th>
-              <th>Pagado</th>
-              <th>Fecha pagado</th>
-              <th>Pago com. gest.</th>
-              <th>Fecha pagado com. gest.</th>
-              <th>Observaciones</th>
-            </tr>
-          </thead>
-          <tbody id="cont-tbody"></tbody>
-        </table>
-      </div>
-      <div id="cont-empty" class="empty-state" style="display:none">
-        <div class="ei">🧾</div>
-        <h3>Sin registros contables</h3>
-        <p>Se generan automáticamente desde las solicitudes</p>
-      </div>
-    </div>
-    <div class="cont-scroll-mirror" id="cont-mirror">
-      <div class="cont-scroll-mirror-inner" id="cont-mirror-inner"></div>
-    </div>
-  </div>
-</div>
+
 
 <!-- MODAL EDITAR CONTABILIDAD -->
 <div class="overlay" id="cont-edit-overlay" onclick="if(event.target===this)closeContEdit()" style="z-index:700">
