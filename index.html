@@ -1106,28 +1106,43 @@ function closeGestores() {
 async function loadGestores() {
   const list = document.getElementById('gestores-list');
   list.innerHTML = '<div style="text-align:center;color:var(--muted);padding:30px"><span class="spinner"></span> Cargando...</div>';
+  const srch = document.getElementById('gestor-srch');
+  if (srch) srch.value = '';
   try {
     const res = await gas({ action: 'getGestores' });
-    const gestores = res.gestores || [];
-    if (!gestores.length) {
-      list.innerHTML = '<div style="text-align:center;color:var(--muted);padding:30px;font-size:13px">Sin gestores cargados. Usá "＋ Nuevo gestor" para agregar.</div>';
-      return;
-    }
-    list.innerHTML = gestores.map(g => `
-      <div class="gestor-card" style="cursor:pointer" onclick="openGestorPanel('${g.id}','${(g.nombre||'').replace(/'/g,"\\'")}','${(g.localidad||'').replace(/'/g,"\\'")}','${(g.provincia||'').replace(/'/g,"\\'")}','${(g.telefono||'').replace(/'/g,"\\'")}','${(g.email||'').replace(/'/g,"\\'")}','${(g.direccion||'').replace(/'/g,"\\'")}','${(g.cp||'').replace(/'/g,"\\'")}')">
-        <div class="gestor-av">${(g.nombre||'?')[0].toUpperCase()}</div>
-        <div class="gestor-info">
-          <div class="gestor-name">${g.nombre||'—'}</div>
-          <div class="gestor-sub">${[g.localidad, g.provincia].filter(Boolean).join(', ')||'—'} · ${g.telefono||g.email||'Sin contacto'}</div>
-        </div>
-        <div style="display:flex;gap:5px;flex-shrink:0" onclick="event.stopPropagation()">
-          <button class="ibtn" onclick="openFormGestor('${g.id}')" title="Editar">✏️</button>
-          ${ME?.rol === 'admin' ? `<button class="ibtn del" onclick="delGestor('${g.id}')" title="Eliminar">🗑️</button>` : ''}
-        </div>
-      </div>`).join('');
+    GESTORES_CACHE = res.gestores || [];
+    renderGestoresList(GESTORES_CACHE);
   } catch(e) {
     list.innerHTML = '<div style="color:var(--red);padding:20px;font-size:13px">Error cargando gestores.</div>';
   }
+}
+
+function filtrarGestores() {
+  const q = (document.getElementById('gestor-srch')?.value || '').toLowerCase();
+  const filtrados = q
+    ? GESTORES_CACHE.filter(g => (g.nombre||'').toLowerCase().includes(q))
+    : GESTORES_CACHE;
+  renderGestoresList(filtrados);
+}
+
+function renderGestoresList(gestores) {
+  const list = document.getElementById('gestores-list');
+  if (!gestores.length) {
+    list.innerHTML = '<div style="text-align:center;color:var(--muted);padding:30px;font-size:13px">Sin resultados.</div>';
+    return;
+  }
+  list.innerHTML = gestores.map(g => `
+    <div class="gestor-card" style="cursor:pointer" onclick="openGestorPanel('${g.id}','${(g.nombre||'').replace(/'/g,"\\'")}','${(g.localidad||'').replace(/'/g,"\\'")}','${(g.provincia||'').replace(/'/g,"\\'")}','${(g.telefono||'').replace(/'/g,"\\'")}','${(g.email||'').replace(/'/g,"\\'")}','${(g.direccion||'').replace(/'/g,"\\'")}','${(g.cp||'').replace(/'/g,"\\'")}')">
+      <div class="gestor-av">${(g.nombre||'?')[0].toUpperCase()}</div>
+      <div class="gestor-info">
+        <div class="gestor-name">${g.nombre||'—'}</div>
+        <div class="gestor-sub">${[g.localidad, g.provincia].filter(Boolean).join(', ')||'—'} · ${g.telefono||g.email||'Sin contacto'}</div>
+      </div>
+      <div style="display:flex;gap:5px;flex-shrink:0" onclick="event.stopPropagation()">
+        <button class="ibtn" onclick="openFormGestor('${g.id}')" title="Editar">✏️</button>
+        ${ME?.rol === 'admin' ? `<button class="ibtn del" onclick="delGestor('${g.id}')" title="Eliminar">🗑️</button>` : ''}
+      </div>
+    </div>`).join('');
 }
 
 let GESTORES_CACHE = [];
@@ -1337,31 +1352,52 @@ function renderGestoria() {
 
 let ASIGNAR_ID = null;
 
+let SEL_GESTORES_CACHE = [];
+
 async function asignarGestoria(id) {
   ASIGNAR_ID = id;
   const r = RECORDS.find(x => x.id === id);
   document.getElementById('sel-gestor-sub').textContent = r ? (r.nombrecliente || id) : id;
   document.getElementById('sel-gestor-overlay').classList.add('open');
+  const srch = document.getElementById('sel-gestor-srch');
+  if (srch) srch.value = '';
   const body = document.getElementById('sel-gestor-body');
   body.innerHTML = '<div style="text-align:center;color:var(--muted);padding:30px"><span class="spinner"></span> Cargando...</div>';
   try {
     const res = await gas({ action: 'getGestores' });
-    const gestores = res.gestores || [];
-    if (!gestores.length) {
+    SEL_GESTORES_CACHE = res.gestores || [];
+    if (!SEL_GESTORES_CACHE.length) {
       body.innerHTML = '<div style="text-align:center;color:var(--muted);padding:30px;font-size:13px">No hay gestores cargados.<br>Agregá uno desde el menú lateral → Gestores.</div>';
       return;
     }
-    body.innerHTML = gestores.map(g => `
-      <div class="sel-gestor-item" onclick="confirmarAsignacion('${g.id}','${(g.nombre||'').replace(/'/g,"\\'")}')">
-        <div class="sel-gestor-av">${(g.nombre||'?')[0].toUpperCase()}</div>
-        <div class="sel-gestor-info">
-          <div class="sgi-name">${g.nombre||'—'}</div>
-          <div class="sgi-sub">${[g.localidad,g.provincia].filter(Boolean).join(', ')||''}${g.telefono?' · '+g.telefono:''}</div>
-        </div>
-      </div>`).join('');
+    renderSelGestores(SEL_GESTORES_CACHE);
   } catch(e) {
     body.innerHTML = '<div style="color:var(--red);padding:20px;font-size:13px">Error cargando gestores.</div>';
   }
+}
+
+function filtrarSelGestor() {
+  const q = (document.getElementById('sel-gestor-srch')?.value || '').toLowerCase();
+  const filtrados = q
+    ? SEL_GESTORES_CACHE.filter(g => (g.nombre||'').toLowerCase().includes(q))
+    : SEL_GESTORES_CACHE;
+  renderSelGestores(filtrados);
+}
+
+function renderSelGestores(gestores) {
+  const body = document.getElementById('sel-gestor-body');
+  if (!gestores.length) {
+    body.innerHTML = '<div style="text-align:center;color:var(--muted);padding:20px;font-size:13px">Sin resultados.</div>';
+    return;
+  }
+  body.innerHTML = gestores.map(g => `
+    <div class="sel-gestor-item" onclick="confirmarAsignacion('${g.id}','${(g.nombre||'').replace(/'/g,"\\'")}')">
+      <div class="sel-gestor-av">${(g.nombre||'?')[0].toUpperCase()}</div>
+      <div class="sel-gestor-info">
+        <div class="sgi-name">${g.nombre||'—'}</div>
+        <div class="sgi-sub">${[g.localidad,g.provincia].filter(Boolean).join(', ')||''}${g.telefono?' · '+g.telefono:''}</div>
+      </div>
+    </div>`).join('');
 }
 
 function closeSelGestor() {
@@ -3722,8 +3758,14 @@ function renderReportes() {
     <div class="mh">
       <div class="mt">👤 Gestores</div>
       <div style="display:flex;gap:8px;align-items:center">
-        <button class="btn btn-p" onclick="openFormGestor(null)">＋ Nuevo gestor</button>
+        <button class="btn btn-p" id="btn-nuevo-gestor" onclick="openFormGestor(null)">＋ Nuevo gestor</button>
         <button class="xbtn" onclick="closeGestores()">×</button>
+      </div>
+    </div>
+    <div style="padding:12px 20px;border-bottom:1px solid var(--line)">
+      <div class="searchbox">
+        <span style="color:var(--muted)">🔍</span>
+        <input id="gestor-srch" placeholder="Buscar por nombre..." oninput="filtrarGestores()">
       </div>
     </div>
 
@@ -4187,6 +4229,12 @@ function renderReportes() {
         <div style="font-size:11.5px;color:var(--muted);margin-top:2px" id="sel-gestor-sub">—</div>
       </div>
       <button class="xbtn" onclick="closeSelGestor()" style="width:32px;height:32px;font-size:18px">×</button>
+    </div>
+    <div style="padding:10px 16px;border-bottom:1px solid var(--line)">
+      <div class="searchbox">
+        <span style="color:var(--muted)">🔍</span>
+        <input id="sel-gestor-srch" placeholder="Buscar gestor por nombre..." oninput="filtrarSelGestor()">
+      </div>
     </div>
     <div class="sel-gestor-body" id="sel-gestor-body">
       <div style="text-align:center;color:var(--muted);padding:30px"><span class="spinner"></span> Cargando...</div>
