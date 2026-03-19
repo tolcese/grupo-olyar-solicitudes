@@ -655,7 +655,10 @@ pre{background:#0f172a;color:#7dd3fc;padding:18px;font-family:'JetBrains Mono',m
     <div id="v-usuarios" style="display:none">
       <div class="ph">
         <div><div class="ph-t">Usuarios</div><div class="ph-s">Gestión de accesos</div></div>
-        <button class="btn btn-p" onclick="openAddUser()">＋ Agregar usuario</button>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-s" onclick="loadUsers()">🔄 Actualizar</button>
+          <button class="btn btn-p" onclick="openAddUser()">＋ Agregar usuario</button>
+        </div>
       </div>
       <div class="card">
         <div class="card-t">Usuarios registrados</div>
@@ -1135,7 +1138,7 @@ function doPost(e) { return doGet(e); }`;
 // ══════════════════════════════════════════════
 // CONFIG — URL del Apps Script
 // ══════════════════════════════════════════════
-let WH = 'https://script.google.com/macros/s/AKfycbzY0bbppW6EDNyxLgGcHvHLQCFXxN23WT9RfzNnrs2Q-NlHB4t5zApVJKYDFPnCUS-m/exec';
+let WH = 'https://script.google.com/macros/s/AKfycbwbWaPV5J-d3Bwk4hfE01_KUiR7FcSd6NluNqsUujGpMWQQkuXhNxVwYHT3mWJxvPRg/exec';
 const SHEET_NAME = 'Solicitudes';
 
 // ══════════════════════════════════════════════
@@ -4027,10 +4030,10 @@ setInterval(() => {
   }
 }, 60000);
 
-// Heartbeat inmediato al cargar
-setTimeout(() => {
+// Heartbeat cada 30 segundos
+setInterval(() => {
   if (ME) gas({ action: 'heartbeat', usr: ME.usr }).catch(()=>{});
-}, 5000);
+}, 30000);
 </script>
 
 <!-- SLIDE PANEL GESTORES -->
