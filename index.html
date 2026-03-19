@@ -18,7 +18,24 @@
 }
 *{box-sizing:border-box;margin:0;padding:0;}
 body{font-family:'Inter',sans-serif;background:#fff;color:var(--ink);font-size:13.5px;min-height:100vh;}
-/* CONTABILIDAD */
+/* CONCESIONARIAS */
+.conc-overlay{position:fixed;inset:0;background:rgba(15,23,42,.55);backdrop-filter:blur(4px);z-index:500;display:flex;align-items:center;justify-content:center;padding:16px;opacity:0;pointer-events:none;transition:opacity .2s;}
+.conc-overlay.open{opacity:1;pointer-events:all;}
+.conc-modal{background:#fff;border-radius:18px;width:100%;max-width:680px;max-height:88vh;display:flex;flex-direction:column;box-shadow:var(--sh-lg);transform:scale(.96) translateY(10px);transition:transform .25s cubic-bezier(.34,1.56,.64,1);}
+.conc-overlay.open .conc-modal{transform:scale(1) translateY(0);}
+.conc-head{padding:20px 28px;border-bottom:1.5px solid var(--line);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
+.conc-body{overflow-y:auto;padding:16px 20px;flex:1;}
+.conc-card{display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:12px;border:1.5px solid var(--line);margin-bottom:8px;cursor:pointer;transition:all .12s;}
+.conc-card:hover{border-color:var(--blue);background:var(--blue-soft);}
+.conc-av{width:38px;height:38px;border-radius:10px;background:var(--blue);display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:800;color:#fff;flex-shrink:0;}
+.conc-info{flex:1;min-width:0;}
+.conc-name{font-size:13.5px;font-weight:700;color:var(--ink);}
+.conc-sub{font-size:11.5px;color:var(--muted);margin-top:2px;}
+
+/* PANEL LATERAL CONCESIONARIAS */
+.conc-panel-overlay{position:fixed;inset:0;z-index:600;display:flex;justify-content:flex-end;pointer-events:none;}
+.conc-panel-overlay.open{pointer-events:all;}
+.conc-side-panel{width:340px;max-width:95vw;background:#fff;height:100%;box-shadow:-4px 0 24px rgba(15,23,42,.12);transform:translateX(100%);transition:transform .28s cubic-bezier(.34,1.56,.64,1);display:flex;flex-direction:column;overflow-y:auto;}
 .cont-overlay{position:fixed;inset:0;background:rgba(15,23,42,.55);backdrop-filter:blur(4px);z-index:500;display:flex;align-items:center;justify-content:center;padding:16px;opacity:0;pointer-events:none;transition:opacity .2s;}
 .cont-overlay.open{opacity:1;pointer-events:all;}
 .cont-modal{background:#fff;border-radius:18px;width:100%;max-width:1400px;max-height:92vh;display:flex;flex-direction:column;box-shadow:var(--sh-lg);transform:scale(.96) translateY(10px);transition:transform .25s cubic-bezier(.34,1.56,.64,1);}
@@ -951,7 +968,7 @@ function doPost(e) { return doGet(e); }`;
 // ══════════════════════════════════════════════
 // CONFIG — URL del Apps Script
 // ══════════════════════════════════════════════
-let WH = 'https://script.google.com/macros/s/AKfycbwuSa5Bk0ZPK0Zyz2rW6WMVVbWka2yJxB5IBdBE07yb94Fh_pGMDziJf7CntuNzpPh4/exec';
+let WH = 'https://script.google.com/macros/s/AKfycbxRG0LuhUuQgDhfxo5aGB8jt6GZq6F8Rq1Wlm38q2o_wwEWRMXQASUcrtIoaTRv0NLV/exec';
 const SHEET_NAME = 'Solicitudes';
 
 // ══════════════════════════════════════════════
@@ -1047,7 +1064,7 @@ async function enterApp() {
 
   // Mostrar app y cargar datos
   document.getElementById('app').style.display = 'block';
-  await Promise.all([loadLists(), loadRecords(), loadClientes(), loadContabilidad()]);
+  await Promise.all([loadLists(), loadRecords(), loadClientes(), loadContabilidad(), loadConcesionarias()]);
   loading(false);
   showV('sol');
 }
@@ -1864,6 +1881,190 @@ async function toggleMantenimiento(activar) {
     await gas({ action: 'setMantenimiento', activo: String(activar) });
     toast(activar ? '🔧 Mantenimiento activado' : '✅ Sistema reactivado', activar ? 'wa' : 'ok');
     loadMantenimientoStatus();
+  } catch(e) { toast('Error: ' + e.message, 'er'); }
+}
+
+// ══════════════════════════════════════════════
+// CONCESIONARIAS
+// ══════════════════════════════════════════════
+let CONC_CACHE = [];
+
+async function openConcesionarias() {
+  document.getElementById('conc-overlay').classList.add('open');
+  document.getElementById('conc-srch').value = '';
+  await loadConcesionarias();
+}
+
+function closeConcesionarias() {
+  document.getElementById('conc-overlay').classList.remove('open');
+}
+
+async function loadConcesionarias() {
+  const list = document.getElementById('conc-list');
+  list.innerHTML = '<div style="text-align:center;color:var(--muted);padding:30px"><span class="spinner"></span> Cargando...</div>';
+  try {
+    const res = await gas({ action: 'getConcesionarias' });
+    CONC_CACHE = res.concesionarias || [];
+    renderConcesionarias(CONC_CACHE);
+  } catch(e) {
+    list.innerHTML = '<div style="color:var(--red);padding:20px">Error cargando concesionarias.</div>';
+  }
+}
+
+function filtrarConcesionarias() {
+  const q = (document.getElementById('conc-srch')?.value || '').toLowerCase();
+  const filtradas = q ? CONC_CACHE.filter(c => (c.nombre||'').toLowerCase().includes(q)) : CONC_CACHE;
+  renderConcesionarias(filtradas);
+}
+
+function renderConcesionarias(lista) {
+  const el    = document.getElementById('conc-list');
+  const count = document.getElementById('conc-count');
+  count.textContent = lista.length + ' concesionaria' + (lista.length !== 1 ? 's' : '');
+  if (!lista.length) {
+    el.innerHTML = '<div style="text-align:center;color:var(--muted);padding:30px;font-size:13px">Sin resultados.</div>';
+    return;
+  }
+  const isAdmin = ME?.rol === 'admin';
+  el.innerHTML = lista.map(c => `
+    <div class="conc-card" onclick="openConcPanel('${(c.nombre||'').replace(/'/g,"\\'")}')">
+      <div class="conc-av">${(c.nombre||'?')[0].toUpperCase()}</div>
+      <div class="conc-info">
+        <div class="conc-name">${c.nombre||'—'}</div>
+        <div class="conc-sub">${[c.localidad, c.provincia].filter(Boolean).join(', ')||'Sin datos'} ${c.cuit ? '· CUIT: '+c.cuit : ''}</div>
+      </div>
+      <div style="display:flex;gap:5px;flex-shrink:0" onclick="event.stopPropagation()">
+        <button class="ibtn" onclick="editConc('${(c.nombre||'').replace(/'/g,"\\'")}')">✏️</button>
+        ${isAdmin ? `<button class="ibtn del" onclick="delConc('${(c.nombre||'').replace(/'/g,"\\'")}')">🗑️</button>` : ''}
+        ${isAdmin ? `<button class="ibtn" onclick="verHistorialConc('${(c.nombre||'').replace(/'/g,"\\'")}')">🕐</button>` : ''}
+      </div>
+    </div>`).join('');
+}
+
+function openConcPanel(nombre) {
+  const c = CONC_CACHE.find(x => x.nombre === nombre) || {};
+  const val = v => (v && v !== 'undefined') ? v : '—';
+  document.getElementById('conc-panel-nombre').textContent = nombre;
+  document.getElementById('conc-panel-sub').textContent = [c.localidad, c.provincia].filter(Boolean).join(', ') || 'Concesionaria';
+  document.getElementById('conc-panel-body').innerHTML = `
+    <div class="panel-section">
+      <div class="panel-section-t">Datos</div>
+      <div class="prow"><span class="pl">Nombre</span><span class="pv bold">${val(c.nombre)}</span></div>
+      <div class="prow"><span class="pl">CUIT</span><span class="pv mono">${val(c.cuit)}</span></div>
+      <div class="prow"><span class="pl">Teléfono</span><span class="pv">${val(c.telefono)}</span></div>
+      <div class="prow"><span class="pl">Email</span><span class="pv">${val(c.email)}</span></div>
+    </div>
+    <div class="panel-section">
+      <div class="panel-section-t">Ubicación</div>
+      <div class="prow"><span class="pl">Dirección</span><span class="pv">${val(c.direccion)}</span></div>
+      <div class="prow"><span class="pl">Localidad</span><span class="pv">${val(c.localidad)}</span></div>
+      <div class="prow"><span class="pl">Provincia</span><span class="pv">${val(c.provincia)}</span></div>
+    </div>
+  `;
+  // Botones
+  const panelHead = document.getElementById('conc-side-panel').querySelector('.panel-head');
+  const existing  = panelHead.querySelector('.panel-btns');
+  if (existing) existing.remove();
+  const btns = document.createElement('div');
+  btns.className = 'panel-btns';
+  btns.style.cssText = 'display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;';
+  const isAdmin = ME?.rol === 'admin';
+  btns.innerHTML = `
+    <button class="btn btn-p" style="font-size:12px;padding:6px 12px" onclick="editConc('${nombre.replace(/'/g,"\\'")}')">✏️ Editar</button>
+    ${isAdmin ? `<button class="ibtn del" style="font-size:12px;padding:6px 12px" onclick="delConc('${nombre.replace(/'/g,"\\'")}')">🗑️ Eliminar</button>` : ''}
+    ${isAdmin ? `<button class="ibtn" style="font-size:12px;padding:6px 12px" onclick="verHistorialConc('${nombre.replace(/'/g,"\\'")}')">🕐 Historial</button>` : ''}
+  `;
+  panelHead.appendChild(btns);
+  document.getElementById('conc-panel-overlay').classList.add('open');
+  document.getElementById('conc-side-panel').style.transform = 'translateX(0)';
+  closeConcesionarias();
+}
+
+function closeConcPanel() {
+  document.getElementById('conc-panel-overlay').classList.remove('open');
+  document.getElementById('conc-side-panel').style.transform = 'translateX(100%)';
+  openConcesionarias();
+}
+
+function nuevaConc() {
+  document.getElementById('conc-edit-nombre-orig').value = '';
+  document.getElementById('conc-edit-titulo').textContent = 'Nueva concesionaria';
+  document.getElementById('conc-edit-nombre').value    = '';
+  document.getElementById('conc-edit-nombre').readOnly = false;
+  document.getElementById('conc-edit-nombre').style.background = '';
+  document.getElementById('conc-edit-cuit').value      = '';
+  document.getElementById('conc-edit-telefono').value  = '';
+  document.getElementById('conc-edit-email').value     = '';
+  document.getElementById('conc-edit-direccion').value = '';
+  document.getElementById('conc-edit-localidad').value = '';
+  document.getElementById('conc-edit-provincia').value = '';
+  document.getElementById('conc-edit-overlay').classList.add('open');
+}
+
+function editConc(nombre) {
+  const c = CONC_CACHE.find(x => x.nombre === nombre) || { nombre };
+  document.getElementById('conc-edit-nombre-orig').value = nombre;
+  document.getElementById('conc-edit-titulo').textContent = nombre;
+  document.getElementById('conc-edit-nombre').value    = c.nombre    || '';
+  document.getElementById('conc-edit-nombre').readOnly = true;
+  document.getElementById('conc-edit-nombre').style.background = 'var(--surface)';
+  document.getElementById('conc-edit-cuit').value      = c.cuit      || '';
+  document.getElementById('conc-edit-telefono').value  = c.telefono  || '';
+  document.getElementById('conc-edit-email').value     = c.email     || '';
+  document.getElementById('conc-edit-direccion').value = c.direccion || '';
+  document.getElementById('conc-edit-localidad').value = c.localidad || '';
+  document.getElementById('conc-edit-provincia').value = c.provincia || '';
+  document.getElementById('conc-edit-overlay').classList.add('open');
+}
+
+function closeConcEdit() {
+  document.getElementById('conc-edit-overlay').classList.remove('open');
+}
+
+async function saveConcEdit() {
+  const nombre = document.getElementById('conc-edit-nombre').value.trim();
+  if (!nombre) { toast('El nombre es obligatorio','er'); return; }
+  const data = {
+    action:      'saveConcesionaria',
+    nombre,
+    cuit:        document.getElementById('conc-edit-cuit').value.trim(),
+    telefono:    document.getElementById('conc-edit-telefono').value.trim(),
+    email:       document.getElementById('conc-edit-email').value.trim(),
+    direccion:   document.getElementById('conc-edit-direccion').value.trim(),
+    localidad:   document.getElementById('conc-edit-localidad').value.trim(),
+    provincia:   document.getElementById('conc-edit-provincia').value.trim(),
+    usuarioEdit: ME?.usr || ''
+  };
+  try {
+    await gas(data);
+    // Actualizar caché
+    const idx = CONC_CACHE.findIndex(x => x.nombre === nombre);
+    if (idx >= 0) Object.assign(CONC_CACHE[idx], data);
+    else CONC_CACHE.push(data);
+    toast('Guardado ✓', 'ok');
+    closeConcEdit();
+    renderConcesionarias(CONC_CACHE);
+  } catch(e) { toast('Error: ' + e.message, 'er'); }
+}
+
+async function delConc(nombre) {
+  if (!confirm(`¿Eliminar la concesionaria "${nombre}"?`)) return;
+  try {
+    await gas({ action: 'delConcesionaria', nombre });
+    CONC_CACHE = CONC_CACHE.filter(x => x.nombre !== nombre);
+    toast('Eliminada ✓', 'in');
+    closeConcPanel();
+    renderConcesionarias(CONC_CACHE);
+  } catch(e) { toast('Error: ' + e.message, 'er'); }
+}
+
+async function verHistorialConc(nombre) {
+  try {
+    const res = await gas({ action: 'getHistorialConc', nombre });
+    const hist = res.historial || [];
+    if (!hist.length) { toast('Sin historial de cambios', 'in'); return; }
+    const msg = hist.map(h => `${h.fecha} · ${h.usuario} · ${h.campo}: "${h.anterior}" → "${h.nuevo}"`).join('\n');
+    alert(`Historial de ${nombre}:\n\n${msg}`);
   } catch(e) { toast('Error: ' + e.message, 'er'); }
 }
 
@@ -3714,6 +3915,9 @@ function renderReportes() {
     <button class="sb-item" id="sb-gestores" onclick="closeSidebar();openGestores()">
       <span class="sb-icon">👤</span> Gestores
     </button>
+    <button class="sb-item" onclick="closeSidebar();openConcesionarias()">
+      <span class="sb-icon">🏢</span> Concesionarias
+    </button>
     <button class="sb-item" onclick="closeSidebar();openClientes()">
       <span class="sb-icon">🧑</span> Clientes
     </button>
@@ -4216,6 +4420,74 @@ function renderReportes() {
         <button class="btn btn-s" onclick="closePrendaEdit()">Cancelar</button>
         <button class="btn btn-p" onclick="savePrenda()">💾 Guardar</button>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL CONCESIONARIAS -->
+<div class="conc-overlay" id="conc-overlay" onclick="if(event.target===this)closeConcesionarias()">
+  <div class="conc-modal" onclick="event.stopPropagation()">
+    <div class="conc-head">
+      <div>
+        <div style="font-size:17px;font-weight:800;color:var(--ink)">🏢 Concesionarias</div>
+        <div style="font-size:12px;color:var(--muted);margin-top:2px" id="conc-count">—</div>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <button class="btn btn-p" onclick="nuevaConc()">＋ Nueva</button>
+        <button class="xbtn" onclick="closeConcesionarias()" style="width:34px;height:34px;font-size:18px">×</button>
+      </div>
+    </div>
+    <div style="padding:12px 20px;border-bottom:1px solid var(--line)">
+      <div class="searchbox">
+        <span style="color:var(--muted)">🔍</span>
+        <input id="conc-srch" placeholder="Buscar por nombre..." oninput="filtrarConcesionarias()">
+      </div>
+    </div>
+    <div class="conc-body" id="conc-list">
+      <div style="text-align:center;color:var(--muted);padding:30px"><span class="spinner"></span> Cargando...</div>
+    </div>
+  </div>
+</div>
+
+<!-- PANEL LATERAL CONCESIONARIAS -->
+<div class="conc-panel-overlay" id="conc-panel-overlay">
+  <div class="conc-side-panel" id="conc-side-panel">
+    <div class="panel-head" style="padding:20px 20px 14px">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px">
+        <div>
+          <div class="panel-name" id="conc-panel-nombre">—</div>
+          <div class="panel-sub" id="conc-panel-sub">Concesionaria</div>
+        </div>
+        <button class="xbtn" onclick="closeConcPanel()" style="flex-shrink:0">×</button>
+      </div>
+    </div>
+    <div class="panel-body" id="conc-panel-body"></div>
+  </div>
+</div>
+
+<!-- MODAL EDITAR CONCESIONARIA -->
+<div class="overlay" id="conc-edit-overlay" onclick="if(event.target===this)closeConcEdit()" style="z-index:700">
+  <div class="modal" style="max-width:480px" onclick="event.stopPropagation()">
+    <div class="mh">
+      <div>
+        <div class="mt">🏢 Editar concesionaria</div>
+        <div style="font-size:11.5px;color:var(--muted);margin-top:3px" id="conc-edit-titulo">—</div>
+      </div>
+      <button class="xbtn" onclick="closeConcEdit()">×</button>
+    </div>
+    <input type="hidden" id="conc-edit-nombre-orig">
+    <div class="fg" style="grid-template-columns:repeat(2,1fr);gap:12px">
+      <div class="fc span2"><label>Nombre</label><input id="conc-edit-nombre" placeholder="Nombre concesionaria"></div>
+      <div class="fc"><label>CUIT</label><input id="conc-edit-cuit" placeholder="Ej. 30-12345678-9"></div>
+      <div class="fc"><label>Teléfono</label><input id="conc-edit-telefono" placeholder="Ej. 351-1234567"></div>
+      <div class="fc span2"><label>Email</label><input id="conc-edit-email" type="email" placeholder="concesionaria@email.com"></div>
+      <div class="fc span2"><label>Dirección</label><input id="conc-edit-direccion" placeholder="Av. Ejemplo 1234"></div>
+      <div class="fc"><label>Localidad</label><input id="conc-edit-localidad" placeholder="Córdoba"></div>
+      <div class="fc"><label>Provincia</label><input id="conc-edit-provincia" placeholder="Córdoba"></div>
+    </div>
+    <div class="mfoot">
+      <button class="btn btn-s" onclick="closeConcEdit()">Cancelar</button>
+      <button class="btn btn-p" onclick="saveConcEdit()">💾 Guardar</button>
     </div>
   </div>
 </div>
