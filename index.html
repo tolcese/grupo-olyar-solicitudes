@@ -783,13 +783,32 @@ pre{background:#0f172a;color:#7dd3fc;padding:18px;font-family:'JetBrains Mono',m
 
       <!-- TAB LIQUIDACIONES -->
       <div id="cont-tab-liquidaciones">
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap">
-          <div class="searchbox" style="min-width:240px">
-            <span style="color:var(--muted)">🔍</span>
-            <input id="cont-srch" placeholder="Buscar cliente, banco, DNI..." oninput="renderContabilidad()">
+
+        <!-- FILTROS -->
+        <div class="card" style="margin-bottom:16px;padding:16px 20px">
+          <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+            <div style="display:flex;align-items:center;gap:8px">
+              <span style="font-size:12px;font-weight:600;color:var(--muted)">DESDE</span>
+              <input type="date" id="cont-f-desde" onchange="renderContabilidad()" style="font-size:12px;padding:6px 10px;border:1.5px solid var(--line);border-radius:8px">
+            </div>
+            <div style="display:flex;align-items:center;gap:8px">
+              <span style="font-size:12px;font-weight:600;color:var(--muted)">HASTA</span>
+              <input type="date" id="cont-f-hasta" onchange="renderContabilidad()" style="font-size:12px;padding:6px 10px;border:1.5px solid var(--line);border-radius:8px">
+            </div>
+            <div class="searchbox" style="min-width:200px">
+              <span style="color:var(--muted)">🔍</span>
+              <input id="cont-srch" placeholder="Buscar cliente, banco..." oninput="renderContabilidad()">
+            </div>
+            <button class="btn btn-s" onclick="limpiarFiltrosCont()">✕ Limpiar</button>
+            <button class="btn btn-s" onclick="recargarLiquidaciones()">🔄 Actualizar</button>
+            <div id="cont-count" style="font-size:12px;color:var(--muted)">—</div>
           </div>
-          <button class="btn btn-s" onclick="recargarLiquidaciones()">🔄 Actualizar</button>
-          <div id="cont-count" style="font-size:12px;color:var(--muted)">—</div>
+        </div>
+
+        <!-- PANEL TOTALES -->
+        <div id="cont-totales" class="card" style="margin-bottom:16px;padding:16px 20px;display:none">
+          <div style="font-size:12px;font-weight:700;color:var(--ink2);margin-bottom:12px;text-transform:uppercase;letter-spacing:.05em">📊 Totales del período filtrado</div>
+          <div id="cont-totales-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px"></div>
         </div>
         <div style="overflow-x:auto;border-radius:12px;border:1.5px solid var(--line)">
           <div class="cont-scroll-x" id="cont-scroll">
@@ -2251,12 +2270,24 @@ async function loadContabilidad() {
   } catch(e) {}
 }
 
+function limpiarFiltrosCont() {
+  document.getElementById('cont-f-desde').value = '';
+  document.getElementById('cont-f-hasta').value = '';
+  document.getElementById('cont-srch').value = '';
+  renderContabilidad();
+}
+
 function renderContabilidad() {
-  const q = (document.getElementById('cont-srch')?.value || '').toLowerCase();
+  const q     = (document.getElementById('cont-srch')?.value || '').toLowerCase();
+  const desde = document.getElementById('cont-f-desde')?.value || '';
+  const hasta = document.getElementById('cont-f-hasta')?.value || '';
+
   let data = RECORDS.filter(r => (r.estado||'').toUpperCase() === 'AVANZA');
   if (q) data = data.filter(r =>
     [r.nombrecliente, r.banco, r.dni, r.concesionaria, r.provincia, r.localidad].some(v => (v||'').toLowerCase().includes(q))
   );
+  if (desde) data = data.filter(r => r.fecha && r.fecha >= desde);
+  if (hasta) data = data.filter(r => r.fecha && r.fecha <= hasta);
 
   const tbody = document.getElementById('cont-tbody');
   const empty = document.getElementById('cont-empty');
@@ -2264,6 +2295,8 @@ function renderContabilidad() {
   const isAdmin = ME?.rol === 'admin';
 
   count.textContent = data.length + ' registro' + (data.length !== 1 ? 's' : '');
+
+  renderTotalesCont(data);
 
   if (!data.length) {
     tbody.innerHTML = '';
@@ -2324,6 +2357,42 @@ function renderContabilidad() {
   }).join('');
 
   setTimeout(initContMirror, 50);
+}
+
+function renderTotalesCont(data) {
+  const panel = document.getElementById('cont-totales');
+  const grid  = document.getElementById('cont-totales-grid');
+  if (!panel || !grid) return;
+  if (!data.length) { panel.style.display = 'none'; return; }
+
+  const sum  = key => data.reduce((acc, r) => acc + (parseFloat(String((CONT_DATA[r.id]||{})[key]||'0').replace(/[$,]/g,'')) || 0), 0);
+  const sumR = key => data.reduce((acc, r) => acc + (parseFloat(String(r[key]||'0').replace(/[$,]/g,'')) || 0), 0);
+  const fmt  = v => '$' + Math.round(v).toLocaleString('es-AR');
+  const countPagado   = data.filter(r => (CONT_DATA[r.id]||{}).pagado).length;
+  const countPagoGest = data.filter(r => (CONT_DATA[r.id]||{}).pagoGest).length;
+
+  const items = [
+    { label:'Imp. Solicitado',    value: fmt(sumR('importe')) },
+    { label:'A liquidar agencia', value: fmt(sum('aLiquidar')) },
+    { label:'1,2 Imp. Crédito',   value: fmt(sum('impCredito')) },
+    { label:'Gastos Gestoría',    value: fmt(sum('gastosGestoria')) },
+    { label:'Comisión LUKAYA',    value: fmt(sum('comLukaya')) },
+    { label:'Com. Comercial',     value: fmt(sum('comComercial')) },
+    { label:'Com. Operativo',     value: fmt(sum('comOperativo')) },
+    { label:'Com. Gestor',        value: fmt(sum('comGestora')) },
+    { label:'Retrib. Banco',      value: fmt(sum('retribBanco')) },
+    { label:'Ganancia LUKAYA',    value: fmt(sum('ganancia')), highlight: true },
+    { label:'Pagados',            value: countPagado + ' / ' + data.length },
+    { label:'Pago com. gest.',    value: countPagoGest + ' / ' + data.length },
+  ];
+
+  grid.innerHTML = items.map(item => `
+    <div style="background:var(--surface);border-radius:8px;padding:10px 12px;border:1px solid var(--line)${item.highlight?';border-color:var(--green)':''}">
+      <div style="font-size:10px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">${item.label}</div>
+      <div style="font-size:14px;font-weight:700;color:${item.highlight?'var(--green)':'var(--ink)'};font-family:monospace">${item.value}</div>
+    </div>`).join('');
+
+  panel.style.display = '';
 }
 
 function editCont(id) {
