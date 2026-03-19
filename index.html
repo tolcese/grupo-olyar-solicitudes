@@ -2057,6 +2057,7 @@ async function toggleMantenimiento(activar) {
   } catch(e) { toast('Error: ' + e.message, 'er'); }
 }
 
+
 // ══════════════════════════════════════════════
 // CONCESIONARIAS
 // ══════════════════════════════════════════════
@@ -4301,6 +4302,9 @@ function renderReportes() {
     <button class="sb-item" onclick="closeSidebar();openPrendas()">
       <span class="sb-icon">📌</span> Prendas
     </button>
+    <button class="sb-item" onclick="closeSidebar();toast('Sistema de créditos — próximamente','in')">
+      <span class="sb-icon">💳</span> Sistema de créditos
+    </button>
     <button class="sb-item" onclick="closeSidebar();openPrendasEntregadas()">
       <span class="sb-icon">✅</span> Prendas entregadas
     </button>
@@ -4728,6 +4732,7 @@ function renderReportes() {
     </div>
   </div>
 </div>
+
 
 <!-- MODAL CONCESIONARIAS -->
 <div class="conc-overlay" id="conc-overlay" onclick="if(event.target===this)closeConcesionarias()">
