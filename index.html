@@ -2106,7 +2106,8 @@ function renderConcesionarias(lista) {
         <div class="conc-name">${c.nombre||'—'}</div>
         <div class="conc-sub">${[c.localidad, c.provincia].filter(Boolean).join(', ')||'Sin datos'} ${c.cuit ? '· CUIT: '+c.cuit : ''}</div>
       </div>
-      <div style="display:flex;gap:5px;flex-shrink:0" onclick="event.stopPropagation()">
+      <div style="display:flex;gap:5px;flex-shrink:0;align-items:center" onclick="event.stopPropagation()">
+        ${(c.direccion||c.localidad||c.provincia) ? `<a href="https://www.google.com/maps/search/${encodeURIComponent([c.direccion,c.localidad,c.provincia].filter(Boolean).join(', '))}" target="_blank" class="ibtn" title="Ver en Google Maps" style="text-decoration:none">📍</a>` : ''}
         <button class="ibtn" onclick="editConc('${(c.nombre||'').replace(/'/g,"\\'")}')">✏️</button>
         ${isAdmin ? `<button class="ibtn del" onclick="delConc('${(c.nombre||'').replace(/'/g,"\\'")}')">🗑️</button>` : ''}
         ${isAdmin ? `<button class="ibtn" onclick="verHistorialConc('${(c.nombre||'').replace(/'/g,"\\'")}')">🕐</button>` : ''}
