@@ -2132,6 +2132,12 @@ function openConcPanel(nombre) {
       <div class="prow"><span class="pl">Dirección</span><span class="pv">${val(c.direccion)}</span></div>
       <div class="prow"><span class="pl">Localidad</span><span class="pv">${val(c.localidad)}</span></div>
       <div class="prow"><span class="pl">Provincia</span><span class="pv">${val(c.provincia)}</span></div>
+      ${(c.direccion||c.localidad||c.provincia) ? `
+      <div style="margin-top:10px">
+        <a href="https://www.google.com/maps/search/${encodeURIComponent([c.direccion,c.localidad,c.provincia].filter(Boolean).join(', '))}" target="_blank" style="display:inline-flex;align-items:center;gap:6px;background:#4285F4;color:#fff;padding:7px 14px;border-radius:8px;font-size:12px;font-weight:600;text-decoration:none">
+          📍 Ver en Google Maps
+        </a>
+      </div>` : ''}
     </div>
   `;
   // Botones
