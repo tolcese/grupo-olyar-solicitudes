@@ -778,7 +778,8 @@ pre{background:#0f172a;color:#7dd3fc;padding:18px;font-family:'JetBrains Mono',m
       <!-- TABS -->
       <div style="display:flex;gap:4px;margin-bottom:20px;border-bottom:2px solid var(--line);padding-bottom:0">
         <button id="cont-tab-liq" onclick="showContTab('liquidaciones')" style="padding:10px 22px;border:none;border-bottom:3px solid var(--blue);background:none;cursor:pointer;font-size:13px;font-weight:700;color:var(--blue);margin-bottom:-2px">💰 Liquidaciones</button>
-        <button id="cont-tab-coef" onclick="showContTab('coeficientes')" style="padding:10px 22px;border:none;border-bottom:3px solid transparent;background:none;cursor:pointer;font-size:13px;font-weight:600;color:var(--muted);margin-bottom:-2px">📊 Cambio de Coeficientes</button>
+        <button id="cont-tab-tot" onclick="showContTab('totales')" style="padding:10px 22px;border:none;border-bottom:3px solid transparent;background:none;cursor:pointer;font-size:13px;font-weight:600;color:var(--muted);margin-bottom:-2px">📊 Totales</button>
+        <button id="cont-tab-coef" onclick="showContTab('coeficientes')" style="padding:10px 22px;border:none;border-bottom:3px solid transparent;background:none;cursor:pointer;font-size:13px;font-weight:600;color:var(--muted);margin-bottom:-2px">⚙️ Cambio de Coeficientes</button>
       </div>
 
       <!-- TAB LIQUIDACIONES -->
@@ -805,11 +806,7 @@ pre{background:#0f172a;color:#7dd3fc;padding:18px;font-family:'JetBrains Mono',m
           </div>
         </div>
 
-        <!-- PANEL TOTALES -->
-        <div id="cont-totales" class="card" style="margin-bottom:16px;padding:16px 20px;display:none">
-          <div style="font-size:12px;font-weight:700;color:var(--ink2);margin-bottom:12px;text-transform:uppercase;letter-spacing:.05em">📊 Totales del período filtrado</div>
-          <div id="cont-totales-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px"></div>
-        </div>
+        <!-- PANEL TOTALES --> 
         <div style="overflow-x:auto;border-radius:12px;border:1.5px solid var(--line)">
           <div class="cont-scroll-x" id="cont-scroll">
             <table class="cont-table">
@@ -862,6 +859,29 @@ pre{background:#0f172a;color:#7dd3fc;padding:18px;font-family:'JetBrains Mono',m
         <div class="cont-scroll-mirror" id="cont-mirror" style="margin-top:4px">
           <div class="cont-scroll-mirror-inner" id="cont-mirror-inner"></div>
         </div>
+      </div>
+
+      <!-- TAB TOTALES -->
+      <div id="cont-tab-totales" style="display:none">
+        <div class="card" style="margin-bottom:16px;padding:16px 20px">
+          <div style="font-size:12px;font-weight:700;color:var(--ink2);margin-bottom:12px">Filtrá por período para ver los totales</div>
+          <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+            <div style="display:flex;align-items:center;gap:8px">
+              <span style="font-size:12px;font-weight:600;color:var(--muted)">DESDE</span>
+              <input type="date" id="tot-f-desde" onchange="renderTotalesTab()" style="font-size:12px;padding:6px 10px;border:1.5px solid var(--line);border-radius:8px">
+            </div>
+            <div style="display:flex;align-items:center;gap:8px">
+              <span style="font-size:12px;font-weight:600;color:var(--muted)">HASTA</span>
+              <input type="date" id="tot-f-hasta" onchange="renderTotalesTab()" style="font-size:12px;padding:6px 10px;border:1.5px solid var(--line);border-radius:8px">
+            </div>
+            <button class="btn btn-s" onclick="document.getElementById('tot-f-desde').value='';document.getElementById('tot-f-hasta').value='';renderTotalesTab()">✕ Limpiar</button>
+          </div>
+        </div>
+        <div id="cont-totales" class="card" style="padding:16px 20px;display:none">
+          <div style="font-size:12px;font-weight:700;color:var(--ink2);margin-bottom:12px;text-transform:uppercase;letter-spacing:.05em">📊 Totales del período</div>
+          <div id="cont-totales-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px"></div>
+        </div>
+        <div id="cont-totales-empty" style="text-align:center;color:var(--muted);padding:40px;font-size:13px">Seleccioná un rango de fechas para ver los totales</div>
       </div>
 
       <!-- TAB COEFICIENTES -->
@@ -2296,8 +2316,6 @@ function renderContabilidad() {
 
   count.textContent = data.length + ' registro' + (data.length !== 1 ? 's' : '');
 
-  renderTotalesCont(data);
-
   if (!data.length) {
     tbody.innerHTML = '';
     empty.style.display = '';
@@ -2459,22 +2477,40 @@ async function recargarLiquidaciones() {
 }
 
 function showContTab(tab) {
-  ['liquidaciones','coeficientes'].forEach(t => {
-    document.getElementById('cont-tab-'+t).style.display = t === tab ? '' : 'none';
-    const btn = document.getElementById('cont-tab-'+t.replace('liquidaciones','liq').replace('coeficientes','coef'));
+  ['liquidaciones','totales','coeficientes'].forEach(t => {
+    const el = document.getElementById('cont-tab-'+t);
+    if (el) el.style.display = t === tab ? '' : 'none';
+    const btnId = t === 'liquidaciones' ? 'liq' : t === 'totales' ? 'tot' : 'coef';
+    const btn = document.getElementById('cont-tab-'+btnId);
     if (btn) {
       btn.style.borderBottomColor = t === tab ? 'var(--blue)' : 'transparent';
       btn.style.color = t === tab ? 'var(--blue)' : 'var(--muted)';
       btn.style.fontWeight = t === tab ? '700' : '600';
     }
   });
-  if (tab === 'liquidaciones') {
-    renderContabilidad();
-    setTimeout(initContMirror, 100);
+  if (tab === 'liquidaciones') { renderContabilidad(); setTimeout(initContMirror, 100); }
+  if (tab === 'totales') renderTotalesTab();
+  if (tab === 'coeficientes') loadCoeficientes();
+}
+
+function renderTotalesTab() {
+  const desde = document.getElementById('tot-f-desde')?.value || '';
+  const hasta = document.getElementById('tot-f-hasta')?.value || '';
+  const panel = document.getElementById('cont-totales');
+  const empty = document.getElementById('cont-totales-empty');
+
+  let data = RECORDS.filter(r => (r.estado||'').toUpperCase() === 'AVANZA');
+  if (desde) data = data.filter(r => r.fecha && r.fecha >= desde);
+  if (hasta) data = data.filter(r => r.fecha && r.fecha <= hasta);
+
+  if (!data.length) {
+    panel.style.display = 'none';
+    empty.style.display = '';
+    return;
   }
-  if (tab === 'coeficientes') {
-    loadCoeficientes();
-  }
+  empty.style.display = 'none';
+  renderTotalesCont(data);
+  panel.style.display = '';
 }
 
 // ══════════════════════════════════════════════
