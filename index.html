@@ -2099,9 +2099,7 @@ async function verHistorialConc(nombre) {
 function closeConcHist() {
   document.getElementById('conc-hist-overlay').classList.remove('open');
   document.getElementById('conc-hist-panel').classList.remove('open');
-  // Reabrir panel principal si hay una concesionaria seleccionada
-  const nombre = document.getElementById('conc-hist-sub').textContent;
-  if (nombre) openConcPanel(nombre);
+  openConcesionarias();
 }
 
 // ══════════════════════════════════════════════
