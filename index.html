@@ -847,9 +847,50 @@ pre{background:#0f172a;color:#7dd3fc;padding:18px;font-family:'JetBrains Mono',m
 
       <!-- TAB COEFICIENTES -->
       <div id="cont-tab-coeficientes" style="display:none">
-        <div class="card" style="max-width:500px">
-          <div class="card-t">📊 Cambio de Coeficientes</div>
-          <div class="card-s">Próximamente podés gestionar los coeficientes desde acá.</div>
+        <div class="card" style="max-width:520px">
+          <div class="card-t">📊 Coeficientes de cálculo</div>
+          <div class="card-s" style="margin-bottom:20px">Estos valores se usan en los cálculos automáticos de Liquidaciones. Cambiá el valor y guardá — los próximos cálculos usarán el nuevo coeficiente.</div>
+          <div id="coef-loading" style="text-align:center;color:var(--muted);padding:20px"><span class="spinner"></span> Cargando...</div>
+          <div id="coef-form" style="display:none">
+            <div class="fg" style="grid-template-columns:1fr 1fr;gap:14px;margin-bottom:20px">
+              <div class="fc">
+                <label>1,2 Imp. Crédito (%)</label>
+                <div style="display:flex;align-items:center;gap:8px">
+                  <input id="coef-imp-credito" type="number" step="0.01" min="0" style="flex:1">
+                  <span style="color:var(--muted);font-size:12px">%</span>
+                </div>
+                <div style="font-size:11px;color:var(--muted);margin-top:4px">Actual: <b id="coef-imp-credito-actual">—</b></div>
+              </div>
+              <div class="fc">
+                <label>Comisión LUKAYA (%)</label>
+                <div style="display:flex;align-items:center;gap:8px">
+                  <input id="coef-com-lukaya" type="number" step="0.001" min="0" style="flex:1">
+                  <span style="color:var(--muted);font-size:12px">%</span>
+                </div>
+                <div style="font-size:11px;color:var(--muted);margin-top:4px">Actual: <b id="coef-com-lukaya-actual">—</b></div>
+              </div>
+              <div class="fc">
+                <label>Comisión gestor (%)</label>
+                <div style="display:flex;align-items:center;gap:8px">
+                  <input id="coef-com-gestor" type="number" step="0.001" min="0" style="flex:1">
+                  <span style="color:var(--muted);font-size:12px">%</span>
+                </div>
+                <div style="font-size:11px;color:var(--muted);margin-top:4px">Actual: <b id="coef-com-gestor-actual">—</b></div>
+              </div>
+              <div class="fc">
+                <label>Retribución banco (%)</label>
+                <div style="display:flex;align-items:center;gap:8px">
+                  <input id="coef-retrib-banco" type="number" step="0.001" min="0" style="flex:1">
+                  <span style="color:var(--muted);font-size:12px">%</span>
+                </div>
+                <div style="font-size:11px;color:var(--muted);margin-top:4px">Actual: <b id="coef-retrib-banco-actual">—</b></div>
+              </div>
+            </div>
+            <div style="display:flex;gap:10px">
+              <button class="btn btn-p" onclick="guardarCoeficientes()">💾 Guardar coeficientes</button>
+              <button class="btn btn-s" onclick="loadCoeficientes()">↺ Restaurar actuales</button>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -1055,7 +1096,7 @@ function doPost(e) { return doGet(e); }`;
 // ══════════════════════════════════════════════
 // CONFIG — URL del Apps Script
 // ══════════════════════════════════════════════
-let WH = 'https://script.google.com/macros/s/AKfycbxRG0LuhUuQgDhfxo5aGB8jt6GZq6F8Rq1Wlm38q2o_wwEWRMXQASUcrtIoaTRv0NLV/exec';
+let WH = 'https://script.google.com/macros/s/AKfycbxP4axr5Th61iX71oC4RdNcgZ4mN7vShNO5WcgreWJ-HdMlQYsyK3j8a_Nt7Twrjn2G/exec';
 const SHEET_NAME = 'Solicitudes';
 
 // ══════════════════════════════════════════════
@@ -1152,6 +1193,10 @@ async function enterApp() {
   // Mostrar app y cargar datos
   document.getElementById('app').style.display = 'block';
   await Promise.all([loadLists(), loadRecords(), loadClientes(), loadContabilidad(), loadConcesionarias()]);
+  // Cargar coeficientes en segundo plano
+  gas({ action: 'getCoeficientes' }).then(res => {
+    if (res?.coeficientes) COEFICIENTES = { ...COEFICIENTES, ...res.coeficientes };
+  }).catch(()=>{});
   loading(false);
   showV('sol');
 }
@@ -2358,29 +2403,83 @@ function showContTab(tab) {
     renderContabilidad();
     setTimeout(initContMirror, 100);
   }
+  if (tab === 'coeficientes') {
+    loadCoeficientes();
+  }
+}
+
+// ══════════════════════════════════════════════
+// COEFICIENTES
+// ══════════════════════════════════════════════
+let COEFICIENTES = {
+  impCredito: 1.2,
+  comLukaya:  3.2,
+  comGestor:  0.5,
+  retribBanco: 4.0
+};
+
+async function loadCoeficientes() {
+  document.getElementById('coef-loading').style.display = '';
+  document.getElementById('coef-form').style.display = 'none';
+  try {
+    const res = await gas({ action: 'getCoeficientes' });
+    if (res.coeficientes) {
+      COEFICIENTES = { ...COEFICIENTES, ...res.coeficientes };
+    }
+  } catch(e) {}
+  // Mostrar valores actuales
+  document.getElementById('coef-imp-credito').value        = COEFICIENTES.impCredito;
+  document.getElementById('coef-com-lukaya').value         = COEFICIENTES.comLukaya;
+  document.getElementById('coef-com-gestor').value         = COEFICIENTES.comGestor;
+  document.getElementById('coef-retrib-banco').value       = COEFICIENTES.retribBanco;
+  document.getElementById('coef-imp-credito-actual').textContent  = COEFICIENTES.impCredito + '%';
+  document.getElementById('coef-com-lukaya-actual').textContent   = COEFICIENTES.comLukaya + '%';
+  document.getElementById('coef-com-gestor-actual').textContent   = COEFICIENTES.comGestor + '%';
+  document.getElementById('coef-retrib-banco-actual').textContent = COEFICIENTES.retribBanco + '%';
+  document.getElementById('coef-loading').style.display = 'none';
+  document.getElementById('coef-form').style.display = '';
+}
+
+async function guardarCoeficientes() {
+  const nuevos = {
+    impCredito:  parseFloat(document.getElementById('coef-imp-credito').value)  || COEFICIENTES.impCredito,
+    comLukaya:   parseFloat(document.getElementById('coef-com-lukaya').value)   || COEFICIENTES.comLukaya,
+    comGestor:   parseFloat(document.getElementById('coef-com-gestor').value)   || COEFICIENTES.comGestor,
+    retribBanco: parseFloat(document.getElementById('coef-retrib-banco').value) || COEFICIENTES.retribBanco,
+  };
+  try {
+    await gas({ action: 'saveCoeficientes', coeficientes: JSON.stringify(nuevos) });
+    COEFICIENTES = nuevos;
+    // Actualizar los "Actual"
+    document.getElementById('coef-imp-credito-actual').textContent  = nuevos.impCredito + '%';
+    document.getElementById('coef-com-lukaya-actual').textContent   = nuevos.comLukaya + '%';
+    document.getElementById('coef-com-gestor-actual').textContent   = nuevos.comGestor + '%';
+    document.getElementById('coef-retrib-banco-actual').textContent = nuevos.retribBanco + '%';
+    toast('Coeficientes guardados ✓', 'ok');
+  } catch(e) { toast('Error: ' + e.message, 'er'); }
 }
 
 function calcContLiquidar() {
   const r        = RECORDS.find(x => x.id === document.getElementById('cont-edit-id').value);
   const importe  = parseFloat(r?.importe||0) || 0;
-  // 1,2 Imp. Crédito = importe * 1.2%
-  const impCredito = Math.round(importe * 1.2 / 100);
+  // 1,2 Imp. Crédito
+  const impCredito = Math.round(importe * COEFICIENTES.impCredito / 100);
   document.getElementById('cont-imp-credito').value = impCredito.toFixed(2);
-  // Comisión LUKAYA = importe * 0.032 - impCredito
-  const comLukaya = Math.round((importe * 0.032) - impCredito);
+  // Comisión LUKAYA
+  const comLukaya = Math.round((importe * COEFICIENTES.comLukaya / 100) - impCredito);
   document.getElementById('cont-com-lukaya').value = comLukaya.toFixed(2);
-  // Comisión gestor = importe * 0.005
-  const comGestora = Math.round(importe * 0.005);
+  // Comisión gestor
+  const comGestora = Math.round(importe * COEFICIENTES.comGestor / 100);
   document.getElementById('cont-com-gestora').value = comGestora.toFixed(2);
-  // Retribución banco = importe * 0.04
-  const retribBanco = Math.round(importe * 0.04);
+  // Retribución banco
+  const retribBanco = Math.round(importe * COEFICIENTES.retribBanco / 100);
   document.getElementById('cont-retrib-banco').value = retribBanco.toFixed(2);
-  // Ganancia LUKAYA = comLukaya - comComercial - comOperativo - comGestora + retribBanco
+  // Ganancia LUKAYA
   const comComercial = parseFloat(document.getElementById('cont-com-comercial').value||0) || 0;
   const comOperativo = parseFloat(document.getElementById('cont-com-operativo').value||0) || 0;
   const ganancia = Math.round(comLukaya - comComercial - comOperativo - comGestora + retribBanco);
   document.getElementById('cont-ganancia').value = ganancia.toFixed(2);
-  // A liquidar agencia = importe - comLukaya - gastosGestoria - impCredito
+  // A liquidar agencia
   const gastosGest = parseFloat(document.getElementById('cont-gastos-gestoria').value||0) || 0;
   const resultado  = Math.round(importe - comLukaya - gastosGest - impCredito);
   document.getElementById('cont-a-liquidar').value = resultado.toFixed(2);
