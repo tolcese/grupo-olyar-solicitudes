@@ -1135,7 +1135,7 @@ function doPost(e) { return doGet(e); }`;
 // ══════════════════════════════════════════════
 // CONFIG — URL del Apps Script
 // ══════════════════════════════════════════════
-let WH = 'https://script.google.com/macros/s/AKfycbxP4axr5Th61iX71oC4RdNcgZ4mN7vShNO5WcgreWJ-HdMlQYsyK3j8a_Nt7Twrjn2G/exec';
+let WH = 'https://script.google.com/macros/s/AKfycbyYf-GcXjIRzfrenyPNqVvl-42RBCKrnEkdxI0TyMx0ZtRkUUO6xptOlQCV14fmtNHW/exec';
 const SHEET_NAME = 'Solicitudes';
 
 // ══════════════════════════════════════════════
@@ -1228,6 +1228,8 @@ async function enterApp() {
   loading(true, 'Cargando...');
   const enMant = await checkMantenimiento();
   if (enMant) { loading(false); return; }
+  // Registrar heartbeat
+  gas({ action: 'heartbeat', usr: ME.usr }).catch(()=>{});
 
   // Mostrar app y cargar datos
   document.getElementById('app').style.display = 'block';
@@ -3374,15 +3376,30 @@ async function delRec(id) {
 async function loadUsers() {
   document.getElementById('user-list').innerHTML='<span class="spinner"></span> Cargando...';
   try {
-    const res = await gas({ action:'getUsers' });
-    const users = res.users || [];
+    const [resUsers, resOnline] = await Promise.all([
+      gas({ action:'getUsers' }),
+      gas({ action:'getOnlineUsers' })
+    ]);
+    const users  = resUsers.users || [];
+    const online = resOnline.online || {};
     document.getElementById('user-list').innerHTML = users.length === 0
       ? '<p style="color:var(--muted);font-size:13px;padding:12px 0">Sin usuarios registrados en Sheets</p>'
-      : users.map((u,i)=>`
+      : users.map((u,i)=>{
+        const isOnline = online[u.usr] === true;
+        return `
         <div class="user-row">
           <div class="u-info">
-            <div class="u-av">${u.nom[0].toUpperCase()}</div>
-            <div><div class="u-name">${u.nom}</div><div class="u-user">@${u.usr}</div></div>
+            <div class="u-av" style="position:relative">
+              ${u.nom[0].toUpperCase()}
+              <span style="position:absolute;bottom:0;right:0;width:10px;height:10px;border-radius:50%;background:${isOnline?'var(--green)':'var(--muted)'};border:2px solid #fff"></span>
+            </div>
+            <div>
+              <div class="u-name">${u.nom}</div>
+              <div class="u-user" style="display:flex;align-items:center;gap:6px">
+                @${u.usr}
+                <span style="font-size:10px;font-weight:600;color:${isOnline?'var(--green)':'var(--muted)'}">${isOnline?'● Conectado':'○ Desconectado'}</span>
+              </div>
+            </div>
           </div>
           <div style="display:flex;align-items:center;gap:10px">
             <select class="fsel" style="font-size:12px;padding:4px 8px" onchange="cambiarRol('${u.usr}',this.value)">
@@ -3391,7 +3408,8 @@ async function loadUsers() {
             </select>
             <button class="btn btn-d" style="font-size:12px;padding:5px 10px" onclick="delUser('${u.usr}')">Eliminar</button>
           </div>
-        </div>`).join('');
+        </div>`;
+      }).join('');
   } catch(e) { document.getElementById('user-list').innerHTML='<p style="color:var(--red)">Error: '+e.message+'</p>'; }
 }
 
@@ -4004,8 +4022,15 @@ setInterval(() => {
   if (ME) {
     loadRecords();
     checkMantenimiento();
+    // Heartbeat cada ciclo
+    gas({ action: 'heartbeat', usr: ME.usr }).catch(()=>{});
   }
 }, 60000);
+
+// Heartbeat inmediato al cargar
+setTimeout(() => {
+  if (ME) gas({ action: 'heartbeat', usr: ME.usr }).catch(()=>{});
+}, 5000);
 </script>
 
 <!-- SLIDE PANEL GESTORES -->
