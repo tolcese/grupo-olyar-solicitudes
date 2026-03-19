@@ -36,6 +36,11 @@ body{font-family:'Inter',sans-serif;background:#fff;color:var(--ink);font-size:1
 .conc-panel-overlay{position:fixed;inset:0;z-index:600;display:flex;justify-content:flex-end;pointer-events:none;}
 .conc-panel-overlay.open{pointer-events:all;}
 .conc-side-panel{width:340px;max-width:95vw;background:#fff;height:100%;box-shadow:-4px 0 24px rgba(15,23,42,.12);transform:translateX(100%);transition:transform .28s cubic-bezier(.34,1.56,.64,1);display:flex;flex-direction:column;overflow-y:auto;}
+.conc-side-panel.open{transform:translateX(0);}
+.conc-hist-overlay{position:fixed;inset:0;z-index:650;display:flex;justify-content:flex-end;pointer-events:none;}
+.conc-hist-overlay.open{pointer-events:all;}
+.conc-hist-panel{width:360px;max-width:95vw;background:#fff;height:100%;box-shadow:-4px 0 24px rgba(15,23,42,.12);transform:translateX(100%);transition:transform .28s cubic-bezier(.34,1.56,.64,1);display:flex;flex-direction:column;overflow-y:auto;}
+.conc-hist-panel.open{transform:translateX(0);}
 .cont-overlay{position:fixed;inset:0;background:rgba(15,23,42,.55);backdrop-filter:blur(4px);z-index:500;display:flex;align-items:center;justify-content:center;padding:16px;opacity:0;pointer-events:none;transition:opacity .2s;}
 .cont-overlay.open{opacity:1;pointer-events:all;}
 .cont-modal{background:#fff;border-radius:18px;width:100%;max-width:1400px;max-height:92vh;display:flex;flex-direction:column;box-shadow:var(--sh-lg);transform:scale(.96) translateY(10px);transition:transform .25s cubic-bezier(.34,1.56,.64,1);}
@@ -2059,13 +2064,44 @@ async function delConc(nombre) {
 }
 
 async function verHistorialConc(nombre) {
+  document.getElementById('conc-hist-titulo').textContent = 'Historial';
+  document.getElementById('conc-hist-sub').textContent = nombre;
+  document.getElementById('conc-hist-body').innerHTML = '<div style="text-align:center;color:var(--muted);padding:30px"><span class="spinner"></span> Cargando...</div>';
+  document.getElementById('conc-hist-overlay').classList.add('open');
+  document.getElementById('conc-hist-panel').classList.add('open');
+  // Cerrar panel principal
+  document.getElementById('conc-panel-overlay').classList.remove('open');
+  document.getElementById('conc-side-panel').style.transform = 'translateX(100%)';
   try {
     const res = await gas({ action: 'getHistorialConc', nombre });
     const hist = res.historial || [];
-    if (!hist.length) { toast('Sin historial de cambios', 'in'); return; }
-    const msg = hist.map(h => `${h.fecha} · ${h.usuario} · ${h.campo}: "${h.anterior}" → "${h.nuevo}"`).join('\n');
-    alert(`Historial de ${nombre}:\n\n${msg}`);
-  } catch(e) { toast('Error: ' + e.message, 'er'); }
+    const body = document.getElementById('conc-hist-body');
+    if (!hist.length) {
+      body.innerHTML = '<div style="text-align:center;color:var(--muted);padding:30px;font-size:13px">Sin historial de cambios.</div>';
+      return;
+    }
+    body.innerHTML = `<div class="panel-section">
+      <div class="panel-section-t">Cambios registrados</div>
+      ${hist.map(h => `
+        <div style="padding:10px 0;border-bottom:1px solid var(--line)">
+          <div style="font-size:10.5px;color:var(--muted);margin-bottom:4px">${h.fecha} · <b>${h.usuario}</b></div>
+          <div style="font-size:12.5px"><span style="color:var(--ink2);font-weight:600">${h.campo}:</span> 
+            <span style="color:var(--red)">"${h.anterior||'—'}"</span> → 
+            <span style="color:var(--green)">"${h.nuevo||'—'}"</span>
+          </div>
+        </div>`).join('')}
+    </div>`;
+  } catch(e) {
+    document.getElementById('conc-hist-body').innerHTML = '<div style="color:var(--red);padding:20px">Error cargando historial.</div>';
+  }
+}
+
+function closeConcHist() {
+  document.getElementById('conc-hist-overlay').classList.remove('open');
+  document.getElementById('conc-hist-panel').classList.remove('open');
+  // Reabrir panel principal si hay una concesionaria seleccionada
+  const nombre = document.getElementById('conc-hist-sub').textContent;
+  if (nombre) openConcPanel(nombre);
 }
 
 // ══════════════════════════════════════════════
@@ -4489,6 +4525,22 @@ function renderReportes() {
       <button class="btn btn-s" onclick="closeConcEdit()">Cancelar</button>
       <button class="btn btn-p" onclick="saveConcEdit()">💾 Guardar</button>
     </div>
+  </div>
+</div>
+
+<!-- PANEL HISTORIAL CONCESIONARIAS -->
+<div class="conc-hist-overlay" id="conc-hist-overlay">
+  <div class="conc-hist-panel" id="conc-hist-panel">
+    <div class="panel-head" style="padding:20px 20px 14px">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px">
+        <div>
+          <div class="panel-name" style="font-size:15px" id="conc-hist-titulo">Historial</div>
+          <div class="panel-sub" id="conc-hist-sub">—</div>
+        </div>
+        <button class="xbtn" onclick="closeConcHist()">×</button>
+      </div>
+    </div>
+    <div class="panel-body" id="conc-hist-body"></div>
   </div>
 </div>
 
