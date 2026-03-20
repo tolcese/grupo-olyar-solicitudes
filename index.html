@@ -809,31 +809,9 @@ pre{background:#0f172a;color:#7dd3fc;padding:18px;font-family:'JetBrains Mono',m
             <span style="color:var(--muted)">🔍</span>
             <input id="cuota-srch" placeholder="Buscar cliente..." oninput="renderCuotas()">
           </div>
-          <select id="cuota-filtro-estado" onchange="renderCuotas()" style="font-size:12px;padding:6px 10px;border:1.5px solid var(--line);border-radius:8px">
-            <option value="">Todos los estados</option>
-            <option value="Pendiente">Pendiente</option>
-            <option value="Pagada">Pagada</option>
-            <option value="Vencida">Vencida</option>
-          </select>
           <div id="cuota-count" style="font-size:12px;color:var(--muted)">—</div>
         </div>
-        <div style="overflow-x:auto;border-radius:12px;border:1.5px solid var(--line)">
-          <table class="cont-table" id="cuotas-table" style="min-width:700px">
-            <thead>
-              <tr>
-                <th>Cliente</th>
-                <th>DNI</th>
-                <th>Banco</th>
-                <th>Cuota N°</th>
-                <th>Vencimiento</th>
-                <th>Monto estimado</th>
-                <th>Estado</th>
-                <th>Acciones</th>
-              </tr>
-            </thead>
-            <tbody id="cuotas-tbody"></tbody>
-          </table>
-        </div>
+        <div id="cuotas-lista" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px"></div>
         <div id="cuotas-empty" style="display:none;text-align:center;padding:60px 20px;color:var(--muted)">
           <div style="font-size:48px;margin-bottom:12px">📅</div>
           <div style="font-size:15px;font-weight:700;color:var(--ink2)">Sin cuotas</div>
@@ -2180,9 +2158,10 @@ function renderCreditos() {
 
   list.innerHTML = data.map(c => {
     const cant   = parseInt(c.cantCuotas) || 0;
-    const inicio = new Date(c.fechaInicio + 'T00:00:00');
+    const partes = (c.fechaInicio||'').split('-');
+    const inicio = partes.length===3 ? new Date(parseInt(partes[0]), parseInt(partes[1])-1, parseInt(partes[2])) : new Date();
     const meses  = (hoy.getFullYear() - inicio.getFullYear()) * 12 + (hoy.getMonth() - inicio.getMonth());
-    const cuotaActual = Math.min(Math.max(meses + 1, 1), cant);
+    const cuotaActual = Math.min(Math.max(meses + 1, 1), cant||1);
     const pct = cant > 0 ? Math.round(cuotaActual / cant * 100) : 0;
     return `
     <div style="background:#fff;border:1.5px solid var(--line);border-radius:14px;padding:16px;cursor:pointer;transition:all .12s" onmouseenter="this.style.borderColor='var(--blue)'" onmouseleave="this.style.borderColor='var(--line)'" onclick="openCredPanel('${c.id}')">
@@ -2206,45 +2185,61 @@ function renderCreditos() {
 }
 
 function renderCuotas() {
-  const q       = (document.getElementById('cuota-srch')?.value||'').toLowerCase();
-  const filtEst = document.getElementById('cuota-filtro-estado')?.value||'';
-  const tbody   = document.getElementById('cuotas-tbody');
-  const empty   = document.getElementById('cuotas-empty');
-  const count   = document.getElementById('cuota-count');
+  const q     = (document.getElementById('cuota-srch')?.value||'').toLowerCase();
+  const lista = document.getElementById('cuotas-lista');
+  const empty = document.getElementById('cuotas-empty');
+  const count = document.getElementById('cuota-count');
+  const hoy   = new Date();
 
-  let data = [...CUOTAS_CACHE];
-  if (q)       data = data.filter(c => {
-    const cr = CREDITOS_CACHE.find(x => x.id === c.creditoId) || {};
-    return [(cr.cliente||''), (cr.dni||'')].some(v => v.toLowerCase().includes(q));
-  });
-  if (filtEst) data = data.filter(c => c.estado === filtEst);
+  let data = CREDITOS_CACHE;
+  if (q) data = data.filter(c => [(c.cliente||''), (c.dni||'')].some(v => v.toLowerCase().includes(q)));
 
-  // Actualizar estado vencidas automáticamente
-  const hoy = new Date().toISOString().slice(0,10);
-  data.forEach(c => { if (c.estado === 'Pendiente' && c.vencimiento < hoy) c.estado = 'Vencida'; });
+  count.textContent = data.length + ' crédito' + (data.length !== 1 ? 's' : '');
 
-  count.textContent = data.length + ' cuota' + (data.length !== 1 ? 's' : '');
-  if (!data.length) { tbody.innerHTML = ''; empty.style.display = ''; return; }
+  if (!data.length) { lista.innerHTML = ''; empty.style.display = ''; return; }
   empty.style.display = 'none';
 
-  const fmtD = v => v ? v.split('-').reverse().join('/') : '—';
   const mon  = v => v ? '$'+Number(v).toLocaleString('es-AR') : '—';
-  const estadoColor = { 'Pendiente':'var(--amber)', 'Pagada':'var(--green)', 'Vencida':'var(--red)' };
+  const fmtD = v => v ? v.split('-').reverse().join('/') : '—';
+  const estadoColor = { 'Activo':'var(--green)', 'En mora':'var(--red)', 'Cancelado':'var(--muted)' };
 
-  tbody.innerHTML = data.map(c => {
-    const cr = CREDITOS_CACHE.find(x => x.id === c.creditoId) || {};
-    return `<tr>
-      <td style="font-weight:600">${cr.cliente||'—'}</td>
-      <td style="font-family:monospace">${cr.dni||'—'}</td>
-      <td>${cr.banco||'—'}</td>
-      <td style="text-align:center;font-weight:700">${c.nro}</td>
-      <td style="white-space:nowrap">${fmtD(c.vencimiento)}</td>
-      <td style="font-family:monospace">${mon(c.monto)}</td>
-      <td><span style="font-size:11px;font-weight:700;color:${estadoColor[c.estado]||'var(--muted)'}">${c.estado||'—'}</span></td>
-      <td>
-        ${c.estado !== 'Pagada' ? `<button class="btn btn-s" style="font-size:11px;padding:4px 8px" onclick="marcarPagada('${c.id}','${c.creditoId}')">✓ Pagada</button>` : ''}
-      </td>
-    </tr>`;
+  lista.innerHTML = data.map(c => {
+    const cant  = parseInt(c.cantCuotas) || 0;
+    // Calcular cuota actual desde fecha de inicio
+    let cuotaActual = 1;
+    if (c.fechaInicio) {
+      const partes = c.fechaInicio.split('-');
+      const inicio = new Date(parseInt(partes[0]), parseInt(partes[1])-1, parseInt(partes[2]));
+      const meses  = (hoy.getFullYear() - inicio.getFullYear()) * 12 + (hoy.getMonth() - inicio.getMonth());
+      cuotaActual  = Math.min(Math.max(meses + 1, 1), cant);
+    }
+    const pct = cant > 0 ? Math.round(cuotaActual / cant * 100) : 0;
+    // Próximo vencimiento
+    let proxVenc = '—';
+    if (c.fechaInicio && cuotaActual <= cant) {
+      const partes = c.fechaInicio.split('-');
+      const proxFecha = new Date(parseInt(partes[0]), parseInt(partes[1])-1 + (cuotaActual - 1), parseInt(partes[2]));
+      proxVenc = proxFecha.toLocaleDateString('es-AR', {day:'2-digit',month:'2-digit',year:'numeric'});
+    }
+
+    return `
+    <div style="background:#fff;border:1.5px solid var(--line);border-radius:14px;padding:16px;cursor:pointer;transition:all .12s" onmouseenter="this.style.borderColor='var(--blue)'" onmouseleave="this.style.borderColor='var(--line)'" onclick="openCredPanel('${c.id}')">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px">
+        <div>
+          <div style="font-size:13.5px;font-weight:700;color:var(--ink)">${c.cliente||'—'}</div>
+          <div style="font-size:11.5px;color:var(--muted);margin-top:2px">${c.banco||'—'} · ${mon(c.montoCuota)} / cuota</div>
+        </div>
+        <span style="font-size:11px;font-weight:700;color:${estadoColor[c.estado]||'var(--muted)'};background:${estadoColor[c.estado]||'var(--muted)'}22;padding:3px 8px;border-radius:20px">${c.estado||'—'}</span>
+      </div>
+      <div style="text-align:center;padding:8px 0 12px">
+        <div style="font-size:32px;font-weight:800;color:var(--blue)">${cuotaActual} <span style="font-size:16px;color:var(--muted);font-weight:600">de ${cant}</span></div>
+        <div style="font-size:11px;color:var(--muted);margin-top:2px">Venc. estimado: ${proxVenc}</div>
+      </div>
+      <div style="background:var(--line);border-radius:10px;height:6px;overflow:hidden">
+        <div style="background:var(--blue);height:100%;width:${pct}%;border-radius:10px"></div>
+      </div>
+      <div style="font-size:10.5px;color:var(--muted);margin-top:4px;text-align:right">${pct}% transcurrido</div>
+    </div>`;
   }).join('');
 }
 
@@ -2402,12 +2397,12 @@ function openCredPanel(id) {
       <div class="panel-section-t">Estado de cuotas</div>
       ${(() => {
         const hoy = new Date();
-        const inicio = new Date(c.fechaInicio + 'T00:00:00');
         const cant = parseInt(c.cantCuotas) || 0;
-        // Calcular cuota actual según meses transcurridos desde inicio
+        const partesP = (c.fechaInicio||'').split('-');
+        const inicio = partesP.length===3 ? new Date(parseInt(partesP[0]), parseInt(partesP[1])-1, parseInt(partesP[2])) : new Date();
         const mesesTranscurridos = (hoy.getFullYear() - inicio.getFullYear()) * 12 + (hoy.getMonth() - inicio.getMonth());
-        const cuotaActual = Math.min(Math.max(mesesTranscurridos + 1, 1), cant);
-        const pct = Math.round(cuotaActual / cant * 100);
+        const cuotaActual = Math.min(Math.max(mesesTranscurridos + 1, 1), cant||1);
+        const pct = cant > 0 ? Math.round(cuotaActual / cant * 100) : 0;
         return `
           <div style="text-align:center;padding:10px 0 16px">
             <div style="font-size:36px;font-weight:800;color:var(--blue)">${cuotaActual} <span style="font-size:18px;color:var(--muted)">de ${cant}</span></div>
