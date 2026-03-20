@@ -3891,7 +3891,7 @@ async function loadUsers() {
       ? '<p style="color:var(--muted);font-size:13px;padding:12px 0">Sin usuarios registrados en Sheets</p>'
       : users.map((u,i)=>{
         const isOnline = online[u.usr] === true;
-        const cantSolicitudes = RECORDS.filter(r => (r.usuario||'').toLowerCase() === u.usr.toLowerCase()).length;
+        const cantSolicitudes = RECORDS.filter(r => (r.usuario||'').toLowerCase() === u.nom.toLowerCase()).length;
         return `
         <div class="user-row">
           <div class="u-info">
