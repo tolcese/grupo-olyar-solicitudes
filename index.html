@@ -2448,6 +2448,7 @@ function openCredPanel(id) {
   `;
 
   document.getElementById('cred-panel-overlay').classList.add('open');
+  document.getElementById('cred-panel-overlay').style.pointerEvents = 'all';
   document.getElementById('cred-side-panel').style.transform = 'translateX(0)';
 }
 
@@ -2520,6 +2521,7 @@ function enviarRecordatorioWA(id) {
 
 function closeCredPanel() {
   document.getElementById('cred-panel-overlay').classList.remove('open');
+  document.getElementById('cred-panel-overlay').style.pointerEvents = 'none';
   document.getElementById('cred-side-panel').style.transform = 'translateX(100%)';
 }
 
@@ -5290,7 +5292,7 @@ function renderReportes() {
 </div>
 
 <!-- PANEL LATERAL CRÉDITO -->
-<div style="position:fixed;inset:0;z-index:550;display:flex;justify-content:flex-end;pointer-events:none;transition:opacity .2s" id="cred-panel-overlay">
+<div style="position:fixed;inset:0;z-index:550;display:flex;justify-content:flex-end;pointer-events:none;transition:opacity .2s" id="cred-panel-overlay" onclick="if(event.target===this)closeCredPanel()">
   <div style="width:360px;max-width:95vw;background:#fff;height:100%;box-shadow:-4px 0 24px rgba(15,23,42,.12);transform:translateX(100%);transition:transform .28s cubic-bezier(.34,1.56,.64,1);display:flex;flex-direction:column;overflow-y:auto;pointer-events:all" id="cred-side-panel">
     <div class="panel-head" style="padding:20px 20px 14px">
       <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px">
