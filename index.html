@@ -2512,7 +2512,7 @@ function enviarRecordatorioWA(id) {
   const vehiculo = sol.descripcion || sol.marca || 'su vehículo';
 
   // Armar mensaje
-  const msg = `${saludo}, ${c.cliente||''}. Le recordamos que el día ${fmtFecha(fechaRecordatorio)}, es el vencimiento de la cuota del vehículo ${vehiculo} gestionado con la entidad bancaria ${c.banco||''}. Recorda que abonar en tiempo evita recargos y mora en su línea de crédito. ¡Que tengas un excelente día!`;
+  const msg = `${saludo}, ${c.cliente||''}. Le recordamos que el día ${fmtFecha(fechaVenc)}, es el vencimiento de la cuota del vehículo ${vehiculo} gestionado con la entidad bancaria ${c.banco||''}. Recorda que abonar en tiempo evita recargos y mora en su línea de crédito. ¡Que tengas un excelente día!`;
 
   const url = `https://wa.me/${tel}?text=${encodeURIComponent(msg)}`;
   window.open(url, '_blank');
