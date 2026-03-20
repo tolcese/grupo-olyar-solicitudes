@@ -3889,6 +3889,7 @@ async function loadUsers() {
       ? '<p style="color:var(--muted);font-size:13px;padding:12px 0">Sin usuarios registrados en Sheets</p>'
       : users.map((u,i)=>{
         const isOnline = online[u.usr] === true;
+        const cantSolicitudes = RECORDS.filter(r => (r.usuario||'').toLowerCase() === u.usr.toLowerCase()).length;
         return `
         <div class="user-row">
           <div class="u-info">
@@ -3902,6 +3903,7 @@ async function loadUsers() {
                 @${u.usr}
                 <span style="font-size:10px;font-weight:600;color:${isOnline?'var(--green)':'var(--muted)'}">${isOnline?'● Conectado':'○ Desconectado'}</span>
               </div>
+              <div style="font-size:11px;color:var(--muted);margin-top:2px">📋 <b style="color:var(--ink2)">${cantSolicitudes}</b> solicitud${cantSolicitudes !== 1 ? 'es' : ''} cargada${cantSolicitudes !== 1 ? 's' : ''}</div>
             </div>
           </div>
           <div style="display:flex;align-items:center;gap:10px">
