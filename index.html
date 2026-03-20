@@ -2380,6 +2380,27 @@ function openCredPanel(id) {
 
   document.getElementById('cred-panel-nombre').textContent = c.cliente||'—';
   document.getElementById('cred-panel-sub').textContent    = (c.banco||'') + ' · ' + (c.cantCuotas||0) + ' cuotas';
+
+  // Botones en el panel head
+  const panelHead = document.getElementById('cred-side-panel').querySelector('.panel-head');
+  const existing  = panelHead.querySelector('.panel-btns');
+  if (existing) existing.remove();
+  if (isAdmin) {
+    const btns = document.createElement('div');
+    btns.className = 'panel-btns';
+    btns.style.cssText = 'display:flex;gap:8px;margin-top:10px;';
+    btns.innerHTML = `<button class="btn btn-p" style="font-size:12px;padding:6px 12px" onclick="editCredito('${id}')">✏️ Editar</button>`;
+    panelHead.appendChild(btns);
+  }
+
+  // Formatear fecha correctamente (puede venir como string ISO o fecha de Sheets)
+  const fmtFechaInicio = v => {
+    if (!v) return '—';
+    if (typeof v === 'string' && v.includes('-')) return v.split('-').reverse().join('/');
+    if (typeof v === 'string' && v.includes('/')) return v;
+    return v;
+  };
+
   document.getElementById('cred-panel-body').innerHTML = `
     <div class="panel-section">
       <div class="panel-section-t">Datos del crédito</div>
@@ -2389,7 +2410,7 @@ function openCredPanel(id) {
       <div class="prow"><span class="pl">Importe</span><span class="pv mono bold">${mon(c.importe)}</span></div>
       <div class="prow"><span class="pl">Tasa</span><span class="pv">${c.tasa||'—'}</span></div>
       <div class="prow"><span class="pl">Cuota estimada</span><span class="pv mono">${mon(c.montoCuota)}</span></div>
-      <div class="prow"><span class="pl">Inicio</span><span class="pv">${fmtD(c.fechaInicio)}</span></div>
+      <div class="prow"><span class="pl">Inicio</span><span class="pv">${fmtFechaInicio(c.fechaInicio)}</span></div>
       <div class="prow"><span class="pl">Estado</span><span class="pv bold">${c.estado||'—'}</span></div>
       ${c.obs ? `<div class="prow"><span class="pl">Observaciones</span><span class="pv">${c.obs}</span></div>` : ''}
     </div>
@@ -2421,6 +2442,30 @@ function openCredPanel(id) {
 
   document.getElementById('cred-panel-overlay').classList.add('open');
   document.getElementById('cred-side-panel').style.transform = 'translateX(0)';
+}
+
+function editCredito(id) {
+  const c = CREDITOS_CACHE.find(x => x.id === id) || {};
+  // Reusar el modal de nuevo crédito en modo edición
+  document.getElementById('cred-nuevo-id').value = id;
+  document.getElementById('cred-paso1').style.display = 'none';
+  document.getElementById('cred-paso2').style.display = '';
+  document.getElementById('cred-guardar-btn').style.display = '';
+  document.getElementById('cred-guardar-btn').textContent = '💾 Guardar cambios';
+  // Simular solicitud seleccionada
+  CRED_SOL_SEL = RECORDS.find(r => r.id === c.solicitudId) || { importe: c.importe, nombrecliente: c.cliente, dni: c.dni, banco: c.banco, tasa: c.tasa };
+  document.getElementById('cred-sol-info').innerHTML = `
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">
+      <div><span style="color:var(--muted);font-size:10px;font-weight:700;text-transform:uppercase">Cliente</span><br><b>${c.cliente||'—'}</b></div>
+      <div><span style="color:var(--muted);font-size:10px;font-weight:700;text-transform:uppercase">DNI</span><br>${c.dni||'—'}</div>
+      <div><span style="color:var(--muted);font-size:10px;font-weight:700;text-transform:uppercase">Banco</span><br><b>${c.banco||'—'}</b></div>
+    </div>`;
+  document.getElementById('cred-cant-cuotas').value = c.cantCuotas || '';
+  document.getElementById('cred-monto-cuota').value = c.montoCuota || '';
+  document.getElementById('cred-fecha-inicio').value = c.fechaInicio || '';
+  document.getElementById('cred-estado').value = c.estado || 'Activo';
+  document.getElementById('cred-obs').value = c.obs || '';
+  document.getElementById('cred-nuevo-overlay').classList.add('open');
 }
 
 function closeCredPanel() {
