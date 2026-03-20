@@ -773,12 +773,71 @@ pre{background:#0f172a;color:#7dd3fc;padding:18px;font-family:'JetBrains Mono',m
     <!-- SISTEMA DE CRÉDITOS -->
     <div id="v-creditos" style="display:none">
       <div class="ph">
-        <div><div class="ph-t">💳 Sistema de créditos</div><div class="ph-s">Seguimiento de créditos</div></div>
+        <div><div class="ph-t">💳 Sistema de créditos</div><div class="ph-s">Seguimiento de créditos prendarios</div></div>
+        <button class="btn btn-p" onclick="nuevoCredito()">＋ Nuevo crédito</button>
       </div>
-      <div style="text-align:center;padding:80px 20px;color:var(--muted)">
-        <div style="font-size:64px;margin-bottom:20px">🚧</div>
-        <div style="font-size:22px;font-weight:800;color:var(--ink2);margin-bottom:10px">En construcción</div>
-        <div style="font-size:14px;max-width:380px;margin:0 auto;line-height:1.6">Esta sección está siendo desarrollada. Pronto vas a poder gestionar el seguimiento de créditos desde acá.</div>
+
+      <!-- TABS -->
+      <div style="display:flex;gap:4px;margin-bottom:20px;border-bottom:2px solid var(--line);padding-bottom:0">
+        <button id="cred-tab-btn-creditos" onclick="showCredTab('creditos')" style="padding:10px 22px;border:none;border-bottom:3px solid var(--blue);background:none;cursor:pointer;font-size:13px;font-weight:700;color:var(--blue);margin-bottom:-2px">💳 Créditos</button>
+        <button id="cred-tab-btn-cuotas" onclick="showCredTab('cuotas')" style="padding:10px 22px;border:none;border-bottom:3px solid transparent;background:none;cursor:pointer;font-size:13px;font-weight:600;color:var(--muted);margin-bottom:-2px">📅 Cuotas</button>
+      </div>
+
+      <!-- TAB CRÉDITOS -->
+      <div id="cred-tab-creditos">
+        <div style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;align-items:center">
+          <div class="searchbox" style="min-width:240px">
+            <span style="color:var(--muted)">🔍</span>
+            <input id="cred-srch" placeholder="Buscar cliente, DNI, banco..." oninput="renderCreditos()">
+          </div>
+          <div id="cred-count" style="font-size:12px;color:var(--muted)">—</div>
+        </div>
+        <div id="cred-list-wrap">
+          <div id="cred-list" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:12px"></div>
+          <div id="cred-empty" style="display:none;text-align:center;padding:60px 20px;color:var(--muted)">
+            <div style="font-size:48px;margin-bottom:12px">💳</div>
+            <div style="font-size:15px;font-weight:700;color:var(--ink2);margin-bottom:6px">Sin créditos registrados</div>
+            <div style="font-size:13px">Usá el botón <b>＋ Nuevo crédito</b> para agregar</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB CUOTAS -->
+      <div id="cred-tab-cuotas" style="display:none">
+        <div style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;align-items:center">
+          <div class="searchbox" style="min-width:240px">
+            <span style="color:var(--muted)">🔍</span>
+            <input id="cuota-srch" placeholder="Buscar cliente..." oninput="renderCuotas()">
+          </div>
+          <select id="cuota-filtro-estado" onchange="renderCuotas()" style="font-size:12px;padding:6px 10px;border:1.5px solid var(--line);border-radius:8px">
+            <option value="">Todos los estados</option>
+            <option value="Pendiente">Pendiente</option>
+            <option value="Pagada">Pagada</option>
+            <option value="Vencida">Vencida</option>
+          </select>
+          <div id="cuota-count" style="font-size:12px;color:var(--muted)">—</div>
+        </div>
+        <div style="overflow-x:auto;border-radius:12px;border:1.5px solid var(--line)">
+          <table class="cont-table" id="cuotas-table" style="min-width:700px">
+            <thead>
+              <tr>
+                <th>Cliente</th>
+                <th>DNI</th>
+                <th>Banco</th>
+                <th>Cuota N°</th>
+                <th>Vencimiento</th>
+                <th>Monto estimado</th>
+                <th>Estado</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="cuotas-tbody"></tbody>
+          </table>
+        </div>
+        <div id="cuotas-empty" style="display:none;text-align:center;padding:60px 20px;color:var(--muted)">
+          <div style="font-size:48px;margin-bottom:12px">📅</div>
+          <div style="font-size:15px;font-weight:700;color:var(--ink2)">Sin cuotas</div>
+        </div>
       </div>
     </div>
 
@@ -1147,7 +1206,7 @@ function doPost(e) { return doGet(e); }`;
 // ══════════════════════════════════════════════
 // CONFIG — URL del Apps Script
 // ══════════════════════════════════════════════
-let WH = 'https://script.google.com/macros/s/AKfycbwbWaPV5J-d3Bwk4hfE01_KUiR7FcSd6NluNqsUujGpMWQQkuXhNxVwYHT3mWJxvPRg/exec';
+let WH = 'https://script.google.com/macros/s/AKfycbz_KsdQt1EhZhJ-a1g3Q9baEFl0ZIuK2wwI0HUsbUTGIxLLkJh3sCjvCui2mD0RWHBz/exec';
 const SHEET_NAME = 'Solicitudes';
 
 // ══════════════════════════════════════════════
@@ -1245,7 +1304,7 @@ async function enterApp() {
 
   // Mostrar app y cargar datos
   document.getElementById('app').style.display = 'block';
-  await Promise.all([loadLists(), loadRecords(), loadClientes(), loadContabilidad(), loadConcesionarias()]);
+  await Promise.all([loadLists(), loadRecords(), loadClientes(), loadContabilidad(), loadConcesionarias(), loadCreditos()]);
   // Cargar coeficientes en segundo plano
   gas({ action: 'getCoeficientes' }).then(res => {
     if (res?.coeficientes) COEFICIENTES = { ...COEFICIENTES, ...res.coeficientes };
@@ -2069,6 +2128,318 @@ async function toggleMantenimiento(activar) {
   } catch(e) { toast('Error: ' + e.message, 'er'); }
 }
 
+
+// ══════════════════════════════════════════════
+// SISTEMA DE CRÉDITOS
+// ══════════════════════════════════════════════
+let CREDITOS_CACHE = [];
+let CUOTAS_CACHE   = [];
+let CRED_SOL_SEL   = null; // solicitud seleccionada
+
+function showCredTab(tab) {
+  ['creditos','cuotas'].forEach(t => {
+    const el = document.getElementById('cred-tab-'+t);
+    if (el) el.style.display = t === tab ? '' : 'none';
+    const btn = document.getElementById('cred-tab-btn-'+t);
+    if (btn) {
+      btn.style.borderBottomColor = t === tab ? 'var(--blue)' : 'transparent';
+      btn.style.color = t === tab ? 'var(--blue)' : 'var(--muted)';
+      btn.style.fontWeight = t === tab ? '700' : '600';
+    }
+  });
+  if (tab === 'creditos') renderCreditos();
+  if (tab === 'cuotas')   renderCuotas();
+}
+
+async function loadCreditos() {
+  try {
+    const res = await gas({ action: 'getCreditos' });
+    CREDITOS_CACHE = res.creditos || [];
+    CUOTAS_CACHE   = res.cuotas  || [];
+  } catch(e) {}
+}
+
+function renderCreditos() {
+  const q     = (document.getElementById('cred-srch')?.value||'').toLowerCase();
+  const count = document.getElementById('cred-count');
+  const list  = document.getElementById('cred-list');
+  const empty = document.getElementById('cred-empty');
+  const isAdmin = ME?.rol === 'admin';
+
+  let data = CREDITOS_CACHE;
+  if (q) data = data.filter(c => [(c.cliente||''), (c.dni||''), (c.banco||'')].some(v => v.toLowerCase().includes(q)));
+
+  count.textContent = data.length + ' crédito' + (data.length !== 1 ? 's' : '');
+
+  if (!data.length) { list.innerHTML = ''; empty.style.display = ''; return; }
+  empty.style.display = 'none';
+
+  const estadoColor = { 'Activo':'var(--green)', 'En mora':'var(--red)', 'Cancelado':'var(--muted)' };
+  const mon = v => v ? '$'+Number(v).toLocaleString('es-AR') : '—';
+
+  list.innerHTML = data.map(c => {
+    const cuotas     = CUOTAS_CACHE.filter(q => q.creditoId === c.id);
+    const pagadas    = cuotas.filter(q => q.estado === 'Pagada').length;
+    const vencidas   = cuotas.filter(q => q.estado === 'Vencida').length;
+    const progreso   = cuotas.length ? Math.round(pagadas / cuotas.length * 100) : 0;
+    return `
+    <div style="background:#fff;border:1.5px solid var(--line);border-radius:14px;padding:16px;cursor:pointer;transition:all .12s" onmouseenter="this.style.borderColor='var(--blue)'" onmouseleave="this.style.borderColor='var(--line)'" onclick="openCredPanel('${c.id}')">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:10px">
+        <div>
+          <div style="font-size:14px;font-weight:700;color:var(--ink)">${c.cliente||'—'}</div>
+          <div style="font-size:11.5px;color:var(--muted);margin-top:2px">DNI ${c.dni||'—'} · ${c.banco||'—'}</div>
+        </div>
+        <span style="font-size:11px;font-weight:700;color:${estadoColor[c.estado]||'var(--muted)'};background:${estadoColor[c.estado]||'var(--muted)'}22;padding:3px 8px;border-radius:20px">${c.estado||'—'}</span>
+      </div>
+      <div style="display:flex;gap:16px;font-size:12px;color:var(--ink2);margin-bottom:10px">
+        <div><span style="color:var(--muted)">Importe:</span> <b>${mon(c.importe)}</b></div>
+        <div><span style="color:var(--muted)">Cuotas:</span> <b>${pagadas}/${c.cantCuotas||0}</b></div>
+        ${vencidas > 0 ? `<div style="color:var(--red);font-weight:700">⚠️ ${vencidas} vencida${vencidas>1?'s':''}</div>` : ''}
+      </div>
+      <div style="background:var(--line);border-radius:10px;height:6px;overflow:hidden">
+        <div style="background:var(--green);height:100%;width:${progreso}%;border-radius:10px;transition:width .3s"></div>
+      </div>
+      <div style="font-size:10.5px;color:var(--muted);margin-top:4px">${progreso}% completado</div>
+    </div>`;
+  }).join('');
+}
+
+function renderCuotas() {
+  const q       = (document.getElementById('cuota-srch')?.value||'').toLowerCase();
+  const filtEst = document.getElementById('cuota-filtro-estado')?.value||'';
+  const tbody   = document.getElementById('cuotas-tbody');
+  const empty   = document.getElementById('cuotas-empty');
+  const count   = document.getElementById('cuota-count');
+
+  let data = [...CUOTAS_CACHE];
+  if (q)       data = data.filter(c => {
+    const cr = CREDITOS_CACHE.find(x => x.id === c.creditoId) || {};
+    return [(cr.cliente||''), (cr.dni||'')].some(v => v.toLowerCase().includes(q));
+  });
+  if (filtEst) data = data.filter(c => c.estado === filtEst);
+
+  // Actualizar estado vencidas automáticamente
+  const hoy = new Date().toISOString().slice(0,10);
+  data.forEach(c => { if (c.estado === 'Pendiente' && c.vencimiento < hoy) c.estado = 'Vencida'; });
+
+  count.textContent = data.length + ' cuota' + (data.length !== 1 ? 's' : '');
+  if (!data.length) { tbody.innerHTML = ''; empty.style.display = ''; return; }
+  empty.style.display = 'none';
+
+  const fmtD = v => v ? v.split('-').reverse().join('/') : '—';
+  const mon  = v => v ? '$'+Number(v).toLocaleString('es-AR') : '—';
+  const estadoColor = { 'Pendiente':'var(--amber)', 'Pagada':'var(--green)', 'Vencida':'var(--red)' };
+
+  tbody.innerHTML = data.map(c => {
+    const cr = CREDITOS_CACHE.find(x => x.id === c.creditoId) || {};
+    return `<tr>
+      <td style="font-weight:600">${cr.cliente||'—'}</td>
+      <td style="font-family:monospace">${cr.dni||'—'}</td>
+      <td>${cr.banco||'—'}</td>
+      <td style="text-align:center;font-weight:700">${c.nro}</td>
+      <td style="white-space:nowrap">${fmtD(c.vencimiento)}</td>
+      <td style="font-family:monospace">${mon(c.monto)}</td>
+      <td><span style="font-size:11px;font-weight:700;color:${estadoColor[c.estado]||'var(--muted)'}">${c.estado||'—'}</span></td>
+      <td>
+        ${c.estado !== 'Pagada' ? `<button class="btn btn-s" style="font-size:11px;padding:4px 8px" onclick="marcarPagada('${c.id}','${c.creditoId}')">✓ Pagada</button>` : ''}
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function nuevoCredito() {
+  CRED_SOL_SEL = null;
+  document.getElementById('cred-nuevo-id').value = '';
+  document.getElementById('cred-buscar-sol').value = '';
+  document.getElementById('cred-cant-cuotas').value = '';
+  document.getElementById('cred-monto-cuota').value = '';
+  document.getElementById('cred-fecha-inicio').value = '';
+  document.getElementById('cred-estado').value = 'Activo';
+  document.getElementById('cred-obs').value = '';
+  document.getElementById('cred-paso1').style.display = '';
+  document.getElementById('cred-paso2').style.display = 'none';
+  document.getElementById('cred-guardar-btn').style.display = 'none';
+  document.getElementById('cred-nuevo-overlay').classList.add('open');
+  filtrarSolicitudesAvanza();
+}
+
+function closeCreditoNuevo() {
+  document.getElementById('cred-nuevo-overlay').classList.remove('open');
+}
+
+function filtrarSolicitudesAvanza() {
+  const q    = (document.getElementById('cred-buscar-sol')?.value||'').toLowerCase();
+  const lista = document.getElementById('cred-sol-lista');
+  // Solicitudes AVANZA que no tienen crédito aún
+  const creditadasIds = new Set(CREDITOS_CACHE.map(c => c.solicitudId));
+  let sols = RECORDS.filter(r => (r.estado||'').toUpperCase() === 'AVANZA' && !creditadasIds.has(r.id));
+  if (q) sols = sols.filter(r => [(r.nombrecliente||''), (r.dni||'')].some(v => v.toLowerCase().includes(q)));
+
+  if (!sols.length) {
+    lista.innerHTML = '<div style="text-align:center;color:var(--muted);padding:20px;font-size:13px">Sin solicitudes AVANZA disponibles</div>';
+    return;
+  }
+
+  lista.innerHTML = sols.map(r => `
+    <div onclick="seleccionarSolicitud('${r.id}')" style="padding:10px 14px;cursor:pointer;border-bottom:1px solid var(--line);transition:background .1s" onmouseenter="this.style.background='var(--blue-soft)'" onmouseleave="this.style.background=''">
+      <div style="font-size:13px;font-weight:700;color:var(--ink)">${r.nombrecliente||'—'}</div>
+      <div style="font-size:11.5px;color:var(--muted)">DNI ${r.dni||'—'} · ${r.banco||'—'} · $${Number(r.importe||0).toLocaleString('es-AR')}</div>
+    </div>`).join('');
+}
+
+function seleccionarSolicitud(id) {
+  CRED_SOL_SEL = RECORDS.find(r => r.id === id);
+  if (!CRED_SOL_SEL) return;
+  const r = CRED_SOL_SEL;
+  document.getElementById('cred-sol-info').innerHTML = `
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">
+      <div><span style="color:var(--muted);font-size:10px;font-weight:700;text-transform:uppercase">Cliente</span><br><b>${r.nombrecliente||'—'}</b></div>
+      <div><span style="color:var(--muted);font-size:10px;font-weight:700;text-transform:uppercase">DNI</span><br>${r.dni||'—'}</div>
+      <div><span style="color:var(--muted);font-size:10px;font-weight:700;text-transform:uppercase">Banco</span><br><b>${r.banco||'—'}</b></div>
+      <div><span style="color:var(--muted);font-size:10px;font-weight:700;text-transform:uppercase">Importe</span><br><b style="color:var(--blue)">$${Number(r.importe||0).toLocaleString('es-AR')}</b></div>
+      <div><span style="color:var(--muted);font-size:10px;font-weight:700;text-transform:uppercase">Tasa</span><br>${r.tasa||'—'}</div>
+      <div><span style="color:var(--muted);font-size:10px;font-weight:700;text-transform:uppercase">Concesionaria</span><br>${r.concesionaria||'—'}</div>
+    </div>`;
+  document.getElementById('cred-paso1').style.display = 'none';
+  document.getElementById('cred-paso2').style.display = '';
+  document.getElementById('cred-guardar-btn').style.display = '';
+  calcCuotaMonto();
+}
+
+function volverPaso1() {
+  CRED_SOL_SEL = null;
+  document.getElementById('cred-paso1').style.display = '';
+  document.getElementById('cred-paso2').style.display = 'none';
+  document.getElementById('cred-guardar-btn').style.display = 'none';
+}
+
+function calcCuotaMonto() {
+  if (!CRED_SOL_SEL) return;
+  const cant   = parseInt(document.getElementById('cred-cant-cuotas').value) || 0;
+  const importe = parseFloat(CRED_SOL_SEL.importe||0) || 0;
+  const monto  = cant > 0 ? Math.round(importe / cant) : 0;
+  document.getElementById('cred-monto-cuota').value = monto || '';
+}
+
+async function saveNuevoCredito() {
+  if (!CRED_SOL_SEL) { toast('Seleccioná una solicitud','er'); return; }
+  const cant   = parseInt(document.getElementById('cred-cant-cuotas').value);
+  const inicio = document.getElementById('cred-fecha-inicio').value;
+  if (!cant || cant < 1) { toast('Ingresá la cantidad de cuotas','er'); return; }
+  if (!inicio)            { toast('Ingresá la fecha del primer vencimiento','er'); return; }
+
+  const id     = Date.now().toString();
+  const monto  = Math.round((parseFloat(CRED_SOL_SEL.importe||0)||0) / cant);
+  const estado = document.getElementById('cred-estado').value;
+  const obs    = document.getElementById('cred-obs').value.trim();
+
+  // Generar cuotas
+  const cuotas = [];
+  let fecha = new Date(inicio + 'T00:00:00');
+  for (let i = 1; i <= cant; i++) {
+    cuotas.push({
+      id:        id + '_' + i,
+      creditoId: id,
+      nro:       i,
+      vencimiento: fecha.toISOString().slice(0,10),
+      monto,
+      estado:    'Pendiente'
+    });
+    fecha.setMonth(fecha.getMonth() + 1);
+  }
+
+  const credito = {
+    id, solicitudId: CRED_SOL_SEL.id,
+    cliente:    CRED_SOL_SEL.nombrecliente,
+    dni:        CRED_SOL_SEL.dni,
+    banco:      CRED_SOL_SEL.banco,
+    importe:    CRED_SOL_SEL.importe,
+    tasa:       CRED_SOL_SEL.tasa,
+    cantCuotas: cant,
+    montoCuota: monto,
+    fechaInicio: inicio,
+    estado,
+    obs
+  };
+
+  try {
+    await gas({ action: 'saveCredito', credito: JSON.stringify(credito), cuotas: JSON.stringify(cuotas) });
+    CREDITOS_CACHE.push(credito);
+    CUOTAS_CACHE.push(...cuotas);
+    toast('Crédito creado con ' + cant + ' cuotas ✓', 'ok');
+    closeCreditoNuevo();
+    renderCreditos();
+  } catch(e) { toast('Error: '+e.message,'er'); }
+}
+
+function openCredPanel(id) {
+  const c   = CREDITOS_CACHE.find(x => x.id === id) || {};
+  const cuotas = CUOTAS_CACHE.filter(q => q.creditoId === id);
+  const pagadas  = cuotas.filter(q => q.estado === 'Pagada').length;
+  const vencidas = cuotas.filter(q => q.estado === 'Vencida').length;
+  const pendientes = cuotas.filter(q => q.estado === 'Pendiente').length;
+  const mon  = v => v ? '$'+Number(v).toLocaleString('es-AR') : '—';
+  const fmtD = v => v ? v.split('-').reverse().join('/') : '—';
+  const isAdmin = ME?.rol === 'admin';
+
+  document.getElementById('cred-panel-nombre').textContent = c.cliente||'—';
+  document.getElementById('cred-panel-sub').textContent    = (c.banco||'') + ' · ' + (c.cantCuotas||0) + ' cuotas';
+  document.getElementById('cred-panel-body').innerHTML = `
+    <div class="panel-section">
+      <div class="panel-section-t">Datos del crédito</div>
+      <div class="prow"><span class="pl">Cliente</span><span class="pv bold">${c.cliente||'—'}</span></div>
+      <div class="prow"><span class="pl">DNI</span><span class="pv mono">${c.dni||'—'}</span></div>
+      <div class="prow"><span class="pl">Banco</span><span class="pv bold">${c.banco||'—'}</span></div>
+      <div class="prow"><span class="pl">Importe</span><span class="pv mono bold">${mon(c.importe)}</span></div>
+      <div class="prow"><span class="pl">Tasa</span><span class="pv">${c.tasa||'—'}</span></div>
+      <div class="prow"><span class="pl">Cuota estimada</span><span class="pv mono">${mon(c.montoCuota)}</span></div>
+      <div class="prow"><span class="pl">Inicio</span><span class="pv">${fmtD(c.fechaInicio)}</span></div>
+      <div class="prow"><span class="pl">Estado</span><span class="pv bold">${c.estado||'—'}</span></div>
+      ${c.obs ? `<div class="prow"><span class="pl">Observaciones</span><span class="pv">${c.obs}</span></div>` : ''}
+    </div>
+    <div class="panel-section">
+      <div class="panel-section-t">Estado de cuotas</div>
+      <div class="prow"><span class="pl">Total cuotas</span><span class="pv bold">${c.cantCuotas||0}</span></div>
+      <div class="prow"><span class="pl">Pagadas</span><span class="pv bold" style="color:var(--green)">${pagadas}</span></div>
+      <div class="prow"><span class="pl">Pendientes</span><span class="pv bold" style="color:var(--amber)">${pendientes}</span></div>
+      <div class="prow"><span class="pl">Vencidas</span><span class="pv bold" style="color:var(--red)">${vencidas}</span></div>
+    </div>
+    ${isAdmin ? `<div class="panel-section">
+      <button class="btn btn-d" style="font-size:12px;width:100%" onclick="delCredito('${id}')">🗑️ Eliminar crédito</button>
+    </div>` : ''}
+  `;
+
+  document.getElementById('cred-panel-overlay').classList.add('open');
+  document.getElementById('cred-side-panel').style.transform = 'translateX(0)';
+}
+
+function closeCredPanel() {
+  document.getElementById('cred-panel-overlay').classList.remove('open');
+  document.getElementById('cred-side-panel').style.transform = 'translateX(100%)';
+}
+
+async function marcarPagada(cuotaId, creditoId) {
+  try {
+    await gas({ action: 'marcarCuotaPagada', cuotaId, creditoId });
+    const c = CUOTAS_CACHE.find(x => x.id === cuotaId);
+    if (c) c.estado = 'Pagada';
+    toast('Cuota marcada como pagada ✓','ok');
+    renderCuotas();
+    if (document.getElementById('cred-side-panel').style.transform === 'translateX(0)') openCredPanel(creditoId);
+  } catch(e) { toast('Error: '+e.message,'er'); }
+}
+
+async function delCredito(id) {
+  if (!confirm('¿Eliminar este crédito y todas sus cuotas?')) return;
+  try {
+    await gas({ action: 'delCredito', id });
+    CREDITOS_CACHE = CREDITOS_CACHE.filter(x => x.id !== id);
+    CUOTAS_CACHE   = CUOTAS_CACHE.filter(x => x.creditoId !== id);
+    toast('Eliminado ✓','in');
+    closeCredPanel();
+    renderCreditos();
+  } catch(e) { toast('Error: '+e.message,'er'); }
+}
 
 // ══════════════════════════════════════════════
 // CONCESIONARIAS
@@ -2922,6 +3293,7 @@ function showV(v) {
   if (v==='usuarios') loadUsers();
   if (v==='config')   { document.getElementById('cfg-wh').value=WH; loadMantenimientoStatus(); }
   if (v==='contabilidad') { showContTab('liquidaciones'); }
+  if (v==='creditos')     { showCredTab('creditos'); }
 }
 
 // ══════════════════════════════════════════════
@@ -4750,6 +5122,75 @@ function renderReportes() {
   </div>
 </div>
 
+
+<!-- MODAL NUEVO CRÉDITO -->
+<div class="overlay" id="cred-nuevo-overlay" onclick="if(event.target===this)closeCreditoNuevo()" style="z-index:600">
+  <div class="modal" style="max-width:560px;max-height:90vh;overflow-y:auto" onclick="event.stopPropagation()">
+    <div class="mh">
+      <div class="mt">💳 Nuevo crédito</div>
+      <button class="xbtn" onclick="closeCreditoNuevo()">×</button>
+    </div>
+    <input type="hidden" id="cred-nuevo-id">
+
+    <!-- PASO 1: Buscar solicitud -->
+    <div id="cred-paso1">
+      <div class="card-s" style="margin-bottom:12px">Seleccioná la solicitud AVANZA que corresponde a este crédito</div>
+      <div class="searchbox" style="margin-bottom:12px">
+        <span style="color:var(--muted)">🔍</span>
+        <input id="cred-buscar-sol" placeholder="Buscar por cliente o DNI..." oninput="filtrarSolicitudesAvanza()">
+      </div>
+      <div id="cred-sol-lista" style="max-height:220px;overflow-y:auto;border:1.5px solid var(--line);border-radius:10px"></div>
+    </div>
+
+    <!-- PASO 2: Datos del crédito (se muestra al seleccionar solicitud) -->
+    <div id="cred-paso2" style="display:none">
+      <div style="background:var(--surface);border-radius:10px;padding:12px 14px;margin-bottom:16px;font-size:12.5px" id="cred-sol-info"></div>
+      <div class="warn-box" style="margin-bottom:16px">⚠️ <b>Nota:</b> El monto de cada cuota es estimado. Puede variar en función de la tasa de interés aplicada por el banco.</div>
+      <div class="fg" style="grid-template-columns:repeat(2,1fr);gap:12px">
+        <div class="fc"><label>Cantidad de cuotas</label><input id="cred-cant-cuotas" type="number" min="1" max="360" placeholder="Ej. 36" oninput="calcCuotaMonto()"></div>
+        <div class="fc"><label>Monto cuota estimado</label>
+          <div style="display:flex;align-items:center;gap:6px">
+            <input id="cred-monto-cuota" type="number" placeholder="0" style="background:#f0fdf4;font-weight:700" readonly>
+            <span style="font-size:11px;color:var(--muted)">estimado</span>
+          </div>
+        </div>
+        <div class="fc"><label>Fecha primer vencimiento</label><input id="cred-fecha-inicio" type="date"></div>
+        <div class="fc"><label>Estado</label>
+          <select id="cred-estado">
+            <option value="Activo">Activo</option>
+            <option value="Cancelado">Cancelado</option>
+            <option value="En mora">En mora</option>
+          </select>
+        </div>
+        <div class="fc span2"><label>Observaciones</label><textarea id="cred-obs" style="min-height:60px" placeholder="Notas adicionales..."></textarea></div>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:4px">
+        <button class="btn btn-s" onclick="volverPaso1()">← Cambiar solicitud</button>
+      </div>
+    </div>
+
+    <div class="mfoot">
+      <button class="btn btn-s" onclick="closeCreditoNuevo()">Cancelar</button>
+      <button class="btn btn-p" id="cred-guardar-btn" onclick="saveNuevoCredito()" style="display:none">💾 Guardar y generar cuotas</button>
+    </div>
+  </div>
+</div>
+
+<!-- PANEL LATERAL CRÉDITO -->
+<div style="position:fixed;inset:0;z-index:550;display:flex;justify-content:flex-end;pointer-events:none" id="cred-panel-overlay">
+  <div style="width:360px;max-width:95vw;background:#fff;height:100%;box-shadow:-4px 0 24px rgba(15,23,42,.12);transform:translateX(100%);transition:transform .28s cubic-bezier(.34,1.56,.64,1);display:flex;flex-direction:column;overflow-y:auto" id="cred-side-panel">
+    <div class="panel-head" style="padding:20px 20px 14px">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px">
+        <div>
+          <div class="panel-name" id="cred-panel-nombre">—</div>
+          <div class="panel-sub" id="cred-panel-sub">Crédito</div>
+        </div>
+        <button class="xbtn" onclick="closeCredPanel()">×</button>
+      </div>
+    </div>
+    <div class="panel-body" id="cred-panel-body"></div>
+  </div>
+</div>
 
 <!-- MODAL CONCESIONARIAS -->
 <div class="conc-overlay" id="conc-overlay" onclick="if(event.target===this)closeConcesionarias()">
