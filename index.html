@@ -3399,6 +3399,12 @@ function showV(v) {
   if (v==='config')   { document.getElementById('cfg-wh').value=WH; loadMantenimientoStatus(); }
   if (v==='contabilidad') { showContTab('liquidaciones'); }
   if (v==='creditos')     { showCredTab('creditos'); }
+  // Cerrar panel lateral de créditos al salir
+  if (v !== 'creditos') {
+    document.getElementById('cred-panel-overlay').classList.remove('open');
+    const sp = document.getElementById('cred-side-panel');
+    if (sp) sp.style.transform = 'translateX(100%)';
+  }
 }
 
 // ══════════════════════════════════════════════
