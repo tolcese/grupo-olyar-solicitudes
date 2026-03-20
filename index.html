@@ -2176,12 +2176,14 @@ function renderCreditos() {
 
   const estadoColor = { 'Activo':'var(--green)', 'En mora':'var(--red)', 'Cancelado':'var(--muted)' };
   const mon = v => v ? '$'+Number(v).toLocaleString('es-AR') : '—';
+  const hoy = new Date();
 
   list.innerHTML = data.map(c => {
-    const cuotas     = CUOTAS_CACHE.filter(q => q.creditoId === c.id);
-    const pagadas    = cuotas.filter(q => q.estado === 'Pagada').length;
-    const vencidas   = cuotas.filter(q => q.estado === 'Vencida').length;
-    const progreso   = cuotas.length ? Math.round(pagadas / cuotas.length * 100) : 0;
+    const cant   = parseInt(c.cantCuotas) || 0;
+    const inicio = new Date(c.fechaInicio + 'T00:00:00');
+    const meses  = (hoy.getFullYear() - inicio.getFullYear()) * 12 + (hoy.getMonth() - inicio.getMonth());
+    const cuotaActual = Math.min(Math.max(meses + 1, 1), cant);
+    const pct = cant > 0 ? Math.round(cuotaActual / cant * 100) : 0;
     return `
     <div style="background:#fff;border:1.5px solid var(--line);border-radius:14px;padding:16px;cursor:pointer;transition:all .12s" onmouseenter="this.style.borderColor='var(--blue)'" onmouseleave="this.style.borderColor='var(--line)'" onclick="openCredPanel('${c.id}')">
       <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:10px">
@@ -2193,13 +2195,12 @@ function renderCreditos() {
       </div>
       <div style="display:flex;gap:16px;font-size:12px;color:var(--ink2);margin-bottom:10px">
         <div><span style="color:var(--muted)">Importe:</span> <b>${mon(c.importe)}</b></div>
-        <div><span style="color:var(--muted)">Cuotas:</span> <b>${pagadas}/${c.cantCuotas||0}</b></div>
-        ${vencidas > 0 ? `<div style="color:var(--red);font-weight:700">⚠️ ${vencidas} vencida${vencidas>1?'s':''}</div>` : ''}
+        <div><span style="color:var(--muted)">Cuota:</span> <b style="color:var(--blue)">${cuotaActual}/${cant}</b></div>
       </div>
       <div style="background:var(--line);border-radius:10px;height:6px;overflow:hidden">
-        <div style="background:var(--green);height:100%;width:${progreso}%;border-radius:10px;transition:width .3s"></div>
+        <div style="background:var(--blue);height:100%;width:${pct}%;border-radius:10px"></div>
       </div>
-      <div style="font-size:10.5px;color:var(--muted);margin-top:4px">${progreso}% completado</div>
+      <div style="font-size:10.5px;color:var(--muted);margin-top:4px">${pct}% transcurrido</div>
     </div>`;
   }).join('');
 }
@@ -2399,10 +2400,24 @@ function openCredPanel(id) {
     </div>
     <div class="panel-section">
       <div class="panel-section-t">Estado de cuotas</div>
-      <div class="prow"><span class="pl">Total cuotas</span><span class="pv bold">${c.cantCuotas||0}</span></div>
-      <div class="prow"><span class="pl">Pagadas</span><span class="pv bold" style="color:var(--green)">${pagadas}</span></div>
-      <div class="prow"><span class="pl">Pendientes</span><span class="pv bold" style="color:var(--amber)">${pendientes}</span></div>
-      <div class="prow"><span class="pl">Vencidas</span><span class="pv bold" style="color:var(--red)">${vencidas}</span></div>
+      ${(() => {
+        const hoy = new Date();
+        const inicio = new Date(c.fechaInicio + 'T00:00:00');
+        const cant = parseInt(c.cantCuotas) || 0;
+        // Calcular cuota actual según meses transcurridos desde inicio
+        const mesesTranscurridos = (hoy.getFullYear() - inicio.getFullYear()) * 12 + (hoy.getMonth() - inicio.getMonth());
+        const cuotaActual = Math.min(Math.max(mesesTranscurridos + 1, 1), cant);
+        const pct = Math.round(cuotaActual / cant * 100);
+        return `
+          <div style="text-align:center;padding:10px 0 16px">
+            <div style="font-size:36px;font-weight:800;color:var(--blue)">${cuotaActual} <span style="font-size:18px;color:var(--muted)">de ${cant}</span></div>
+            <div style="font-size:12px;color:var(--muted);margin-top:4px">cuota actual estimada</div>
+          </div>
+          <div style="background:var(--line);border-radius:10px;height:8px;overflow:hidden;margin-bottom:8px">
+            <div style="background:var(--blue);height:100%;width:${pct}%;border-radius:10px;transition:width .3s"></div>
+          </div>
+          <div style="font-size:11.5px;color:var(--muted);text-align:center">${pct}% del crédito transcurrido</div>`;
+      })()}
     </div>
     ${isAdmin ? `<div class="panel-section">
       <button class="btn btn-d" style="font-size:12px;width:100%" onclick="delCredito('${id}')">🗑️ Eliminar crédito</button>
@@ -5177,8 +5192,8 @@ function renderReportes() {
 </div>
 
 <!-- PANEL LATERAL CRÉDITO -->
-<div style="position:fixed;inset:0;z-index:550;display:flex;justify-content:flex-end;pointer-events:none" id="cred-panel-overlay">
-  <div style="width:360px;max-width:95vw;background:#fff;height:100%;box-shadow:-4px 0 24px rgba(15,23,42,.12);transform:translateX(100%);transition:transform .28s cubic-bezier(.34,1.56,.64,1);display:flex;flex-direction:column;overflow-y:auto" id="cred-side-panel">
+<div style="position:fixed;inset:0;z-index:550;display:flex;justify-content:flex-end;pointer-events:none;transition:opacity .2s" id="cred-panel-overlay">
+  <div style="width:360px;max-width:95vw;background:#fff;height:100%;box-shadow:-4px 0 24px rgba(15,23,42,.12);transform:translateX(100%);transition:transform .28s cubic-bezier(.34,1.56,.64,1);display:flex;flex-direction:column;overflow-y:auto;pointer-events:all" id="cred-side-panel">
     <div class="panel-head" style="padding:20px 20px 14px">
       <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px">
         <div>
