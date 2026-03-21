@@ -775,24 +775,16 @@ pre{background:#0f172a;color:#7dd3fc;padding:18px;font-family:'JetBrains Mono',m
       <div class="ph">
         <div><div class="ph-t">🏦 Bancos</div><div class="ph-s">Acceso rápido a portales bancarios</div></div>
       </div>
-      <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap">
-        <button class="btn btn-p" onclick="cargarBanco('https://secure.bancocolumbia.com.ar/web/','Banco Columbia')">🏦 Banco Columbia</button>
-      </div>
-      <div id="banco-iframe-wrap" style="display:none;border-radius:12px;overflow:hidden;border:1.5px solid var(--line);height:calc(100vh - 220px)">
-        <div style="background:var(--surface);padding:8px 14px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--line)">
-          <span id="banco-titulo" style="font-size:13px;font-weight:600;color:var(--ink2)">—</span>
-          <div style="display:flex;gap:8px">
-            <button class="btn btn-s" style="font-size:11px;padding:4px 10px" onclick="window.open(document.getElementById('banco-iframe').src,'_blank')">↗ Abrir en nueva pestaña</button>
-            <button class="btn btn-s" style="font-size:11px;padding:4px 10px" onclick="document.getElementById('banco-iframe-wrap').style.display='none'">✕ Cerrar</button>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px;max-width:800px">
+        <a href="https://secure.bancocolumbia.com.ar/web/" target="_blank" style="text-decoration:none">
+          <div class="card" style="display:flex;align-items:center;gap:12px;padding:16px 20px;cursor:pointer;transition:all .12s" onmouseenter="this.style.borderColor='var(--blue)';this.style.background='var(--blue-soft)'" onmouseleave="this.style.borderColor='var(--line)';this.style.background='#fff'">
+            <div style="font-size:28px">🏦</div>
+            <div>
+              <div style="font-size:13.5px;font-weight:700;color:var(--ink)">Banco Columbia</div>
+              <div style="font-size:11px;color:var(--muted);margin-top:2px">Abrir en nueva pestaña ↗</div>
+            </div>
           </div>
-        </div>
-        <iframe id="banco-iframe" src="" style="width:100%;height:calc(100% - 42px);border:none" sandbox="allow-same-origin allow-scripts allow-forms allow-popups"></iframe>
-      </div>
-      <div id="banco-blocked-msg" style="display:none;text-align:center;padding:60px 20px;color:var(--muted)">
-        <div style="font-size:48px;margin-bottom:12px">🚫</div>
-        <div style="font-size:15px;font-weight:700;color:var(--ink2);margin-bottom:8px">El banco no permite mostrarse aquí</div>
-        <div style="font-size:13px;margin-bottom:16px">Este banco bloquea la visualización dentro de otros sitios por seguridad.</div>
-        <button class="btn btn-p" onclick="window.open(document.getElementById('banco-iframe').src,'_blank')">↗ Abrir en nueva pestaña</button>
+        </a>
       </div>
     </div>
 
