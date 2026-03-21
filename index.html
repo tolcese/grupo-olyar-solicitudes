@@ -4854,6 +4854,9 @@ function renderReportes() {
     <button class="sb-item" onclick="closeSidebar();openPrendasEntregadas()">
       <span class="sb-icon">✅</span> Prendas entregadas
     </button>
+    <button class="sb-item" onclick="closeSidebar();showV('bancos')">
+      <span class="sb-icon">🏦</span> Bancos
+    </button>
 
     <div class="sb-divider"></div>
     <div class="sb-section-label">Cuenta</div>
@@ -4868,9 +4871,6 @@ function renderReportes() {
     </button>
     <button class="sb-item" id="sb-backup" onclick="closeSidebar();showV('backup')" style="display:none">
       <span class="sb-icon">💾</span> Backup
-    </button>
-    <button class="sb-item" onclick="closeSidebar();showV('bancos')">
-      <span class="sb-icon">🏦</span> Bancos
     </button>
     <button class="sb-item" id="sb-contabilidad" onclick="closeSidebar();showV('contabilidad')" style="display:none">
       <span class="sb-icon">🧾</span> Contabilidad
