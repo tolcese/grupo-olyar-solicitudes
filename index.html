@@ -2091,7 +2091,23 @@ async function checkMantenimiento() {
   } catch(e) { return false; }
 }
 
-async function loadMantenimientoStatus() {
+async function inicializarPestanas() {
+  const btn = document.querySelector('[onclick="inicializarPestanas()"]');
+  const msg = document.getElementById('init-msg');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Creando...'; }
+  msg.style.display = 'none';
+  try {
+    const res = await gas({ action: 'inicializarPestanas' });
+    msg.style.display = '';
+    msg.style.color = 'var(--green)';
+    msg.textContent = '✓ ' + (res.msg || 'Pestañas inicializadas correctamente');
+  } catch(e) {
+    msg.style.display = '';
+    msg.style.color = 'var(--red)';
+    msg.textContent = 'Error: ' + e.message;
+  }
+  if (btn) { btn.disabled = false; btn.textContent = '📋 Crear pestañas faltantes'; }
+}
   try {
     const res = await gas({ action: 'getMantenimiento' });
     const activo = res.activo === true || res.activo === 'true';
@@ -3262,7 +3278,7 @@ function renderPrendas() {
       <td style="max-width:140px;overflow:hidden;text-overflow:ellipsis" title="${r.obs||''}">${val(r.obs)}</td>
       <td class="chk">${ep ? '<span style="color:var(--green);font-weight:700">✓</span>' : '<span style="color:var(--line)">—</span>'}</td>
       <td class="chk">${pr ? '<span style="color:var(--green);font-weight:700">✓</span>' : '<span style="color:var(--line)">—</span>'}</td>
-      <td style="white-space:nowrap;font-size:12px">${fi || '<span style="color:var(--muted)">—</span>'}</td>
+      <td style="white-space:nowrap;font-size:12px;color:var(--green);font-weight:600">${fi ? fi.split('-').reverse().join('/') : '<span style="color:var(--muted)">—</span>'}</td>
     </tr>`;
   }).join('');
 
