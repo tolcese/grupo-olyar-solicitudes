@@ -2108,6 +2108,8 @@ async function inicializarPestanas() {
   }
   if (btn) { btn.disabled = false; btn.textContent = '📋 Crear pestañas faltantes'; }
 }
+
+async function loadMantenimientoStatus() {
   try {
     const res = await gas({ action: 'getMantenimiento' });
     const activo = res.activo === true || res.activo === 'true';
