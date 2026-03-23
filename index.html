@@ -461,6 +461,10 @@ pre{background:#0f172a;color:#7dd3fc;padding:18px;font-family:'JetBrains Mono',m
         <button class="tn" id="tn-gestoria" onclick="openGestoria()">📁 Gestoría</button>
         <button class="tn" id="tn-prendas" onclick="openPrendas()">📌 Prendas</button>
         <button class="tn" id="tn-pe" onclick="openPrendasEntregadas()" style="display:none">✅ Prendas entregadas</button>
+        <button class="tn" onclick="showV('datero')" id="tn-datero" style="position:relative">
+          📨 Datero
+          <span id="datero-badge" style="display:none;position:absolute;top:4px;right:4px;width:8px;height:8px;border-radius:50%;background:var(--red);box-shadow:0 0 5px var(--red)"></span>
+        </button>
         <button class="tn" id="tn-micuenta" onclick="showV('micuenta')">🔑 Mi cuenta</button>
       </nav>
     </div>
@@ -767,6 +771,61 @@ pre{background:#0f172a;color:#7dd3fc;padding:18px;font-family:'JetBrains Mono',m
         <div class="fc" style="margin-bottom:13px"><label>Nueva contraseña</label><input id="pwd-nueva" type="password" placeholder="••••••••"></div>
         <div class="fc" style="margin-bottom:18px"><label>Repetir nueva contraseña</label><input id="pwd-rep" type="password" placeholder="••••••••"></div>
         <button class="btn btn-p" onclick="cambiarPassword()">💾 Guardar nueva contraseña</button>
+      </div>
+    </div>
+
+    <!-- DATERO -->
+    <div id="v-datero" style="display:none">
+      <div class="ph">
+        <div><div class="ph-t">📨 Datero</div><div class="ph-s">Solicitudes recibidas desde el formulario</div></div>
+        <button class="btn btn-s" onclick="loadDatero()">🔄 Actualizar</button>
+      </div>
+      <div style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;align-items:center">
+        <div class="searchbox" style="min-width:240px">
+          <span style="color:var(--muted)">🔍</span>
+          <input id="datero-srch" placeholder="Buscar por nombre, DNI, concesionaria..." oninput="renderDatero()">
+        </div>
+        <div id="datero-count" style="font-size:12px;color:var(--muted)">—</div>
+      </div>
+
+      <!-- TABLA -->
+      <div style="overflow-x:auto;border-radius:12px;border:1.5px solid var(--line)">
+        <div id="datero-scroll" style="overflow-x:auto;scrollbar-width:none">
+          <table style="width:100%;border-collapse:collapse;min-width:1400px;font-size:12px" id="datero-table">
+            <thead>
+              <tr style="border-bottom:1.5px solid var(--line);background:var(--surface)">
+                <th style="padding:8px 12px;text-align:left;font-size:9.5px;font-weight:700;color:var(--muted);text-transform:uppercase;white-space:nowrap">#</th>
+                <th style="padding:8px 12px;text-align:left;font-size:9.5px;font-weight:700;color:var(--muted);text-transform:uppercase;white-space:nowrap">Fecha</th>
+                <th style="padding:8px 12px;text-align:left;font-size:9.5px;font-weight:700;color:var(--muted);text-transform:uppercase;white-space:nowrap">Provincia</th>
+                <th style="padding:8px 12px;text-align:left;font-size:9.5px;font-weight:700;color:var(--muted);text-transform:uppercase;white-space:nowrap">Concesionaria</th>
+                <th style="padding:8px 12px;text-align:left;font-size:9.5px;font-weight:700;color:var(--muted);text-transform:uppercase;white-space:nowrap">Encargado</th>
+                <th style="padding:8px 12px;text-align:left;font-size:9.5px;font-weight:700;color:var(--muted);text-transform:uppercase;white-space:nowrap">Solicitante</th>
+                <th style="padding:8px 12px;text-align:left;font-size:9.5px;font-weight:700;color:var(--muted);text-transform:uppercase;white-space:nowrap">DNI</th>
+                <th style="padding:8px 12px;text-align:left;font-size:9.5px;font-weight:700;color:var(--muted);text-transform:uppercase;white-space:nowrap">Teléfono</th>
+                <th style="padding:8px 12px;text-align:left;font-size:9.5px;font-weight:700;color:var(--muted);text-transform:uppercase;white-space:nowrap">Compañía</th>
+                <th style="padding:8px 12px;text-align:left;font-size:9.5px;font-weight:700;color:var(--muted);text-transform:uppercase;white-space:nowrap">Email</th>
+                <th style="padding:8px 12px;text-align:left;font-size:9.5px;font-weight:700;color:var(--muted);text-transform:uppercase;white-space:nowrap">DNI Foto</th>
+                <th style="padding:8px 12px;text-align:left;font-size:9.5px;font-weight:700;color:var(--muted);text-transform:uppercase;white-space:nowrap">Monto venta</th>
+                <th style="padding:8px 12px;text-align:left;font-size:9.5px;font-weight:700;color:var(--muted);text-transform:uppercase;white-space:nowrap">Dominio</th>
+                <th style="padding:8px 12px;text-align:left;font-size:9.5px;font-weight:700;color:var(--muted);text-transform:uppercase;white-space:nowrap">Marca</th>
+                <th style="padding:8px 12px;text-align:left;font-size:9.5px;font-weight:700;color:var(--muted);text-transform:uppercase;white-space:nowrap">Modelo</th>
+                <th style="padding:8px 12px;text-align:left;font-size:9.5px;font-weight:700;color:var(--muted);text-transform:uppercase;white-space:nowrap">Año</th>
+                <th style="padding:8px 12px;text-align:left;font-size:9.5px;font-weight:700;color:var(--muted);text-transform:uppercase;white-space:nowrap">GNC</th>
+                <th style="padding:8px 12px;text-align:left;font-size:9.5px;font-weight:700;color:var(--muted);text-transform:uppercase;white-space:nowrap">Banco</th>
+                <th style="padding:8px 12px;text-align:left;font-size:9.5px;font-weight:700;color:var(--muted);text-transform:uppercase;white-space:nowrap">Tipo tasa</th>
+                <th style="padding:8px 12px;text-align:left;font-size:9.5px;font-weight:700;color:var(--muted);text-transform:uppercase;white-space:nowrap">Monto financiar</th>
+                <th style="padding:8px 12px;text-align:left;font-size:9.5px;font-weight:700;color:var(--muted);text-transform:uppercase;white-space:nowrap">Cuotas</th>
+                <th style="padding:8px 12px;text-align:left;font-size:9.5px;font-weight:700;color:var(--muted);text-transform:uppercase;white-space:nowrap">Cuota estimada</th>
+              </tr>
+            </thead>
+            <tbody id="datero-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+      <div id="datero-empty" style="display:none;text-align:center;padding:60px 20px;color:var(--muted)">
+        <div style="font-size:48px;margin-bottom:12px">📨</div>
+        <div style="font-size:15px;font-weight:700;color:var(--ink2);margin-bottom:6px">Sin registros del datero</div>
+        <div style="font-size:13px">Las respuestas del formulario aparecerán acá automáticamente</div>
       </div>
     </div>
 
@@ -1202,7 +1261,7 @@ function doPost(e) { return doGet(e); }`;
 // ══════════════════════════════════════════════
 // CONFIG — URL del Apps Script
 // ══════════════════════════════════════════════
-let WH = 'https://script.google.com/macros/s/AKfycbyPNYIvBfcn5Xc9WWJ11QL8FnmmVowgY0Y01f-7vgZ1Gg9HI7cWltwU5Fpob6gzKc5f/exec';
+let WH = 'https://script.google.com/macros/s/AKfycbxCFX7Pw9MMe2shIdjq2F0lM3uw4PBYYgWC240JCUVa6AKdJ_HJUkcjH46J3K5nwhVa/exec';
 const SHEET_NAME = 'Solicitudes';
 
 // ══════════════════════════════════════════════
@@ -1301,10 +1360,11 @@ async function enterApp() {
   // Mostrar app y cargar datos
   document.getElementById('app').style.display = 'block';
   await Promise.all([loadLists(), loadRecords(), loadClientes(), loadContabilidad(), loadConcesionarias(), loadCreditos()]);
-  // Cargar coeficientes en segundo plano
+  // Cargar coeficientes y contador datero en segundo plano
   gas({ action: 'getCoeficientes' }).then(res => {
     if (res?.coeficientes) COEFICIENTES = { ...COEFICIENTES, ...res.coeficientes };
   }).catch(()=>{});
+  checkDateroNuevos();
   loading(false);
   showV('sol');
 }
@@ -2828,6 +2888,84 @@ function closeConcHist() {
   openConcesionarias();
 }
 
+let DATERO_LAST_COUNT = null;
+
+async function checkDateroNuevos() {
+  try {
+    const res = await gas({ action: 'getDateroCount' });
+    const count = res.count || 0;
+    if (DATERO_LAST_COUNT !== null && count > DATERO_LAST_COUNT) {
+      document.getElementById('datero-badge').style.display = '';
+    }
+    if (DATERO_LAST_COUNT === null) DATERO_LAST_COUNT = count;
+  } catch(e) {}
+}
+
+// ══════════════════════════════════════════════
+// DATERO
+// ══════════════════════════════════════════════
+let DATERO_CACHE = [];
+
+async function loadDatero() {
+  document.getElementById('datero-badge').style.display = 'none';
+  document.getElementById('datero-tbody').innerHTML = '<tr><td colspan="22" style="text-align:center;padding:30px;color:var(--muted)"><span class="spinner"></span> Cargando...</td></tr>';
+  document.getElementById('datero-empty').style.display = 'none';
+  try {
+    const res = await gas({ action: 'getDatero' });
+    DATERO_CACHE = res.datero || [];
+    DATERO_LAST_COUNT = DATERO_CACHE.length;
+    renderDatero();
+  } catch(e) {
+    document.getElementById('datero-tbody').innerHTML = `<tr><td colspan="22" style="color:var(--red);padding:20px">Error: ${e.message}</td></tr>`;
+  }
+}
+
+function renderDatero() {
+  const q     = (document.getElementById('datero-srch')?.value||'').toLowerCase();
+  const tbody = document.getElementById('datero-tbody');
+  const empty = document.getElementById('datero-empty');
+  const count = document.getElementById('datero-count');
+
+  let data = DATERO_CACHE;
+  if (q) data = data.filter(r =>
+    [r.solicitante, r.dni, r.concesionaria, r.provincia, r.encargado, r.banco].some(v => (v||'').toLowerCase().includes(q))
+  );
+
+  count.textContent = data.length + ' registro' + (data.length !== 1 ? 's' : '');
+
+  if (!data.length) { tbody.innerHTML = ''; empty.style.display = ''; return; }
+  empty.style.display = 'none';
+
+  const val = v => (v && v !== 'undefined') ? v : '—';
+  const mon = v => v ? '$'+Number(String(v).replace(/[$.,]/g,'')).toLocaleString('es-AR') : '—';
+
+  tbody.innerHTML = data.map((r, i) => `
+    <tr style="border-bottom:1px solid var(--line)" onmouseenter="this.style.background='var(--surface)'" onmouseleave="this.style.background=''">
+      <td style="padding:9px 12px;color:var(--muted);font-size:11px">${i+1}</td>
+      <td style="padding:9px 12px;white-space:nowrap;font-size:11.5px">${val(r.fecha)}</td>
+      <td style="padding:9px 12px">${val(r.provincia)}</td>
+      <td style="padding:9px 12px;font-weight:600">${val(r.concesionaria)}</td>
+      <td style="padding:9px 12px">${val(r.encargado)}</td>
+      <td style="padding:9px 12px;font-weight:700">${val(r.solicitante)}</td>
+      <td style="padding:9px 12px;font-family:monospace">${val(r.dni)}</td>
+      <td style="padding:9px 12px">${val(r.telefono)}</td>
+      <td style="padding:9px 12px">${val(r.compania)}</td>
+      <td style="padding:9px 12px">${val(r.email)}</td>
+      <td style="padding:9px 12px">${r.fotoDni ? `<a href="${r.fotoDni}" target="_blank" style="color:var(--blue);font-size:11px">📎 Ver</a>` : '—'}</td>
+      <td style="padding:9px 12px;font-family:monospace">${val(r.montoVenta)}</td>
+      <td style="padding:9px 12px;font-family:monospace">${val(r.dominio)}</td>
+      <td style="padding:9px 12px">${val(r.marca)}</td>
+      <td style="padding:9px 12px">${val(r.modelo)}</td>
+      <td style="padding:9px 12px">${val(r.anio)}</td>
+      <td style="padding:9px 12px;text-align:center">${r.gnc === 'Sí' || r.gnc === 'Si' ? '✓' : '—'}</td>
+      <td style="padding:9px 12px;font-weight:600">${val(r.banco)}</td>
+      <td style="padding:9px 12px">${val(r.tipoTasa)}</td>
+      <td style="padding:9px 12px;font-family:monospace">${val(r.montoFinanciar)}</td>
+      <td style="padding:9px 12px;text-align:center">${val(r.cuotas)}</td>
+      <td style="padding:9px 12px;font-family:monospace">${val(r.cuotaEstimada)}</td>
+    </tr>`).join('');
+}
+
 // ══════════════════════════════════════════════
 // CONTABILIDAD
 // ══════════════════════════════════════════════
@@ -3448,7 +3586,7 @@ document.getElementById('l-u').addEventListener('keydown', e => { if(e.key==='En
 // ══════════════════════════════════════════════
 function showV(v) {
   if (v === 'reportes') setTimeout(renderReportes, 50);
-  ['sol','nueva','usuarios','config','micuenta','reportes','backup','contabilidad','creditos','bancos'].forEach(id => {
+  ['sol','nueva','usuarios','config','micuenta','reportes','backup','contabilidad','creditos','bancos','datero'].forEach(id => {
     const el = document.getElementById('v-'+id);
     if (el) el.style.display = id===v ? '' : 'none';
     const tn = document.getElementById('tn-'+id);
@@ -3459,7 +3597,7 @@ function showV(v) {
   if (v==='nueva' && !editId) { resetForm(); document.getElementById('form-title').textContent='Nueva solicitud'; document.getElementById('save-btn').textContent='💾 Guardar solicitud'; }
   if (v==='usuarios') loadUsers();
   if (v==='config')   { document.getElementById('cfg-wh').value=WH; loadMantenimientoStatus(); }
-  if (v==='contabilidad') { showContTab('liquidaciones'); }
+  if (v==='datero') { loadDatero(); }
   if (v==='creditos')     { showCredTab('creditos'); }
   // Cerrar panel lateral de créditos al salir
   if (v !== 'creditos') {
@@ -4589,6 +4727,7 @@ setInterval(() => {
   if (ME) {
     loadRecords();
     checkMantenimiento();
+    checkDateroNuevos();
     // Heartbeat cada ciclo
     gas({ action: 'heartbeat', usr: ME.usr }).catch(()=>{});
   }
@@ -4874,6 +5013,9 @@ function renderReportes() {
     </button>
     <button class="sb-item" onclick="closeSidebar();showV('bancos')">
       <span class="sb-icon">🏦</span> Bancos
+    </button>
+    <button class="sb-item" onclick="closeSidebar();showV('datero')">
+      <span class="sb-icon">📨</span> Datero
     </button>
 
     <div class="sb-divider"></div>
