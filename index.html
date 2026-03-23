@@ -323,6 +323,12 @@ pre{background:#0f172a;color:#7dd3fc;padding:18px;font-family:'JetBrains Mono',m
 .gestoria-body{overflow-y:auto;overflow-x:hidden;flex:1;padding:0;}
 .gestoria-scroll-x{overflow-x:auto;overflow-y:visible;scrollbar-width:none;}
 .gestoria-scroll-x::-webkit-scrollbar{display:none;}
+/* DATERO SCROLL */
+.datero-body{overflow-y:auto;overflow-x:hidden;flex:1;max-height:calc(100vh - 280px);}
+.datero-scroll-x{overflow-x:auto;overflow-y:visible;scrollbar-width:none;}
+.datero-scroll-x::-webkit-scrollbar{display:none;}
+.datero-mirror{overflow-x:auto;overflow-y:hidden;height:14px;border-top:1.5px solid var(--line);flex-shrink:0;background:#fff;}
+.datero-mirror-inner{height:1px;}
 .gestoria-table{width:100%;border-collapse:collapse;min-width:1100px;font-size:13px;}
 .gestoria-table thead th{position:sticky;top:0;z-index:2;background:var(--surface);}
 .gestoria-table thead tr{border-bottom:1.5px solid var(--line);}
@@ -789,9 +795,9 @@ pre{background:#0f172a;color:#7dd3fc;padding:18px;font-family:'JetBrains Mono',m
       </div>
 
       <!-- TABLA -->
-      <div style="border-radius:12px;border:1.5px solid var(--line);display:flex;flex-direction:column;max-height:calc(100vh - 280px)">
-        <div id="datero-scroll-inner" style="overflow-x:auto;overflow-y:auto;flex:1;scrollbar-width:none">
-          <div id="datero-scroll" style="overflow-x:visible">
+      <div style="border-radius:12px;border:1.5px solid var(--line);display:flex;flex-direction:column">
+        <div class="datero-body">
+          <div class="datero-scroll-x" id="datero-scroll">
         <table style="width:100%;border-collapse:collapse;min-width:1600px;font-size:12px" id="datero-table">
             <thead style="position:sticky;top:0;z-index:2">
               <tr style="border-bottom:1.5px solid var(--line);background:var(--surface)">
@@ -821,10 +827,10 @@ pre{background:#0f172a;color:#7dd3fc;padding:18px;font-family:'JetBrains Mono',m
             </thead>
             <tbody id="datero-tbody"></tbody>
           </table>
-          </div>
         </div>
-        <div id="datero-mirror" style="overflow-x:auto;overflow-y:hidden;height:14px;border-top:1.5px solid var(--line);background:#fff">
-          <div id="datero-mirror-inner" style="height:1px"></div>
+        </div>
+        <div class="datero-mirror" id="datero-mirror">
+          <div class="datero-mirror-inner" id="datero-mirror-inner"></div>
         </div>
       </div>
       <div id="datero-empty" style="display:none;text-align:center;padding:60px 20px;color:var(--muted)">
@@ -2973,7 +2979,7 @@ function renderDatero() {
 }
 
 function initDateroMirror() {
-  const scroll = document.getElementById('datero-scroll-inner');
+  const scroll = document.getElementById('datero-scroll');
   const mirror = document.getElementById('datero-mirror');
   const inner  = document.getElementById('datero-mirror-inner');
   if (!scroll || !mirror || !inner) return;
