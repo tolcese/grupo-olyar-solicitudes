@@ -789,9 +789,10 @@ pre{background:#0f172a;color:#7dd3fc;padding:18px;font-family:'JetBrains Mono',m
       </div>
 
       <!-- TABLA -->
-      <div style="overflow-x:auto;border-radius:12px;border:1.5px solid var(--line)">
-        <div id="datero-scroll" style="overflow-x:auto;scrollbar-width:none">
-          <table style="width:100%;border-collapse:collapse;min-width:1400px;font-size:12px" id="datero-table">
+      <div style="overflow-x:auto;border-radius:12px;border:1.5px solid var(--line);display:flex;flex-direction:column">
+        <div id="datero-scroll" style="overflow-x:auto;overflow-y:visible;scrollbar-width:none">
+          <div id="datero-scroll-inner" style="overflow-x:auto;overflow-y:visible;scrollbar-width:none">
+        <table style="width:100%;border-collapse:collapse;min-width:1600px;font-size:12px" id="datero-table">
             <thead>
               <tr style="border-bottom:1.5px solid var(--line);background:var(--surface)">
                 <th style="padding:8px 12px;text-align:left;font-size:9.5px;font-weight:700;color:var(--muted);text-transform:uppercase;white-space:nowrap">#</th>
@@ -820,6 +821,10 @@ pre{background:#0f172a;color:#7dd3fc;padding:18px;font-family:'JetBrains Mono',m
             </thead>
             <tbody id="datero-tbody"></tbody>
           </table>
+          </div>
+        </div>
+        <div id="datero-mirror" style="overflow-x:auto;overflow-y:hidden;height:14px;border-top:1.5px solid var(--line);background:#fff">
+          <div id="datero-mirror-inner" style="height:1px"></div>
         </div>
       </div>
       <div id="datero-empty" style="display:none;text-align:center;padding:60px 20px;color:var(--muted)">
@@ -2964,10 +2969,20 @@ function renderDatero() {
       <td style="padding:9px 12px;text-align:center">${val(r.cuotas)}</td>
       <td style="padding:9px 12px;font-family:monospace">${val(r.cuotaEstimada)}</td>
     </tr>`).join('');
+  setTimeout(initDateroMirror, 50);
 }
 
-// ══════════════════════════════════════════════
-// CONTABILIDAD
+function initDateroMirror() {
+  const scroll = document.getElementById('datero-scroll-inner');
+  const mirror = document.getElementById('datero-mirror');
+  const inner  = document.getElementById('datero-mirror-inner');
+  if (!scroll || !mirror || !inner) return;
+  inner.style.width = scroll.scrollWidth + 'px';
+  mirror.style.display = scroll.scrollWidth > scroll.clientWidth + 2 ? 'block' : 'none';
+  let syncing = false;
+  scroll.onscroll = () => { if (syncing) return; syncing = true; mirror.scrollLeft = scroll.scrollLeft; syncing = false; };
+  mirror.onscroll = () => { if (syncing) return; syncing = true; scroll.scrollLeft = mirror.scrollLeft; syncing = false; };
+}
 // ══════════════════════════════════════════════
 
 async function openContabilidad() {
