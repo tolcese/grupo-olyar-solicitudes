@@ -840,7 +840,23 @@ pre{background:#0f172a;color:#7dd3fc;padding:18px;font-family:'JetBrains Mono',m
       </div>
     </div>
 
-    <!-- BANCOS -->
+    <!-- PANEL LATERAL DATERO -->
+<div style="position:fixed;inset:0;z-index:550;display:flex;justify-content:flex-end;pointer-events:none" id="datero-panel-overlay" onclick="if(event.target===this)closeDateroPanel()">
+  <div style="width:380px;max-width:95vw;background:#fff;height:100%;box-shadow:-4px 0 24px rgba(15,23,42,.12);transform:translateX(100%);transition:transform .28s cubic-bezier(.34,1.56,.64,1);display:flex;flex-direction:column;overflow-y:auto;pointer-events:all" id="datero-side-panel">
+    <div class="panel-head" style="padding:20px 20px 14px">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px">
+        <div>
+          <div class="panel-name" id="datero-panel-nombre">—</div>
+          <div class="panel-sub" id="datero-panel-sub">Datero</div>
+        </div>
+        <button class="xbtn" onclick="closeDateroPanel()">×</button>
+      </div>
+    </div>
+    <div class="panel-body" id="datero-panel-body"></div>
+  </div>
+</div>
+
+<!-- BANCOS -->
     <div id="v-bancos" style="display:none">
       <div class="ph">
         <div><div class="ph-t">🏦 Bancos</div><div class="ph-s">Acceso rápido a portales bancarios</div></div>
@@ -2950,8 +2966,11 @@ function renderDatero() {
   const val = v => (v && v !== 'undefined') ? v : '—';
   const mon = v => v ? '$'+Number(String(v).replace(/[$.,]/g,'')).toLocaleString('es-AR') : '—';
 
+  // Guardar data filtrada para panel
+  window._dateroFiltered = data;
+
   tbody.innerHTML = data.map((r, i) => `
-    <tr style="border-bottom:1px solid var(--line)" onmouseenter="this.style.background='var(--surface)'" onmouseleave="this.style.background=''">
+    <tr style="cursor:pointer;border-bottom:1px solid var(--line)" onclick="openDateroPanel(${i})" onmouseenter="this.style.background='var(--surface)'" onmouseleave="this.style.background=''">
       <td style="padding:9px 12px;color:var(--muted);font-size:11px">${i+1}</td>
       <td style="padding:9px 12px;white-space:nowrap;font-size:11.5px">${val(r.fecha)}</td>
       <td style="padding:9px 12px">${val(r.provincia)}</td>
@@ -2976,6 +2995,67 @@ function renderDatero() {
       <td style="padding:9px 12px;font-family:monospace">${val(r.cuotaEstimada)}</td>
     </tr>`).join('');
   setTimeout(initDateroMirror, 50);
+}
+
+function openDateroPanel(idx) {
+  const data = window._dateroFiltered || DATERO_CACHE;
+  const r = data[idx];
+  if (!r) return;
+  const val = v => (v && v !== 'undefined') ? v : '—';
+
+  document.getElementById('datero-panel-nombre').textContent = r.solicitante || '—';
+  document.getElementById('datero-panel-sub').textContent = (r.concesionaria||'') + (r.fecha ? ' · ' + r.fecha : '');
+
+  const fotoLinks = r.fotoDni ? r.fotoDni.split(', ').map((l,i) =>
+    `<a href="${l.trim()}" target="_blank" style="color:var(--blue);font-size:12px">📎 Ver foto ${r.fotoDni.split(', ').length > 1 ? i+1 : ''}</a>`
+  ).join('<br>') : '—';
+
+  document.getElementById('datero-panel-body').innerHTML = `
+    <div class="panel-section">
+      <div class="panel-section-t">Datos de la agencia</div>
+      <div class="prow"><span class="pl">Provincia</span><span class="pv">${val(r.provincia)}</span></div>
+      <div class="prow"><span class="pl">Concesionaria</span><span class="pv bold">${val(r.concesionaria)}</span></div>
+      <div class="prow"><span class="pl">Encargado</span><span class="pv">${val(r.encargado)}</span></div>
+    </div>
+    <div class="panel-section">
+      <div class="panel-section-t">Datos del solicitante</div>
+      <div class="prow"><span class="pl">Nombre</span><span class="pv bold">${val(r.solicitante)}</span></div>
+      <div class="prow"><span class="pl">DNI</span><span class="pv mono">${val(r.dni)}</span></div>
+      <div class="prow"><span class="pl">Teléfono</span><span class="pv">${val(r.telefono)}</span></div>
+      <div class="prow"><span class="pl">Compañía</span><span class="pv">${val(r.compania)}</span></div>
+      <div class="prow"><span class="pl">Email</span><span class="pv">${val(r.email)}</span></div>
+      <div class="prow"><span class="pl">Foto DNI</span><span class="pv">${fotoLinks}</span></div>
+    </div>
+    <div class="panel-section">
+      <div class="panel-section-t">Datos del vehículo</div>
+      <div class="prow"><span class="pl">Monto venta</span><span class="pv mono bold">${val(r.montoVenta)}</span></div>
+      <div class="prow"><span class="pl">Dominio</span><span class="pv mono">${val(r.dominio)}</span></div>
+      <div class="prow"><span class="pl">Marca</span><span class="pv">${val(r.marca)}</span></div>
+      <div class="prow"><span class="pl">Modelo</span><span class="pv">${val(r.modelo)}</span></div>
+      <div class="prow"><span class="pl">Año</span><span class="pv">${val(r.anio)}</span></div>
+      <div class="prow"><span class="pl">GNC</span><span class="pv">${val(r.gnc)}</span></div>
+    </div>
+    <div class="panel-section">
+      <div class="panel-section-t">Datos crediticios</div>
+      <div class="prow"><span class="pl">Banco</span><span class="pv bold">${val(r.banco)}</span></div>
+      <div class="prow"><span class="pl">Tipo tasa</span><span class="pv">${val(r.tipoTasa)}</span></div>
+      <div class="prow"><span class="pl">Monto a financiar</span><span class="pv mono bold">${val(r.montoFinanciar)}</span></div>
+      <div class="prow"><span class="pl">Cuotas</span><span class="pv">${val(r.cuotas)}</span></div>
+      <div class="prow"><span class="pl">Cuota estimada</span><span class="pv mono">${val(r.cuotaEstimada)}</span></div>
+    </div>
+  `;
+
+  const overlay = document.getElementById('datero-panel-overlay');
+  const panel   = document.getElementById('datero-side-panel');
+  overlay.style.pointerEvents = 'all';
+  panel.style.transform = 'translateX(0)';
+}
+
+function closeDateroPanel() {
+  const overlay = document.getElementById('datero-panel-overlay');
+  const panel   = document.getElementById('datero-side-panel');
+  overlay.style.pointerEvents = 'none';
+  panel.style.transform = 'translateX(100%)';
 }
 
 function initDateroMirror() {
@@ -3626,6 +3706,7 @@ function showV(v) {
     const sp = document.getElementById('cred-side-panel');
     if (sp) sp.style.transform = 'translateX(100%)';
   }
+  if (v !== 'datero') closeDateroPanel();
 }
 
 // ══════════════════════════════════════════════
