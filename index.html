@@ -1272,7 +1272,7 @@ function doPost(e) { return doGet(e); }`;
 // ══════════════════════════════════════════════
 // CONFIG — URL del Apps Script
 // ══════════════════════════════════════════════
-let WH = 'https://script.google.com/macros/s/AKfycbx2xkGpXvrHHsWcJQur56PFd-S0C9lT6JZShp1TosdntkCaZCY-1PdkHXuOk9R9Gjt7/exec';
+let WH = 'https://script.google.com/macros/s/AKfycbw8wRiDUL6k0s6SGxZPQADch8H-vYgYQVaMHwhXpZDl_qPXpYe_IZbBMiNRd8hQWrXF/exec';
 const SHEET_NAME = 'Solicitudes';
 
 // ══════════════════════════════════════════════
@@ -2962,7 +2962,7 @@ function renderDatero() {
       <td style="padding:9px 12px">${val(r.telefono)}</td>
       <td style="padding:9px 12px">${val(r.compania)}</td>
       <td style="padding:9px 12px">${val(r.email)}</td>
-      <td style="padding:9px 12px">${r.fotoDni ? `<a href="${r.fotoDni}" target="_blank" style="color:var(--blue);font-size:11px">📎 Ver</a>` : '—'}</td>
+      <td style="padding:9px 12px">${r.fotoDni ? r.fotoDni.split(', ').map((l,i) => `<a href="${l.trim()}" target="_blank" style="color:var(--blue);font-size:11px;display:block">📎 Foto ${r.fotoDni.split(', ').length > 1 ? i+1 : ''}</a>`).join('') : '—'}</td>
       <td style="padding:9px 12px;font-family:monospace">${val(r.montoVenta)}</td>
       <td style="padding:9px 12px;font-family:monospace">${val(r.dominio)}</td>
       <td style="padding:9px 12px">${val(r.marca)}</td>
