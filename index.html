@@ -3932,6 +3932,7 @@ async function saveRecord() {
   const d = getForm();
   if (!d.fecha) { toast('La fecha es obligatoria','er'); return; }
   if (!d.banco) { toast('El banco es obligatorio','er'); return; }
+  if (!d.estado) { toast('El estado es obligatorio','er'); return; }
 
   const btn = document.getElementById('save-btn');
   btn.disabled=true; btn.innerHTML='<span class="spinner"></span>Guardando...';
