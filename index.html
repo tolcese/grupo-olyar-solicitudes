@@ -3959,8 +3959,15 @@ async function saveRecord() {
     await gas({ ...rec, action, sheetName:SHEET_NAME });
     syncUI('ok');
     toast(editId?'Solicitud actualizada ✓':'Solicitud guardada ✓','ok');
+    const wasEdit = !!editId;
+    const savedPage = CURRENT_PAGE;
     editId = null;
     showV('sol');
+    if (wasEdit) {
+      // Restaurar página y scroll
+      CURRENT_PAGE = savedPage;
+      renderTablePage();
+    }
   } catch(e) {
     toast('Error al guardar: '+e.message,'er');
   }
