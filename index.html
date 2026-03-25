@@ -2921,10 +2921,14 @@ async function checkDateroNuevos() {
   try {
     const res = await gas({ action: 'getDateroCount' });
     const count = res.count || 0;
-    if (DATERO_LAST_COUNT !== null && count > DATERO_LAST_COUNT) {
+    if (DATERO_LAST_COUNT === null) {
+      // Primera vez: inicializar sin mostrar badge
+      DATERO_LAST_COUNT = count;
+    } else if (count > DATERO_LAST_COUNT) {
+      // Llegaron nuevos: mostrar badge pero NO actualizar el contador
+      // (se actualiza solo cuando el usuario entra a Datero)
       document.getElementById('datero-badge').style.display = '';
     }
-    if (DATERO_LAST_COUNT === null) DATERO_LAST_COUNT = count;
   } catch(e) {}
 }
 
