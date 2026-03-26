@@ -652,7 +652,10 @@ pre{background:#0f172a;color:#7dd3fc;padding:18px;font-family:'JetBrains Mono',m
               <label class="chk-row"><input type="checkbox" id="f-verif"><span>Verificación policial (12)</span></label>
               <label class="chk-row"><input type="checkbox" id="f-infdom"><span>Informe dominio</span></label>
             </div></div>
-          <div class="fc"><label>Punto de Venta *</label><select id="f-puntodeventa"><option value="">— Seleccioná —</option></select></div>
+          <div class="fc"><label>Punto de Venta *</label>
+            <div class="combo"><input id="f-puntodeventa" placeholder="Seleccioná o escribí...">
+              <div class="combo-btns"><button class="cb" onclick="toggleDD('puntodeventa')" type="button">▾</button><button class="cb" onclick="addPuntoDeVentaOpt()" type="button">＋</button></div>
+              <div class="cdd" id="dd-puntodeventa"></div></div></div>
           <div class="fc span3"><label>Observaciones</label>
             <textarea id="f-obs" placeholder="Notas adicionales..."></textarea></div>
         </div>
@@ -3810,12 +3813,43 @@ function initBanco() {
 }
 
 function initPuntosDeVenta() {
-  const sel = document.getElementById('f-puntodeventa');
-  if (!sel) return;
-  const current = sel.value;
-  sel.innerHTML = '<option value="">— Seleccioná —</option>' +
-    LISTS.puntodeventa.map(p=>`<option>${p}</option>`).join('');
-  if (current) sel.value = current;
+  renderPuntosDeVentaDD();
+}
+
+function renderPuntosDeVentaDD() {
+  const dd = document.getElementById('dd-puntodeventa');
+  if (!dd) return;
+  const opts = LISTS.puntodeventa || [];
+  if (opts.length === 0) {
+    dd.innerHTML = '<div class="copt" style="color:var(--muted);font-style:italic;cursor:default;font-size:12px">Sin opciones — usá ＋ para agregar</div>';
+    return;
+  }
+  dd.innerHTML = opts.map((v,i) => `<div class="copt" onmousedown="pickPuntoDeVenta('${v.replace(/'/g,"\\'")}')"><span>${v}</span><button class="cdel" onmousedown="event.stopPropagation();delPuntoDeVentaOpt(${i})" title="Eliminar">✕</button></div>`).join('');
+}
+
+async function addPuntoDeVentaOpt() {
+  const input = document.getElementById('f-puntodeventa');
+  const val = input.value.trim();
+  if (!val) { toast('Escribí el nombre del punto de venta','wa'); return; }
+  if (LISTS.puntodeventa.includes(val)) { toast('Ya existe ese punto de venta','wa'); return; }
+  LISTS.puntodeventa.push(val);
+  await gas({ action:'addPuntoDeVenta', nombre:val });
+  renderPuntosDeVentaDD();
+  toast('Punto de venta agregado ✓','ok');
+}
+
+async function delPuntoDeVentaOpt(i) {
+  const val = LISTS.puntodeventa[i];
+  if (!confirm(`¿Eliminar "${val}" de los puntos de venta?`)) return;
+  LISTS.puntodeventa.splice(i,1);
+  await gas({ action:'delPuntoDeVenta', nombre:val });
+  renderPuntosDeVentaDD();
+  toast('Punto de venta eliminado','ok');
+}
+
+function pickPuntoDeVenta(val) {
+  document.getElementById('f-puntodeventa').value = val;
+  document.getElementById('dd-puntodeventa').classList.remove('open');
 }
 
 // ══════════════════════════════════════════════
@@ -3858,9 +3892,9 @@ function toggleDD(k) {
   const isOpen = dd.classList.contains('open');
   closeAllDD();
   if (!isOpen) {
-    renderDD(k);
+    if (k === 'puntodeventa') renderPuntosDeVentaDD();
+    else renderDD(k);
     dd.classList.add('open');
-    // focus input so blur detection works
     const inp = document.getElementById('f-'+k);
     if (inp) inp.focus();
   }
@@ -3921,7 +3955,7 @@ function resetForm() {
   document.getElementById('f-banco').value = '';
   COMBO_KEYS.forEach(k => { const el=document.getElementById('f-'+k); if(el) el.value=''; });
   ['importe','agencia','vehiculo','comision'].forEach(k=>document.getElementById('f-'+k).value='');
-  ['tipocta','estado','puntodeventa'].forEach(k=>document.getElementById('f-'+k).value='');
+  ['tipocta','estado'].forEach(k=>document.getElementById('f-'+k).value='');
   ['doc01','titulo','verif','infdom'].forEach(k=>document.getElementById('f-'+k).checked=false);
   document.getElementById('f-obs').value='';
 }
