@@ -3716,6 +3716,12 @@ function showV(v) {
     if (sp) sp.style.transform = 'translateX(100%)';
   }
   if (v !== 'datero') closeDateroPanel();
+  if (v === 'contabilidad') {
+    Promise.all([loadRecords(), loadContabilidad()]).then(() => {
+      renderContabilidad();
+      setTimeout(initContMirror, 100);
+    });
+  }
 }
 
 // ══════════════════════════════════════════════
