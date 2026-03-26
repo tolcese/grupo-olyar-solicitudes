@@ -1174,6 +1174,29 @@ const SCRIPT_CODE = `function doGet(e) {
       return ok({ok:false});
     }
 
+    // ── HEARTBEAT / ONLINE ─────────────────────────
+    if (action === 'heartbeat') {
+      var props = PropertiesService.getScriptProperties();
+      props.setProperty('hb_' + p.usr, String(Date.now()));
+      return ok({ok:true});
+    }
+
+    if (action === 'getOnlineUsers') {
+      var props = PropertiesService.getScriptProperties();
+      var all = props.getProperties();
+      var online = {};
+      var now = Date.now();
+      var TWO_MIN = 2 * 60 * 1000;
+      for (var key in all) {
+        if (key.indexOf('hb_') === 0) {
+          var usr = key.substring(3);
+          var ts = parseInt(all[key], 10);
+          online[usr] = (now - ts) < TWO_MIN;
+        }
+      }
+      return ok({online: online});
+    }
+
     // ── LISTAS ─────────────────────────────────────
     if (action === 'getLists') {
       var sheet = getOrCreate(ss, 'Listas', ['Campo','Valor']);
@@ -1321,7 +1344,7 @@ function doPost(e) { return doGet(e); }`;
 // ══════════════════════════════════════════════
 // CONFIG — URL del Apps Script
 // ══════════════════════════════════════════════
-let WH = 'https://script.google.com/macros/s/AKfycbxrBIddTKspcqxZJulFfJB5nJZ2nVXndlmngoANmkK7GdUfjdglJ4o-5RlE9nH346I0/exec';
+let WH = 'https://script.google.com/macros/s/AKfycbxz7R1YuHJEMmPHWfAQ2znKSZOBuOqqZ6C7vk1JkylBi3rsc7rnKMcKi8i6ag_5jHtL/exec';
 const SHEET_NAME = 'Solicitudes';
 
 // ══════════════════════════════════════════════
