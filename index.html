@@ -1388,6 +1388,8 @@ async function enterApp() {
   CONT_DATA = {};
   document.getElementById('app').style.display = 'block';
   await Promise.all([loadLists(), loadRecords(), loadClientes(), loadContabilidad(), loadConcesionarias(), loadCreditos()]);
+  // Cargar en segundo plano para que estén listos al navegar
+  Promise.all([loadGestores(), loadDatero()]).catch(()=>{});
   // Cargar coeficientes y contador datero en segundo plano
   gas({ action: 'getCoeficientes' }).then(res => {
     if (res?.coeficientes) COEFICIENTES = { ...COEFICIENTES, ...res.coeficientes };
@@ -1441,7 +1443,8 @@ function closeSidebar() {
 async function openGestores() {
   document.getElementById('gestores-overlay').classList.add('open');
   closeFormGestor();
-  await loadGestores();
+  if (GESTORES_CACHE.length) { renderGestoresList(GESTORES_CACHE); loadGestores(); }
+  else await loadGestores();
 }
 
 function closeGestores() {
@@ -3753,7 +3756,10 @@ function showV(v) {
   if (v==='nueva' && !editId) { resetForm(); document.getElementById('form-title').textContent='Nueva solicitud'; document.getElementById('save-btn').textContent='💾 Guardar solicitud'; }
   if (v==='usuarios') loadUsers();
   if (v==='config')   { document.getElementById('cfg-wh').value=WH; loadMantenimientoStatus(); }
-  if (v==='datero') { loadDatero(); }
+  if (v==='datero') {
+    if (DATERO_CACHE.length) { renderDatero(); loadDatero(); }
+    else loadDatero();
+  }
   if (v==='creditos')     { showCredTab('creditos'); }
   // Cerrar panel lateral de créditos al salir
   if (v !== 'creditos') {
