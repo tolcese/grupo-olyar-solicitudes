@@ -2921,15 +2921,15 @@ async function checkDateroNuevos() {
   try {
     const res = await gas({ action: 'getDateroCount' });
     const count = res.count || 0;
+    console.log('[Datero] count:', count, '| last:', DATERO_LAST_COUNT);
     if (DATERO_LAST_COUNT === null) {
-      // Primera vez: inicializar sin mostrar badge
       DATERO_LAST_COUNT = count;
+      console.log('[Datero] Inicializado en', count);
     } else if (count > DATERO_LAST_COUNT) {
-      // Llegaron nuevos: mostrar badge pero NO actualizar el contador
-      // (se actualiza solo cuando el usuario entra a Datero)
       document.getElementById('datero-badge').style.display = '';
+      console.log('[Datero] ¡Nuevo! Mostrando badge');
     }
-  } catch(e) {}
+  } catch(e) { console.log('[Datero] Error:', e.message); }
 }
 
 // ══════════════════════════════════════════════
@@ -3254,19 +3254,19 @@ function editCont(id) {
   document.getElementById('cont-imp-credito').value   = c.impCredito   || '';
   document.getElementById('cont-gastos-gestoria').value = c.gastosGestoria || '';
   document.getElementById('cont-com-lukaya').value    = c.comLukaya    || '';
-  // Recalcular A liquidar agencia
-  setTimeout(calcContLiquidar, 50);
-  document.getElementById('cont-fecha-liq').value     = c.fechaLiq     || '';
   document.getElementById('cont-com-comercial').value = c.comComercial || '';
   document.getElementById('cont-com-operativo').value = c.comOperativo || '';
   document.getElementById('cont-com-gestora').value   = c.comGestora   || '';
   document.getElementById('cont-retrib-banco').value  = c.retribBanco  || '';
   document.getElementById('cont-ganancia').value      = c.ganancia     || '';
+  document.getElementById('cont-fecha-liq').value     = c.fechaLiq     || '';
   document.getElementById('cont-pagado').checked      = !!c.pagado;
   document.getElementById('cont-fecha-pagado').value  = c.fechaPagado  || '';
   document.getElementById('cont-pago-gest').checked   = !!c.pagoGest;
   document.getElementById('cont-fecha-pago-gest').value = c.fechaPagoGest || '';
   document.getElementById('cont-obs').value           = c.obs          || '';
+  // Recalcular campos automáticos
+  setTimeout(calcContLiquidar, 50);
   document.getElementById('cont-edit-overlay').classList.add('open');
 }
 
@@ -4842,7 +4842,11 @@ setInterval(() => {
     loadRecords();
     checkMantenimiento();
     checkDateroNuevos();
-    // Heartbeat cada ciclo
+    // Refrescar contabilidad si está visible
+    const vCont = document.getElementById('v-contabilidad');
+    if (vCont && vCont.style.display !== 'none') {
+      Promise.all([loadRecords(), loadContabilidad()]).then(() => renderContabilidad());
+    }
     gas({ action: 'heartbeat', usr: ME.usr }).catch(()=>{});
   }
 }, 60000);
