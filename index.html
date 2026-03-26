@@ -1385,6 +1385,7 @@ async function enterApp() {
   gas({ action: 'heartbeat', usr: ME.usr }).catch(()=>{});
 
   // Mostrar app y cargar datos
+  CONT_DATA = {};
   document.getElementById('app').style.display = 'block';
   await Promise.all([loadLists(), loadRecords(), loadClientes(), loadContabilidad(), loadConcesionarias(), loadCreditos()]);
   // Cargar coeficientes y contador datero en segundo plano
@@ -3087,8 +3088,8 @@ function closeContabilidad() {
 async function loadContabilidad() {
   try {
     const res = await gas({ action: 'getContabilidad' });
-    CONT_DATA = {};
     if (res.contabilidad) {
+      // Actualizar solo los que vienen del Sheet, sin borrar los que están en memoria
       res.contabilidad.forEach(c => { CONT_DATA[c.id] = c; });
     }
   } catch(e) {}
@@ -4887,11 +4888,6 @@ setInterval(() => {
     loadRecords();
     checkMantenimiento();
     checkDateroNuevos();
-    // Refrescar contabilidad si está visible
-    const vCont = document.getElementById('v-contabilidad');
-    if (vCont && vCont.style.display !== 'none') {
-      Promise.all([loadRecords(), loadContabilidad()]).then(() => renderContabilidad());
-    }
     gas({ action: 'heartbeat', usr: ME.usr }).catch(()=>{});
   }
 }, 60000);
