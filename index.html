@@ -3250,23 +3250,28 @@ function editCont(id) {
       </div>`;
   }
 
-  document.getElementById('cont-a-liquidar').value    = c.aLiquidar    || '';
-  document.getElementById('cont-imp-credito').value   = c.impCredito   || '';
   document.getElementById('cont-gastos-gestoria').value = c.gastosGestoria || '';
-  document.getElementById('cont-com-lukaya').value    = c.comLukaya    || '';
   document.getElementById('cont-com-comercial').value = c.comComercial || '';
   document.getElementById('cont-com-operativo').value = c.comOperativo || '';
-  document.getElementById('cont-com-gestora').value   = c.comGestora   || '';
-  document.getElementById('cont-retrib-banco').value  = c.retribBanco  || '';
-  document.getElementById('cont-ganancia').value      = c.ganancia     || '';
   document.getElementById('cont-fecha-liq').value     = c.fechaLiq     || '';
   document.getElementById('cont-pagado').checked      = !!c.pagado;
   document.getElementById('cont-fecha-pagado').value  = c.fechaPagado  || '';
   document.getElementById('cont-pago-gest').checked   = !!c.pagoGest;
   document.getElementById('cont-fecha-pago-gest').value = c.fechaPagoGest || '';
   document.getElementById('cont-obs').value           = c.obs          || '';
-  // Recalcular campos automáticos
-  setTimeout(calcContLiquidar, 50);
+
+  // Si ya tiene valores guardados, mostrarlos; si no, calcular desde coeficientes
+  if (c.impCredito || c.comLukaya || c.ganancia || c.aLiquidar) {
+    document.getElementById('cont-imp-credito').value  = c.impCredito  || '';
+    document.getElementById('cont-com-lukaya').value   = c.comLukaya   || '';
+    document.getElementById('cont-com-gestora').value  = c.comGestora  || '';
+    document.getElementById('cont-retrib-banco').value = c.retribBanco || '';
+    document.getElementById('cont-ganancia').value     = c.ganancia    || '';
+    document.getElementById('cont-a-liquidar').value   = c.aLiquidar   || '';
+  } else {
+    // Registro nuevo sin datos contables — calcular desde coeficientes
+    setTimeout(calcContLiquidar, 50);
+  }
   document.getElementById('cont-edit-overlay').classList.add('open');
 }
 
