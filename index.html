@@ -3270,8 +3270,8 @@ function editCont(id) {
     document.getElementById('cont-ganancia').value     = c.ganancia    || '';
     document.getElementById('cont-a-liquidar').value   = c.aLiquidar   || '';
   } else {
-    // Registro nuevo sin datos contables — calcular desde coeficientes
-    setTimeout(calcContLiquidar, 50);
+    // Registro nuevo sin datos contables — calcular y guardar automáticamente
+    setTimeout(() => { calcContLiquidar(); saveContEdit(true); }, 100);
   }
   document.getElementById('cont-edit-overlay').classList.add('open');
 }
@@ -3283,6 +3283,36 @@ async function recargarLiquidaciones() {
     await gas({ action: 'syncContabilidad' });
   } catch(e) {}
   await Promise.all([loadRecords(), loadContabilidad()]);
+
+  // Auto-calcular y guardar registros AVANZA sin datos contables
+  const sinDatos = RECORDS.filter(r => {
+    if ((r.estado||'').toUpperCase() !== 'AVANZA') return false;
+    const c = CONT_DATA[r.id] || {};
+    return !c.aLiquidar && !c.comLukaya && !c.impCredito;
+  });
+  for (const r of sinDatos) {
+    const importe = parseFloat(String(r.importe||0).replace(/[$,]/g,'')) || 0;
+    if (!importe) continue;
+    const impCredito  = Math.round(importe * COEFICIENTES.impCredito / 100);
+    const comLukaya   = Math.round((importe * COEFICIENTES.comLukaya / 100) - impCredito);
+    const comGestora  = Math.round(importe * COEFICIENTES.comGestor / 100);
+    const retribBanco = Math.round(importe * COEFICIENTES.retribBanco / 100);
+    const ganancia    = Math.round(comLukaya - comGestora + retribBanco);
+    const aLiquidar   = Math.round(importe - comLukaya - impCredito);
+    const data = {
+      action: 'saveContabilidad', id: r.id,
+      aLiquidar: String(aLiquidar), impCredito: String(impCredito),
+      gastosGestoria: '', comLukaya: String(comLukaya), fechaLiq: '',
+      comComercial: '', comOperativo: '', comGestora: String(comGestora),
+      retribBanco: String(retribBanco), ganancia: String(ganancia),
+      pagado: 'false', fechaPagado: '', pagoGest: 'false', fechaPagoGest: '', obs: ''
+    };
+    try {
+      await gas(data);
+      CONT_DATA[r.id] = { ...data, pagado: false, pagoGest: false };
+    } catch(e) {}
+  }
+
   renderContabilidad();
   if (btn) { btn.disabled = false; btn.textContent = '🔄 Actualizar'; }
   toast('Datos actualizados ✓', 'ok');
@@ -3406,7 +3436,7 @@ function closeContEdit() {
   document.getElementById('cont-edit-overlay').classList.remove('open');
 }
 
-async function saveContEdit() {
+async function saveContEdit(silent = false) {
   const id = document.getElementById('cont-edit-id').value;
   const data = {
     action:         'saveContabilidad',
@@ -3432,10 +3462,12 @@ async function saveContEdit() {
     CONT_DATA[id] = { ...data };
     CONT_DATA[id].pagado  = document.getElementById('cont-pagado').checked;
     CONT_DATA[id].pagoGest = document.getElementById('cont-pago-gest').checked;
-    toast('Guardado ✓', 'ok');
-    closeContEdit();
+    if (!silent) {
+      toast('Guardado ✓', 'ok');
+      closeContEdit();
+    }
     renderContabilidad();
-  } catch(e) { toast('Error: ' + e.message, 'er'); }
+  } catch(e) { if (!silent) toast('Error: ' + e.message, 'er'); }
 }
 
 function openContPanel(id) {
@@ -3721,10 +3753,8 @@ function showV(v) {
   }
   if (v !== 'datero') closeDateroPanel();
   if (v === 'contabilidad') {
-    Promise.all([loadRecords(), loadContabilidad()]).then(() => {
-      renderContabilidad();
-      setTimeout(initContMirror, 100);
-    });
+    recargarLiquidaciones();
+    setTimeout(initContMirror, 100);
   }
 }
 
