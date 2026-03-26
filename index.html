@@ -5083,6 +5083,12 @@ function showRepTab(tab) {
 
 function renderReportes() {
   if (!RECORDS.length) return;
+  // Recargar CONT_DATA siempre para tener datos frescos de contabilidad
+  loadContabilidad().then(() => _renderReportesInterno());
+}
+
+function _renderReportesInterno() {
+  if (!RECORDS.length) return;
 
   // ── TORTA: total por estado ──
   const estados = {APROBADO:0, RECHAZADO:0, AVANZA:0};
