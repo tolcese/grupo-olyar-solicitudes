@@ -3278,6 +3278,9 @@ function editCont(id) {
 async function recargarLiquidaciones() {
   const btn = document.querySelector('[onclick="recargarLiquidaciones()"]');
   if (btn) { btn.disabled = true; btn.textContent = '⏳ Actualizando...'; }
+  try {
+    await gas({ action: 'syncContabilidad' });
+  } catch(e) {}
   await Promise.all([loadRecords(), loadContabilidad()]);
   renderContabilidad();
   if (btn) { btn.disabled = false; btn.textContent = '🔄 Actualizar'; }
