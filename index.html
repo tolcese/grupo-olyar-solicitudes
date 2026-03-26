@@ -2061,6 +2061,7 @@ async function saveCliente() {
     toast('Cliente guardado ✓', 'ok');
     closeClienteEdit();
     renderClientes();
+    renderContabilidad();
   } catch(e) { toast('Error: ' + e.message, 'er'); }
 }
 
