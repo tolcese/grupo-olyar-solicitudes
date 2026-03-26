@@ -332,7 +332,7 @@ pre{background:#0f172a;color:#7dd3fc;padding:18px;font-family:'JetBrains Mono',m
 .gestoria-table{width:100%;border-collapse:collapse;min-width:1100px;font-size:13px;}
 .gestoria-table thead th{position:sticky;top:0;z-index:2;background:var(--surface);}
 .gestoria-table thead tr{border-bottom:1.5px solid var(--line);}
-.gestoria-scroll-mirror{overflow-x:auto;overflow-y:hidden;height:14px;border-top:1.5px solid var(--line);flex-shrink:0;background:#fff;}
+.gestoria-scroll-mirror{overflow-x:auto;overflow-y:hidden;height:14px;border-top:1.5px solid var(--line);flex-shrink:0;background:#fff;width:100%;}
 .gestoria-scroll-mirror-inner{height:1px;}
 
 /* MODAL SELECCIONAR GESTOR */
@@ -1622,22 +1622,31 @@ function initGestoriaMirror() {
   const mirror = document.getElementById('gestoria-mirror');
   const inner  = document.getElementById('gestoria-mirror-inner');
   if (!scroll || !mirror || !inner) return;
-  // Sincronizar ancho
-  function syncW() { inner.style.width = scroll.scrollWidth + 'px'; }
+
+  function syncW() {
+    inner.style.width = scroll.scrollWidth + 'px';
+    mirror.style.display = scroll.scrollWidth > scroll.clientWidth + 2 ? 'block' : 'none';
+  }
   syncW();
-  // Mostrar mirror solo si hay scroll horizontal real
-  mirror.style.display = scroll.scrollWidth > scroll.clientWidth + 2 ? 'block' : 'none';
+
+  // Re-sincronizar ancho si cambia el contenido
+  if (window.ResizeObserver) {
+    new ResizeObserver(syncW).observe(scroll);
+  }
+
   let syncing = false;
-  scroll.addEventListener('scroll', () => {
-    if (syncing) return; syncing = true;
+  scroll.onscroll = () => {
+    if (syncing) return;
+    syncing = true;
     mirror.scrollLeft = scroll.scrollLeft;
     syncing = false;
-  });
-  mirror.addEventListener('scroll', () => {
-    if (syncing) return; syncing = true;
+  };
+  mirror.onscroll = () => {
+    if (syncing) return;
+    syncing = true;
     scroll.scrollLeft = mirror.scrollLeft;
     syncing = false;
-  });
+  };
 }
 
 function closeGestoria() {
@@ -1692,7 +1701,7 @@ function renderGestoria() {
       <td>${r.estado ? `<span class="badge b-${r.estado.toLowerCase()}"><span class="bd"></span>${r.estado}</span>` : '—'}</td>
       <td style="font-size:12px;color:var(--blue);font-weight:600">${r.gestorAsignado || '<span style="color:var(--muted)">Sin asignar</span>'}</td>
     </tr>`).join('');
-  setTimeout(initGestoriaMirror, 50);
+  setTimeout(initGestoriaMirror, 150);
 }
 
 let ASIGNAR_ID = null;
