@@ -653,7 +653,7 @@ pre{background:#0f172a;color:#7dd3fc;padding:18px;font-family:'JetBrains Mono',m
               <label class="chk-row"><input type="checkbox" id="f-infdom"><span>Informe dominio</span></label>
             </div></div>
           <div class="fc"><label>Punto de Venta *</label>
-            <div class="combo"><input id="f-puntodeventa" placeholder="Seleccioná o escribí...">
+            <div class="combo"><input id="f-puntodeventa" placeholder="Seleccioná o escribí..." autocomplete="off">
               <div class="combo-btns"><button class="cb" onclick="toggleDD('puntodeventa')" type="button">▾</button><button class="cb" onclick="addPuntoDeVentaOpt()" type="button">＋</button></div>
               <div class="cdd" id="dd-puntodeventa"></div></div></div>
           <div class="fc span3"><label>Observaciones</label>
@@ -3981,6 +3981,7 @@ function resetForm() {
   ['tipocta','estado'].forEach(k=>document.getElementById('f-'+k).value='');
   ['doc01','titulo','verif','infdom'].forEach(k=>document.getElementById('f-'+k).checked=false);
   document.getElementById('f-obs').value='';
+  document.getElementById('f-puntodeventa').value='';
 }
 
 function getForm() {
