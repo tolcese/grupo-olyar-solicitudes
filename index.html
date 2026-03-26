@@ -3763,8 +3763,9 @@ function showV(v) {
   }
   if (v !== 'datero') closeDateroPanel();
   if (v === 'contabilidad') {
-    recargarLiquidaciones();
+    renderContabilidad();
     setTimeout(initContMirror, 100);
+    recargarLiquidaciones();
   }
 }
 
