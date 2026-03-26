@@ -563,7 +563,6 @@ pre{background:#0f172a;color:#7dd3fc;padding:18px;font-family:'JetBrains Mono',m
               <th class="th-sort" onclick="sortBy('tasa')" id="th-tasa">Tasa <span class="sort-icon">↕</span></th>
               <th>Observaciones</th>
               <th class="th-sort" onclick="sortBy('usuario')" id="th-usuario">Usuario <span class="sort-icon">↕</span></th>
-              <th class="th-sort" onclick="sortBy('puntodeventa')" id="th-puntodeventa">Punto de Venta <span class="sort-icon">↕</span></th>
               <th id="th-acc" style="position:sticky;right:0;background:var(--surface);z-index:2;box-shadow:-2px 0 6px rgba(0,0,0,.06)">Acciones</th>
             </tr></thead>
             <tbody id="tbody"></tbody>
@@ -652,10 +651,6 @@ pre{background:#0f172a;color:#7dd3fc;padding:18px;font-family:'JetBrains Mono',m
               <label class="chk-row"><input type="checkbox" id="f-verif"><span>Verificación policial (12)</span></label>
               <label class="chk-row"><input type="checkbox" id="f-infdom"><span>Informe dominio</span></label>
             </div></div>
-          <div class="fc"><label>Punto de Venta *</label>
-            <div class="combo"><input id="f-puntodeventa" placeholder="Seleccioná o escribí..." autocomplete="off">
-              <div class="combo-btns"><button class="cb" onclick="toggleDD('puntodeventa')" type="button">▾</button><button class="cb" onclick="addPuntoDeVentaOpt()" type="button">＋</button></div>
-              <div class="cdd" id="dd-puntodeventa"></div></div></div>
           <div class="fc span3"><label>Observaciones</label>
             <textarea id="f-obs" placeholder="Notas adicionales..."></textarea></div>
         </div>
@@ -1174,29 +1169,6 @@ const SCRIPT_CODE = `function doGet(e) {
       return ok({ok:false});
     }
 
-    // ── HEARTBEAT / ONLINE ─────────────────────────
-    if (action === 'heartbeat') {
-      var props = PropertiesService.getScriptProperties();
-      props.setProperty('hb_' + p.usr, String(Date.now()));
-      return ok({ok:true});
-    }
-
-    if (action === 'getOnlineUsers') {
-      var props = PropertiesService.getScriptProperties();
-      var all = props.getProperties();
-      var online = {};
-      var now = Date.now();
-      var TWO_MIN = 2 * 60 * 1000;
-      for (var key in all) {
-        if (key.indexOf('hb_') === 0) {
-          var usr = key.substring(3);
-          var ts = parseInt(all[key], 10);
-          online[usr] = (now - ts) < TWO_MIN;
-        }
-      }
-      return ok({online: online});
-    }
-
     // ── LISTAS ─────────────────────────────────────
     if (action === 'getLists') {
       var sheet = getOrCreate(ss, 'Listas', ['Campo','Valor']);
@@ -1227,40 +1199,12 @@ const SCRIPT_CODE = `function doGet(e) {
       return ok({ok:false});
     }
 
-    // ── PUNTOS DE VENTA ────────────────────────────
-    if (action === 'getPuntosDeVenta') {
-      var sheet = getOrCreate(ss, 'Puntos de Venta', ['Nombre']);
-      var rows = sheet.getDataRange().getValues();
-      var lista = [];
-      for (var i = 1; i < rows.length; i++) {
-        if (rows[i][0]) lista.push(String(rows[i][0]));
-      }
-      return ok({puntos: lista});
-    }
-
-    if (action === 'addPuntoDeVenta') {
-      var sheet = getOrCreate(ss, 'Puntos de Venta', ['Nombre']);
-      sheet.appendRow([p.nombre]);
-      return ok({ok:true});
-    }
-
-    if (action === 'delPuntoDeVenta') {
-      var sheet = getOrCreate(ss, 'Puntos de Venta', ['Nombre']);
-      var rows = sheet.getDataRange().getValues();
-      for (var i = 1; i < rows.length; i++) {
-        if (String(rows[i][0]).trim() === String(p.nombre).trim()) {
-          sheet.deleteRow(i+1); return ok({ok:true});
-        }
-      }
-      return ok({ok:false});
-    }
-
     // ── SOLICITUDES ────────────────────────────────
     var H = ['ID','Fecha Solicitud','Banco','Concesionaria','Provincia','Localidad',
       'DNI','Nombre Cliente','Dominio','Marca Vehiculo','Descripcion Vehiculo',
       'Tipo CTA','Importe Solicitado','Monto Agencia','Monto Vehiculo','Estado',
       'Doc 01/08','Titulo Unidad','Verif. Policial','Informe Dominio',
-      'Tasa','Observaciones','Usuario','Fecha Registro','Comision','Punto de Venta'];
+      'Tasa','Observaciones','Usuario','Fecha Registro'];
 
     var solSheet = getOrCreate(ss, p.sheetName || 'Solicitudes', H);
     if (solSheet.getLastRow() === 1) {
@@ -1281,7 +1225,7 @@ const SCRIPT_CODE = `function doGet(e) {
           doc01:rows[i][16]==='✓', titulo:rows[i][17]==='✓',
           verif:rows[i][18]==='✓', infdom:rows[i][19]==='✓',
           tasa:rows[i][20], obs:rows[i][21], usuario:rows[i][22], fechaReg:rows[i][23],
-          comision:String(rows[i][24]||''), puntodeventa:String(rows[i][25]||'')
+          comision:String(rows[i][24]||'')
         });
       }
       return ok({records:records});
@@ -1293,7 +1237,7 @@ const SCRIPT_CODE = `function doGet(e) {
         p.importe||'', p.agencia||'', p.vehiculo||'', p.estado,
         p.doc01==='true'?'✓':'', p.titulo==='true'?'✓':'',
         p.verif==='true'?'✓':'', p.infdom==='true'?'✓':'',
-        p.tasa, p.obs, p.usuario, p.fechaReg, p.comision||'', p.puntodeventa||''];
+        p.tasa, p.obs, p.usuario, p.fechaReg];
     }
 
     if (action === 'add') {
@@ -1344,7 +1288,7 @@ function doPost(e) { return doGet(e); }`;
 // ══════════════════════════════════════════════
 // CONFIG — URL del Apps Script
 // ══════════════════════════════════════════════
-let WH = 'https://script.google.com/macros/s/AKfycbxz7R1YuHJEMmPHWfAQ2znKSZOBuOqqZ6C7vk1JkylBi3rsc7rnKMcKi8i6ag_5jHtL/exec';
+let WH = 'https://script.google.com/macros/s/AKfycbw8wRiDUL6k0s6SGxZPQADch8H-vYgYQVaMHwhXpZDl_qPXpYe_IZbBMiNRd8hQWrXF/exec';
 const SHEET_NAME = 'Solicitudes';
 
 // ══════════════════════════════════════════════
@@ -1354,7 +1298,7 @@ let ME = null;
 let RECORDS = [];
 let CLIENTES_DATA = {};
 let CONT_DATA = {};
-let LISTS = { banco:['Columbia','San Cristóbal'], concesionaria:[], provincia:[], localidad:[], marca:[], descripcion:[], dni:[], nombrecliente:[], dominio:[], tasa:[], puntodeventa:[] };
+let LISTS = { banco:['Columbia','San Cristóbal'], concesionaria:[], provincia:[], localidad:[], marca:[], descripcion:[], dni:[], nombrecliente:[], dominio:[], tasa:[] };
 let editId = null;
 
 // ══════════════════════════════════════════════
@@ -3790,15 +3734,11 @@ async function loadRecords() {
 async function loadLists() {
   if (!WH) return;
   try {
-    const [resLists, resPuntos] = await Promise.all([
-      gas({ action:'getLists' }),
-      gas({ action:'getPuntosDeVenta' })
-    ]);
-    if (resLists.lists) {
-      Object.keys(resLists.lists).forEach(k => { if (LISTS[k] !== undefined) LISTS[k] = resLists.lists[k]; else LISTS[k] = resLists.lists[k]; });
+    const res = await gas({ action:'getLists' });
+    if (res.lists) {
+      Object.keys(res.lists).forEach(k => { if (LISTS[k] !== undefined) LISTS[k] = res.lists[k]; else LISTS[k] = res.lists[k]; });
     }
-    if (resPuntos.puntos) { LISTS.puntodeventa = resPuntos.puntos; }
-    initBanco(); initAllDD(); initPuntosDeVenta();
+    initBanco(); initAllDD();
   } catch(e) {}
 }
 
@@ -3833,46 +3773,6 @@ function initBanco() {
   };
   const fb = document.getElementById('f-ban');
   if (fb) fb.innerHTML = '<option value="">Todos los bancos</option>'+LISTS.banco.map(b=>`<option>${b}</option>`).join('');
-}
-
-function initPuntosDeVenta() {
-  renderPuntosDeVentaDD();
-}
-
-function renderPuntosDeVentaDD() {
-  const dd = document.getElementById('dd-puntodeventa');
-  if (!dd) return;
-  const opts = LISTS.puntodeventa || [];
-  if (opts.length === 0) {
-    dd.innerHTML = '<div class="copt" style="color:var(--muted);font-style:italic;cursor:default;font-size:12px">Sin opciones — usá ＋ para agregar</div>';
-    return;
-  }
-  dd.innerHTML = opts.map((v,i) => `<div class="copt" onmousedown="pickPuntoDeVenta('${v.replace(/'/g,"\\'")}')"><span>${v}</span><button class="cdel" onmousedown="event.stopPropagation();delPuntoDeVentaOpt(${i})" title="Eliminar">✕</button></div>`).join('');
-}
-
-async function addPuntoDeVentaOpt() {
-  const input = document.getElementById('f-puntodeventa');
-  const val = input.value.trim();
-  if (!val) { toast('Escribí el nombre del punto de venta','wa'); return; }
-  if (LISTS.puntodeventa.includes(val)) { toast('Ya existe ese punto de venta','wa'); return; }
-  LISTS.puntodeventa.push(val);
-  await gas({ action:'addPuntoDeVenta', nombre:val });
-  renderPuntosDeVentaDD();
-  toast('Punto de venta agregado ✓','ok');
-}
-
-async function delPuntoDeVentaOpt(i) {
-  const val = LISTS.puntodeventa[i];
-  if (!confirm(`¿Eliminar "${val}" de los puntos de venta?`)) return;
-  LISTS.puntodeventa.splice(i,1);
-  await gas({ action:'delPuntoDeVenta', nombre:val });
-  renderPuntosDeVentaDD();
-  toast('Punto de venta eliminado','ok');
-}
-
-function pickPuntoDeVenta(val) {
-  document.getElementById('f-puntodeventa').value = val;
-  document.getElementById('dd-puntodeventa').classList.remove('open');
 }
 
 // ══════════════════════════════════════════════
@@ -3915,9 +3815,9 @@ function toggleDD(k) {
   const isOpen = dd.classList.contains('open');
   closeAllDD();
   if (!isOpen) {
-    if (k === 'puntodeventa') renderPuntosDeVentaDD();
-    else renderDD(k);
+    renderDD(k);
     dd.classList.add('open');
+    // focus input so blur detection works
     const inp = document.getElementById('f-'+k);
     if (inp) inp.focus();
   }
@@ -3981,7 +3881,6 @@ function resetForm() {
   ['tipocta','estado'].forEach(k=>document.getElementById('f-'+k).value='');
   ['doc01','titulo','verif','infdom'].forEach(k=>document.getElementById('f-'+k).checked=false);
   document.getElementById('f-obs').value='';
-  document.getElementById('f-puntodeventa').value='';
 }
 
 function getForm() {
@@ -4009,7 +3908,6 @@ function getForm() {
     tasa:document.getElementById('f-tasa').value,
     obs:document.getElementById('f-obs').value,
     comision:document.getElementById('f-comision').value,
-    puntodeventa:document.getElementById('f-puntodeventa').value,
   };
 }
 
@@ -4037,7 +3935,6 @@ function fillForm(r) {
   document.getElementById('f-tasa').value=r.tasa||'';
   document.getElementById('f-obs').value=r.obs||'';
   document.getElementById('f-comision').value=r.comision||'';
-  document.getElementById('f-puntodeventa').value=r.puntodeventa||'';
 }
 
 async function saveRecord() {
@@ -4045,7 +3942,6 @@ async function saveRecord() {
   if (!d.fecha) { toast('La fecha es obligatoria','er'); return; }
   if (!d.banco) { toast('El banco es obligatorio','er'); return; }
   if (!d.estado) { toast('El estado es obligatorio','er'); return; }
-  if (!d.puntodeventa) { toast('El punto de venta es obligatorio','er'); return; }
 
   const btn = document.getElementById('save-btn');
   btn.disabled=true; btn.innerHTML='<span class="spinner"></span>Guardando...';
@@ -4264,7 +4160,6 @@ function renderTablePage() {
         <td>${r.tasa||'—'}</td>
         <td style="max-width:140px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${r.obs||''}">${r.obs||'—'}</td>
         <td style="font-size:11.5px;color:var(--muted)">${r.usuario||'—'}</td>
-        <td>${r.puntodeventa||'—'}</td>
         <td style="position:sticky;right:0;background:#fff;box-shadow:-2px 0 6px rgba(0,0,0,.06)"><div class="abtns"><button class="ibtn" onclick="event.stopPropagation();editRec('${r.id}')" title="Editar">✏️</button>${isAdmin?`<button class="ibtn del" onclick="event.stopPropagation();delRec('${r.id}')" title="Eliminar">🗑️</button>`:''} ${isAdmin?`<button class="ibtn" onclick="event.stopPropagation();openHistorial('${r.id}')" title="Historial">🕐</button>`:''}</div></td>
       </tr>`).join('');
 }
@@ -4458,8 +4353,8 @@ function clearFechas() {
 function exportCSV() {
   const exportData = FILTERED_RECORDS.length ? FILTERED_RECORDS : RECORDS;
   if (!exportData.length) { toast('Sin datos','in'); return; }
-  const H=['ID','Fecha','Banco','Concesionaria','Provincia','Localidad','DNI','Cliente','Dominio','Marca','Descripción','Tipo CTA','Importe','Agencia','Vehículo','Estado','Doc 01/08','Título','Ver. Pol.','Inf. Dom.','Tasa','Obs','Usuario','Fecha Reg','Punto de Venta'];
-  const rows=exportData.map(r=>[r.id,r.fecha,r.banco,r.concesionaria,r.provincia,r.localidad,r.dni,r.nombrecliente,r.dominio,r.marca,r.descripcion,r.tipocta,r.importe,r.agencia,r.vehiculo,r.estado,r.doc01?'Sí':'No',r.titulo?'Sí':'No',r.verif?'Sí':'No',r.infdom?'Sí':'No',r.tasa,r.obs,r.usuario,r.fechaReg,r.puntodeventa].map(v=>`"${(v||'').toString().replace(/"/g,'""')}"`).join(';'));
+  const H=['ID','Fecha','Banco','Concesionaria','Provincia','Localidad','DNI','Cliente','Dominio','Marca','Descripción','Tipo CTA','Importe','Agencia','Vehículo','Estado','Doc 01/08','Título','Ver. Pol.','Inf. Dom.','Tasa','Obs','Usuario','Fecha Reg'];
+  const rows=exportData.map(r=>[r.id,r.fecha,r.banco,r.concesionaria,r.provincia,r.localidad,r.dni,r.nombrecliente,r.dominio,r.marca,r.descripcion,r.tipocta,r.importe,r.agencia,r.vehiculo,r.estado,r.doc01?'Sí':'No',r.titulo?'Sí':'No',r.verif?'Sí':'No',r.infdom?'Sí':'No',r.tasa,r.obs,r.usuario,r.fechaReg].map(v=>`"${(v||'').toString().replace(/"/g,'""')}"`).join(';'));
   const a=document.createElement('a');
   a.href=URL.createObjectURL(new Blob(['\uFEFF'+[H.join(';'),...rows].join('\n')],{type:'text/csv;charset=utf-8;'}));
   a.download=`solicitudes_${new Date().toISOString().slice(0,10)}.csv`;
@@ -4554,7 +4449,6 @@ function exportPDF() {
       <td>${chk(r.infdom)}</td>
       <td>${val(r.obs)}</td>
       <td>${val(r.usuario)}</td>
-      <td>${val(r.puntodeventa)}</td>
     </tr>
   `).join('');
 
@@ -4629,7 +4523,7 @@ function exportPDF() {
         <th>Tipo CTA</th><th>Tasa</th><th>Imp. Solicitado</th><th>Monto Agencia</th>
         <th>Monto Vehículo</th><th>Comisión</th><th>Estado</th>
         <th>Doc</th><th>Tít.</th><th>Ver.</th><th>Inf.</th>
-        <th>Observaciones</th><th>Usuario</th><th>Punto de Venta</th>
+        <th>Observaciones</th><th>Usuario</th>
       </tr>
     </thead>
     <tbody>${filas}</tbody>
@@ -4757,7 +4651,6 @@ function openStatModal(tipo) {
               <th style="padding:8px 10px;text-align:left;font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;border-bottom:2px solid var(--line);white-space:nowrap">Inf. Dom.</th>
               <th style="padding:8px 10px;text-align:left;font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;border-bottom:2px solid var(--line);white-space:nowrap">Observaciones</th>
               <th style="padding:8px 10px;text-align:left;font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;border-bottom:2px solid var(--line);white-space:nowrap">Usuario</th>
-              <th style="padding:8px 10px;text-align:left;font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;border-bottom:2px solid var(--line);white-space:nowrap">Punto de Venta</th>
             </tr>
           </thead>
           <tbody>
@@ -4787,7 +4680,6 @@ function openStatModal(tipo) {
                 <td style="padding:8px 10px;text-align:center">${chk(r.infdom)}</td>
                 <td style="padding:8px 10px;max-width:200px">${val(r.obs)}</td>
                 <td style="padding:8px 10px;white-space:nowrap">${val(r.usuario)}</td>
-                <td style="padding:8px 10px;white-space:nowrap">${val(r.puntodeventa)}</td>
               </tr>
             `).join('')}
           </tbody>
@@ -4842,7 +4734,6 @@ function openPanel(id) {
       <div class="prow"><span class="pl">Estado</span><span class="pv">${r.estado?'<span class="badge b-'+r.estado.toLowerCase()+'"><span class="bd"></span>'+r.estado+'</span>':'—'}</span></div>
       <div class="prow"><span class="pl">Usuario</span><span class="pv">${val(r.usuario)}</span></div>
       <div class="prow"><span class="pl">Fecha registro</span><span class="pv">${fmtFecha(r.fechaReg)}</span></div>
-      <div class="prow"><span class="pl">Punto de Venta</span><span class="pv bold">${val(r.puntodeventa)}</span></div>
     </div>
     <div class="panel-section">
       <div class="panel-section-t">Cliente</div>
@@ -5082,12 +4973,6 @@ function showRepTab(tab) {
 }
 
 function renderReportes() {
-  if (!RECORDS.length) return;
-  // Recargar CONT_DATA siempre para tener datos frescos de contabilidad
-  loadContabilidad().then(() => _renderReportesInterno());
-}
-
-function _renderReportesInterno() {
   if (!RECORDS.length) return;
 
   // ── TORTA: total por estado ──
