@@ -4754,20 +4754,21 @@ function initLTMirror() {
 function calcLTLiquidar() {
   const r = RECORDS.find(x => x.id === document.getElementById('lt-edit-id').value);
   const importe = parseFloat(String(r?.importe||0).replace(/[$,]/g,'')) || 0;
-  const impCredito  = Math.round(importe * COEFICIENTES.impCredito / 100);
-  document.getElementById('lt-imp-credito').value = impCredito.toFixed(2);
-  const comLukaya   = Math.round((importe * COEFICIENTES.comLukaya / 100) - impCredito);
-  document.getElementById('lt-com-lukaya').value = comLukaya.toFixed(2);
-  const comGestora  = Math.round(importe * COEFICIENTES.comGestor / 100);
-  document.getElementById('lt-com-gestora').value = comGestora.toFixed(2);
-  const retribBanco = Math.round(importe * COEFICIENTES.retribBanco / 100);
-  document.getElementById('lt-retrib-banco').value = retribBanco.toFixed(2);
+  const impCredito  = parseFloat(document.getElementById('lt-imp-credito').value) || Math.round(importe * COEFICIENTES.impCredito / 100);
+  const comLukaya   = parseFloat(document.getElementById('lt-com-lukaya').value)  || Math.round((importe * COEFICIENTES.comLukaya / 100) - impCredito);
+  const comGestora  = parseFloat(document.getElementById('lt-com-gestora').value) || Math.round(importe * COEFICIENTES.comGestor / 100);
+  const retribBanco = parseFloat(document.getElementById('lt-retrib-banco').value)|| Math.round(importe * COEFICIENTES.retribBanco / 100);
   const comComercial = parseFloat(document.getElementById('lt-com-comercial').value||0) || 0;
   const comOperativo = parseFloat(document.getElementById('lt-com-operativo').value||0) || 0;
-  const ganancia = Math.round(comLukaya - comComercial - comOperativo - comGestora + retribBanco);
-  document.getElementById('lt-ganancia').value = ganancia.toFixed(2);
-  const gastosGest = parseFloat(document.getElementById('lt-gastos-gestoria').value||0) || 0;
-  document.getElementById('lt-a-liquidar').value = Math.round(importe - comLukaya - gastosGest - impCredito).toFixed(2);
+  const gastosGest   = parseFloat(document.getElementById('lt-gastos-gestoria').value||0) || 0;
+  const ganancia  = Math.round(comLukaya - comComercial - comOperativo - comGestora + retribBanco);
+  const aLiquidar = Math.round(importe - comLukaya - gastosGest - impCredito);
+  document.getElementById('lt-ganancia').value   = ganancia.toFixed(2);
+  document.getElementById('lt-a-liquidar').value = aLiquidar.toFixed(2);
+  if (!document.getElementById('lt-imp-credito').value)  document.getElementById('lt-imp-credito').value  = impCredito.toFixed(2);
+  if (!document.getElementById('lt-com-lukaya').value)   document.getElementById('lt-com-lukaya').value   = comLukaya.toFixed(2);
+  if (!document.getElementById('lt-com-gestora').value)  document.getElementById('lt-com-gestora').value  = comGestora.toFixed(2);
+  if (!document.getElementById('lt-retrib-banco').value) document.getElementById('lt-retrib-banco').value = retribBanco.toFixed(2);
 }
 
 function editLT(id) {
@@ -6151,17 +6152,17 @@ function renderReportes() {
           <div class="cdd" id="lt-dd-pv"></div>
         </div>
       </div>
-      <!-- Campos calculados y manuales igual que contabilidad -->
-      <div class="fc"><label>A liquidar agencia <span style="color:var(--green);font-size:10px">(calculado)</span></label><input id="lt-a-liquidar" type="number" placeholder="0" readonly style="background:#f0fdf4;font-weight:700;color:var(--green)"></div>
-      <div class="fc"><label>1,2 Imp. Crédito <span style="color:var(--green);font-size:10px">(calculado)</span></label><input id="lt-imp-credito" type="number" placeholder="0" readonly style="background:#f0fdf4;font-weight:700;color:var(--green)"></div>
+      <!-- Campos todos editables -->
+      <div class="fc"><label>A liquidar agencia</label><input id="lt-a-liquidar" type="number" placeholder="0" style="background:#f0fdf4;font-weight:700;color:var(--green)"></div>
+      <div class="fc"><label>1,2 Imp. Crédito</label><input id="lt-imp-credito" type="number" placeholder="0" oninput="calcLTLiquidar()" style="background:#f0fdf4;font-weight:700;color:var(--green)"></div>
       <div class="fc"><label>Gastos Gestoría</label><input id="lt-gastos-gestoria" type="number" placeholder="0" oninput="calcLTLiquidar()"></div>
-      <div class="fc"><label>Comisión LUKAYA <span style="color:var(--green);font-size:10px">(calculado)</span></label><input id="lt-com-lukaya" type="number" placeholder="0" readonly style="background:#f0fdf4;font-weight:700;color:var(--green)"></div>
+      <div class="fc"><label>Comisión LUKAYA</label><input id="lt-com-lukaya" type="number" placeholder="0" oninput="calcLTLiquidar()" style="background:#f0fdf4;font-weight:700;color:var(--green)"></div>
       <div class="fc"><label>Fecha liquidación</label><input id="lt-fecha-liq" type="date"></div>
       <div class="fc"><label>Comisión comercial</label><input id="lt-com-comercial" type="number" placeholder="0" oninput="calcLTLiquidar()"></div>
       <div class="fc"><label>Comisión operativo</label><input id="lt-com-operativo" type="number" placeholder="0" oninput="calcLTLiquidar()"></div>
-      <div class="fc"><label>Comisión gestor <span style="color:var(--green);font-size:10px">(calculado)</span></label><input id="lt-com-gestora" type="number" placeholder="0" readonly style="background:#f0fdf4;font-weight:700;color:var(--green)"></div>
-      <div class="fc"><label>Retribución banco <span style="color:var(--green);font-size:10px">(calculado)</span></label><input id="lt-retrib-banco" type="number" placeholder="0" readonly style="background:#f0fdf4;font-weight:700;color:var(--green)"></div>
-      <div class="fc"><label>Ganancia LUKAYA <span style="color:var(--green);font-size:10px">(calculado)</span></label><input id="lt-ganancia" type="number" placeholder="0" readonly style="background:#f0fdf4;font-weight:700;color:var(--green)"></div>
+      <div class="fc"><label>Comisión gestor</label><input id="lt-com-gestora" type="number" placeholder="0" oninput="calcLTLiquidar()" style="background:#f0fdf4;font-weight:700;color:var(--green)"></div>
+      <div class="fc"><label>Retribución banco</label><input id="lt-retrib-banco" type="number" placeholder="0" oninput="calcLTLiquidar()" style="background:#f0fdf4;font-weight:700;color:var(--green)"></div>
+      <div class="fc"><label>Ganancia LUKAYA</label><input id="lt-ganancia" type="number" placeholder="0" style="background:#f0fdf4;font-weight:700;color:var(--green)"></div>
       <div class="fc"><label>Pagado</label>
         <div class="chk-grid" style="grid-template-columns:1fr">
           <label class="chk-row"><input type="checkbox" id="lt-pagado"> Sí, pagado</label>
