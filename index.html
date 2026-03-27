@@ -732,6 +732,7 @@ pre{background:#0f172a;color:#7dd3fc;padding:18px;font-family:'JetBrains Mono',m
         <button id="tab-torta" onclick="showRepTab('torta')" style="padding:10px 20px;border:none;border-bottom:3px solid var(--blue);background:none;cursor:pointer;font-size:13px;font-weight:700;color:var(--blue);margin-bottom:-2px">🥧 Estados totales</button>
         <button id="tab-barras" onclick="showRepTab('barras')" style="padding:10px 20px;border:none;border-bottom:3px solid transparent;background:none;cursor:pointer;font-size:13px;font-weight:600;color:var(--muted);margin-bottom:-2px">📊 Registros por mes</button>
         <button id="tab-comisiones" onclick="showRepTab('comisiones')" style="padding:10px 20px;border:none;border-bottom:3px solid transparent;background:none;cursor:pointer;font-size:13px;font-weight:600;color:var(--muted);margin-bottom:-2px">💰 Comisiones por mes</button>
+        <button id="tab-prendas-pend" onclick="showRepTab('prendas-pend')" style="padding:10px 20px;border:none;border-bottom:3px solid transparent;background:none;cursor:pointer;font-size:13px;font-weight:600;color:var(--muted);margin-bottom:-2px">📌 Prendas pendientes</button>
       </div>
 
       <!-- TAB 1: ESTADOS TOTALES -->
@@ -762,6 +763,40 @@ pre{background:#0f172a;color:#7dd3fc;padding:18px;font-family:'JetBrains Mono',m
           <span id="rep-total" style="margin-left:auto;font-size:14px;font-weight:800;color:var(--ink)"></span>
         </div>
         <canvas id="chart-comisiones" style="max-height:380px"></canvas>
+      </div>
+
+      <!-- TAB 4: PRENDAS PENDIENTES -->
+      <div id="rep-prendas-pend" class="card" style="display:none">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:8px">
+          <div class="card-s">Prendas con al menos un campo sin completar</div>
+          <div style="display:flex;gap:8px;align-items:center">
+            <input id="rep-pend-srch" class="fsel" placeholder="Buscar cliente, gestor..." oninput="renderPrendasPendientes()" style="font-size:12px;padding:6px 10px;min-width:200px">
+            <span id="rep-pend-count" style="font-size:12px;font-weight:700;color:var(--muted)">—</span>
+          </div>
+        </div>
+        <div style="overflow-x:auto">
+          <table style="width:100%;border-collapse:collapse;font-size:12px">
+            <thead>
+              <tr style="background:var(--surface)">
+                <th style="padding:8px 10px;text-align:left;font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;border-bottom:2px solid var(--line);white-space:nowrap">#</th>
+                <th style="padding:8px 10px;text-align:left;font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;border-bottom:2px solid var(--line);white-space:nowrap">Cliente</th>
+                <th style="padding:8px 10px;text-align:left;font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;border-bottom:2px solid var(--line);white-space:nowrap">Banco</th>
+                <th style="padding:8px 10px;text-align:left;font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;border-bottom:2px solid var(--line);white-space:nowrap">Concesionaria</th>
+                <th style="padding:8px 10px;text-align:left;font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;border-bottom:2px solid var(--line);white-space:nowrap">Gestor</th>
+                <th style="padding:8px 10px;text-align:center;font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;border-bottom:2px solid var(--line);white-space:nowrap">En proceso</th>
+                <th style="padding:8px 10px;text-align:center;font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;border-bottom:2px solid var(--line);white-space:nowrap">Presentada</th>
+                <th style="padding:8px 10px;text-align:center;font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;border-bottom:2px solid var(--line);white-space:nowrap">Finalizada</th>
+                <th style="padding:8px 10px;text-align:left;font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;border-bottom:2px solid var(--line);white-space:nowrap">Estado solicitud</th>
+              </tr>
+            </thead>
+            <tbody id="rep-pend-tbody"></tbody>
+          </table>
+        </div>
+        <div id="rep-pend-empty" style="display:none;text-align:center;padding:40px;color:var(--muted)">
+          <div style="font-size:32px;margin-bottom:8px">✅</div>
+          <div style="font-weight:600">Sin prendas pendientes</div>
+          <div style="font-size:12px;margin-top:4px">Todas las prendas tienen los tres campos completos</div>
+        </div>
       </div>
     </div>
 
@@ -1369,7 +1404,7 @@ async function enterApp() {
   document.getElementById('script-pre').textContent = SCRIPT_CODE;
   document.getElementById('sc-imp').style.display = ME.rol === 'admin' ? '' : 'none';
   document.getElementById('f-usu').style.display = ME.rol === 'admin' ? '' : 'none';
-  document.getElementById('tn-reportes').style.display = ME.rol === 'admin' ? '' : 'none';
+  document.getElementById('tn-reportes').style.display = '';
   document.getElementById('tn-pe').style.display = ME.rol === 'admin' ? '' : 'none';
   if (ME.rol === 'admin') document.body.classList.add('is-admin');
   else document.body.classList.remove('is-admin');
@@ -3744,7 +3779,20 @@ document.getElementById('l-u').addEventListener('keydown', e => { if(e.key==='En
 // NAVIGATION
 // ══════════════════════════════════════════════
 function showV(v) {
-  if (v === 'reportes') setTimeout(renderReportes, 50);
+  if (v === 'reportes') {
+    const isAdmin = ME?.rol === 'admin';
+    // Tabs solo para admin
+    ['tab-torta','tab-barras','tab-comisiones'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.style.display = isAdmin ? '' : 'none';
+    });
+    // Para usuario: ir directo a prendas pendientes
+    if (!isAdmin) {
+      showRepTab('prendas-pend');
+    } else {
+      setTimeout(renderReportes, 50);
+    }
+  }
   ['sol','nueva','usuarios','config','micuenta','reportes','backup','contabilidad','creditos','bancos','datero'].forEach(id => {
     const el = document.getElementById('v-'+id);
     if (el) el.style.display = id===v ? '' : 'none';
@@ -5053,14 +5101,65 @@ let chartTorta = null;
 let chartBarras = null;
 
 function showRepTab(tab) {
-  ['torta','barras','comisiones'].forEach(t => {
+  ['torta','barras','comisiones','prendas-pend'].forEach(t => {
     document.getElementById('rep-'+t).style.display = t===tab ? '' : 'none';
     const btn = document.getElementById('tab-'+t);
-    btn.style.borderBottomColor = t===tab ? 'var(--blue)' : 'transparent';
-    btn.style.color = t===tab ? 'var(--blue)' : 'var(--muted)';
-    btn.style.fontWeight = t===tab ? '700' : '600';
+    if (btn) {
+      btn.style.borderBottomColor = t===tab ? 'var(--blue)' : 'transparent';
+      btn.style.color = t===tab ? 'var(--blue)' : 'var(--muted)';
+      btn.style.fontWeight = t===tab ? '700' : '600';
+    }
   });
-  setTimeout(renderReportes, 50);
+  if (tab === 'prendas-pend') renderPrendasPendientes();
+  else setTimeout(renderReportes, 50);
+}
+
+function renderPrendasPendientes() {
+  const q = (document.getElementById('rep-pend-srch')?.value || '').toLowerCase();
+  const ok  = v => `<span style="color:var(--green);font-weight:700">✓</span>`;
+  const nok = v => `<span style="color:var(--red);font-weight:700">✗</span>`;
+
+  // Prendas = registros con gestor asignado donde al menos uno de los 3 campos no está completo
+  let data = RECORDS.filter(r => {
+    if (!r.gestorAsignado || !r.gestorAsignado.trim()) return false;
+    const tieneEnProceso = !!r.enProceso;
+    const tienePresentada = !!r.presentada;
+    const tieneFinalizada = !!(r.finalizada && r.finalizada.trim());
+    // Mostrar solo si NO tienen los 3 completos
+    return !(tieneEnProceso && tienePresentada && tieneFinalizada);
+  });
+
+  if (q) data = data.filter(r =>
+    [r.nombrecliente, r.banco, r.concesionaria, r.provincia, r.gestorAsignado].some(v => (v||'').toLowerCase().includes(q))
+  );
+
+  const count = document.getElementById('rep-pend-count');
+  const tbody = document.getElementById('rep-pend-tbody');
+  const empty = document.getElementById('rep-pend-empty');
+
+  count.textContent = data.length + ' registro' + (data.length !== 1 ? 's' : '');
+
+  if (!data.length) {
+    tbody.innerHTML = '';
+    empty.style.display = '';
+    return;
+  }
+  empty.style.display = 'none';
+
+  const fmtD = v => { if (!v) return '—'; const p=v.split('-'); return p.length===3?p[2]+'/'+p[1]+'/'+p[0]:v; };
+
+  tbody.innerHTML = data.map((r, i) => `
+    <tr style="border-bottom:1px solid var(--line);cursor:pointer" onmouseover="this.style.background='var(--surface)'" onmouseout="this.style.background=''" onclick="openPanel('${r.id}')">
+      <td style="padding:8px 10px;color:var(--muted);font-size:11px">${i+1}</td>
+      <td style="padding:8px 10px;font-weight:700;white-space:nowrap">${r.nombrecliente||'—'}</td>
+      <td style="padding:8px 10px;font-weight:600">${r.banco||'—'}</td>
+      <td style="padding:8px 10px">${r.concesionaria||'—'}</td>
+      <td style="padding:8px 10px;color:var(--blue);font-weight:600">${r.gestorAsignado||'—'}</td>
+      <td style="padding:8px 10px;text-align:center">${r.enProceso ? ok() : nok()}</td>
+      <td style="padding:8px 10px;text-align:center">${r.presentada ? ok() : nok()}</td>
+      <td style="padding:8px 10px;text-align:center">${(r.finalizada && r.finalizada.trim()) ? `<span style="color:var(--green);font-weight:600;font-size:11px">${fmtD(r.finalizada)}</span>` : nok()}</td>
+      <td style="padding:8px 10px">${r.estado ? `<span class="badge b-${r.estado.toLowerCase()}"><span class="bd"></span>${r.estado}</span>` : '—'}</td>
+    </tr>`).join('');
 }
 
 function renderReportes() {
