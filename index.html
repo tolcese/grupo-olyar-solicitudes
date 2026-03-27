@@ -863,7 +863,7 @@ pre{background:#0f172a;color:#7dd3fc;padding:18px;font-family:'JetBrains Mono',m
       <div id="lt-empty" class="empty-state" style="display:none">
         <div class="ei">💼</div>
         <h3>Sin registros</h3>
-        <p>No hay solicitudes AVANZA con Punto de Venta asignado</p>
+        <p>No hay solicitudes con estado AVANZA</p>
       </div>
       <div style="overflow-x:auto;overflow-y:hidden;height:14px;border-top:1.5px solid var(--line);margin-top:4px" id="lt-mirror">
         <div id="lt-mirror-inner" style="height:1px"></div>
@@ -3915,6 +3915,8 @@ async function loadRecords() {
       renderStats();
       const tab = document.getElementById('rep-prendas-pend');
       if (tab && tab.style.display !== 'none') renderPrendasPendientes();
+      const vLT = document.getElementById('v-liq-terceros');
+      if (vLT && vLT.style.display !== 'none') renderLiqTerceros();
       // Auto-calcular contabilidad en segundo plano
       autoCalcContabilidad();
     }
@@ -4570,6 +4572,70 @@ async function cambiarPassword() {
 // ══════════════════════════════════════════════
 let LT_DATA = {}; // id -> datos contables del tercero (igual estructura que CONT_DATA)
 
+let currentLTId = null;
+
+function openLTPanel(id) {
+  currentLTId = id;
+  const r  = RECORDS.find(x => x.id === id);
+  const c  = LT_DATA[id] || CONT_DATA[id] || {};
+  const cd = CLIENTES_DATA[r?.dni] || {};
+  if (!r) return;
+
+  const val = v => (v && v !== 'undefined') ? v : '—';
+  const mon = v => v ? '$'+Number(String(v).replace(/[$,]/g,'')).toLocaleString('es-AR') : '—';
+  const fmtD = v => { if (!v) return '—'; const p=v.split('-'); return p.length===3?p[2]+'/'+p[1]+'/'+p[0]:v; };
+  const chk = v => v ? '<span class="pchk yes">✓ Sí</span>' : '<span class="pchk no">— No</span>';
+
+  document.getElementById('lt-panel-name').textContent = r.nombrecliente || '—';
+  document.getElementById('lt-panel-sub').textContent = (r.banco||'—') + ' · ' + (r.puntodeventa || 'Sin punto de venta');
+
+  document.getElementById('lt-panel-body').innerHTML = `
+    <div class="panel-section">
+      <div class="panel-section-t">Datos generales</div>
+      <div class="prow"><span class="pl">Fecha solicitud</span><span class="pv">${fmtD(r.fecha)}</span></div>
+      <div class="prow"><span class="pl">Banco</span><span class="pv bold">${val(r.banco)}</span></div>
+      <div class="prow"><span class="pl">Concesionaria</span><span class="pv">${val(r.concesionaria)}</span></div>
+      <div class="prow"><span class="pl">Estado</span><span class="pv">${r.estado?'<span class="badge b-'+r.estado.toLowerCase()+'"><span class="bd"></span>'+r.estado+'</span>':'—'}</span></div>
+      <div class="prow"><span class="pl">Punto de Venta</span><span class="pv bold" style="color:var(--blue)">${val(r.puntodeventa)}</span></div>
+      <div class="prow"><span class="pl">Gestor</span><span class="pv bold" style="color:var(--blue)">${val(r.gestorAsignado)}</span></div>
+    </div>
+    <div class="panel-section">
+      <div class="panel-section-t">Cliente</div>
+      <div class="prow"><span class="pl">Nombre</span><span class="pv bold">${val(r.nombrecliente)}</span></div>
+      <div class="prow"><span class="pl">DNI</span><span class="pv mono">${val(r.dni)}</span></div>
+      <div class="prow"><span class="pl">Teléfono</span><span class="pv">${val(cd.telefono)}</span></div>
+      <div class="prow"><span class="pl">Email</span><span class="pv">${val(cd.email)}</span></div>
+    </div>
+    <div class="panel-section">
+      <div class="panel-section-t">Financiamiento</div>
+      <div class="prow"><span class="pl">Imp. Solicitado</span><span class="pv mono bold">${mon(r.importe)}</span></div>
+      <div class="prow"><span class="pl">Tasa</span><span class="pv">${val(r.tasa)}</span></div>
+      <div class="prow"><span class="pl">Vehículo</span><span class="pv">${val(r.descripcion)}</span></div>
+    </div>
+    <div class="panel-section">
+      <div class="panel-section-t">Contabilidad</div>
+      <div class="prow"><span class="pl">A liquidar agencia</span><span class="pv mono bold" style="color:var(--green)">${mon(c.aLiquidar)}</span></div>
+      <div class="prow"><span class="pl">1,2 Imp. Crédito</span><span class="pv mono">${mon(c.impCredito)}</span></div>
+      <div class="prow"><span class="pl">Comisión LUKAYA</span><span class="pv mono">${mon(c.comLukaya)}</span></div>
+      <div class="prow"><span class="pl">Gastos Gestoría</span><span class="pv mono">${mon(c.gastosGestoria)}</span></div>
+      <div class="prow"><span class="pl">Ganancia LUKAYA</span><span class="pv mono bold" style="color:var(--green)">${mon(c.ganancia)}</span></div>
+      <div class="prow"><span class="pl">Fecha liquidación</span><span class="pv">${fmtD(c.fechaLiq)}</span></div>
+      <div class="prow"><span class="pl">Pagado</span><span class="pv">${chk(c.pagado)}</span></div>
+      <div class="prow"><span class="pl">Fecha pagado</span><span class="pv">${fmtD(c.fechaPagado)}</span></div>
+      <div class="prow"><span class="pl">Pago com. gest.</span><span class="pv">${chk(c.pagoGest)}</span></div>
+      ${c.obs ? `<div class="prow"><span class="pl">Observaciones</span><span class="pv">${val(c.obs)}</span></div>` : ''}
+    </div>`;
+
+  document.getElementById('lt-panel-overlay').classList.add('open');
+  document.getElementById('lt-side-panel').style.transform = 'translateX(0)';
+}
+
+function closeLTPanel() {
+  document.getElementById('lt-panel-overlay').classList.remove('open');
+  document.getElementById('lt-side-panel').style.transform = 'translateX(100%)';
+  currentLTId = null;
+}
+
 async function recargarLiqTerceros() {
   const btn = document.querySelector('[onclick="recargarLiqTerceros()"]');
   if (btn) { btn.disabled = true; btn.textContent = '⏳ Actualizando...'; }
@@ -4603,8 +4669,8 @@ function renderLiqTerceros() {
   const hasta = document.getElementById('lt-hasta')?.value || '';
   const pv    = document.getElementById('lt-pv')?.value || '';
 
-  // Solo AVANZA con punto de venta asignado
-  let data = RECORDS.filter(r => (r.estado||'').toUpperCase() === 'AVANZA' && r.puntodeventa && r.puntodeventa.trim());
+  // Todos los AVANZA (con o sin punto de venta asignado)
+  let data = RECORDS.filter(r => (r.estado||'').toUpperCase() === 'AVANZA');
   if (q)     data = data.filter(r => [r.nombrecliente, r.banco, r.concesionaria, r.puntodeventa, r.gestorAsignado].some(v => (v||'').toLowerCase().includes(q)));
   if (desde) data = data.filter(r => r.fecha && r.fecha >= desde);
   if (hasta) data = data.filter(r => r.fecha && r.fecha <= hasta);
@@ -4632,13 +4698,16 @@ function renderLiqTerceros() {
   tbody.innerHTML = data.map((r, i) => {
     // Usar LT_DATA si existe, sino caer en CONT_DATA
     const c = LT_DATA[r.id] || CONT_DATA[r.id] || {};
+    const pvLabel = r.puntodeventa
+      ? `<span style="background:var(--blue-soft);color:var(--blue);padding:2px 8px;border-radius:20px;font-size:11px;font-weight:700">${r.puntodeventa}</span>`
+      : `<span style="color:var(--muted);font-size:11px;font-style:italic">Sin asignar</span>`;
     return `
-    <tr style="cursor:pointer" onclick="editLT('${r.id}')">
+    <tr style="cursor:pointer" onclick="openLTPanel('${r.id}')">
       <td style="position:sticky;left:0;background:#fff;z-index:1;box-shadow:2px 0 6px rgba(0,0,0,.04)" onclick="event.stopPropagation()">
         <div class="abtns"><button class="ibtn" onclick="editLT('${r.id}')" title="Editar">✏️</button></div>
       </td>
       <td style="color:var(--muted);font-size:11px">${i+1}</td>
-      <td style="font-weight:700;color:var(--blue);white-space:nowrap">${val(r.puntodeventa)}</td>
+      <td style="white-space:nowrap">${pvLabel}</td>
       <td>${r.fecha ? r.fecha.split('-').reverse().join('/') : '—'}</td>
       <td>${r.estado ? `<span class="badge b-${r.estado.toLowerCase()}"><span class="bd"></span>${r.estado}</span>` : '—'}</td>
       <td style="font-weight:600">${val(r.banco)}</td>
@@ -4806,6 +4875,7 @@ async function saveLTEdit() {
     toast('Guardado ✓', 'ok');
     closeLTEdit();
     renderLiqTerceros();
+    if (currentLTId === id) openLTPanel(id);
   } catch(e) { toast('Error: ' + e.message, 'er'); }
 }
 
@@ -6040,6 +6110,22 @@ function renderReportes() {
 </div>
 
 
+
+<!-- PANEL LATERAL LIQ TERCEROS -->
+<div class="overlay" id="lt-panel-overlay" onclick="closeLTPanel()" style="background:transparent;z-index:650"></div>
+<div id="lt-side-panel" style="position:fixed;top:0;right:0;bottom:0;width:420px;max-width:95vw;background:#fff;box-shadow:-8px 0 40px rgba(0,0,0,.15);z-index:651;transform:translateX(100%);transition:transform .3s cubic-bezier(.4,0,.2,1);display:flex;flex-direction:column">
+  <div class="panel-head">
+    <div>
+      <div style="font-weight:800;font-size:16px" id="lt-panel-name">—</div>
+      <div style="font-size:12px;color:var(--muted);margin-top:2px" id="lt-panel-sub">—</div>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center">
+      <button class="btn btn-p" style="font-size:12px;padding:6px 12px" onclick="editLT(currentLTId)">✏️ Editar</button>
+      <button onclick="closeLTPanel()" style="background:none;border:none;font-size:22px;cursor:pointer;color:var(--muted);line-height:1">×</button>
+    </div>
+  </div>
+  <div id="lt-panel-body" style="overflow-y:auto;flex:1;padding:20px 24px"></div>
+</div>
 
 <!-- MODAL EDITAR LIQ TERCEROS -->
 <div class="overlay" id="lt-edit-overlay" onclick="if(event.target===this)closeLTEdit()" style="z-index:700">
