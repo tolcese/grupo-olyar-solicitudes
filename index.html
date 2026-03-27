@@ -3839,9 +3839,49 @@ async function loadRecords() {
       renderStats();
       const tab = document.getElementById('rep-prendas-pend');
       if (tab && tab.style.display !== 'none') renderPrendasPendientes();
+      // Auto-calcular contabilidad en segundo plano
+      autoCalcContabilidad();
     }
     syncUI('ok');
   } catch(e) { syncUI('err'); toast('Error cargando registros: '+e.message,'er'); }
+}
+
+async function autoCalcContabilidad() {
+  const sinDatos = RECORDS.filter(r => {
+    if ((r.estado||'').toUpperCase() !== 'AVANZA') return false;
+    const c = CONT_DATA[r.id] || {};
+    return !c.aLiquidar && !c.comLukaya && !c.impCredito;
+  });
+  if (!sinDatos.length) return;
+
+  for (const r of sinDatos) {
+    const importe = parseFloat(String(r.importe||0).replace(/[$,]/g,'')) || 0;
+    if (!importe) continue;
+    const impCredito  = Math.round(importe * COEFICIENTES.impCredito / 100);
+    const comLukaya   = Math.round((importe * COEFICIENTES.comLukaya / 100) - impCredito);
+    const comGestora  = Math.round(importe * COEFICIENTES.comGestor / 100);
+    const retribBanco = Math.round(importe * COEFICIENTES.retribBanco / 100);
+    const ganancia    = Math.round(comLukaya - comGestora + retribBanco);
+    const aLiquidar   = Math.round(importe - comLukaya - impCredito);
+    const data = {
+      action:'saveContabilidad', id:r.id,
+      aLiquidar:String(aLiquidar), impCredito:String(impCredito),
+      gastosGestoria:'', comLukaya:String(comLukaya), fechaLiq:'',
+      comComercial:'', comOperativo:'', comGestora:String(comGestora),
+      retribBanco:String(retribBanco), ganancia:String(ganancia),
+      pagado:'false', fechaPagado:'', pagoGest:'false', fechaPagoGest:'', obs:''
+    };
+    try {
+      await gas(data);
+      CONT_DATA[r.id] = { ...data, pagado:false, pagoGest:false };
+    } catch(e) {}
+  }
+
+  // Re-renderizar si contabilidad o reportes están visibles
+  const vCont = document.getElementById('v-contabilidad');
+  if (vCont && vCont.style.display !== 'none') renderContabilidad();
+  const tabRep = document.getElementById('rep-comisiones');
+  if (tabRep && tabRep.style.display !== 'none') _renderReportesInterno();
 }
 
 async function loadLists() {
@@ -4082,12 +4122,13 @@ async function saveRecord() {
     await gas({ ...rec, action, sheetName:SHEET_NAME });
     syncUI('ok');
     toast(editId?'Solicitud actualizada ✓':'Solicitud guardada ✓','ok');
+    // Auto-calcular contabilidad para el registro recién guardado
+    if ((rec.estado||'').toUpperCase() === 'AVANZA') autoCalcContabilidad();
     const wasEdit = !!editId;
     const savedPage = CURRENT_PAGE;
     editId = null;
     showV('sol');
     if (wasEdit) {
-      // Restaurar página y scroll
       CURRENT_PAGE = savedPage;
       renderTablePage();
     }
