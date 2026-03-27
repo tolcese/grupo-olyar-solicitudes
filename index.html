@@ -3643,6 +3643,7 @@ async function savePrenda() {
     toast('Prenda actualizada ✓', 'ok');
     closePrendaEdit();
     renderPrendas();
+    renderPrendasPendientes();
   } catch(e) { toast('Error: ' + e.message, 'er'); }
 }
 
@@ -3658,6 +3659,7 @@ async function delPrenda(id) {
     if (r) { r.gestorAsignado = ''; r.enProceso = false; r.presentada = false; r.finalizada = ''; }
     toast('Registro eliminado de Prendas', 'in');
     renderPrendas();
+    renderPrendasPendientes();
   } catch(e) { toast('Error: ' + e.message, 'er'); }
 }
 
@@ -3831,7 +3833,13 @@ async function loadRecords() {
   syncUI('busy');
   try {
     const res = await gas({ action:'getRecords', sheetName: SHEET_NAME });
-    if (res.records) { RECORDS = res.records; renderTable(); renderStats(); }
+    if (res.records) {
+      RECORDS = res.records;
+      renderTable();
+      renderStats();
+      const tab = document.getElementById('rep-prendas-pend');
+      if (tab && tab.style.display !== 'none') renderPrendasPendientes();
+    }
     syncUI('ok');
   } catch(e) { syncUI('err'); toast('Error cargando registros: '+e.message,'er'); }
 }
