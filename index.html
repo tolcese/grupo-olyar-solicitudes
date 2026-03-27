@@ -800,6 +800,76 @@ pre{background:#0f172a;color:#7dd3fc;padding:18px;font-family:'JetBrains Mono',m
       </div>
     </div>
 
+    <!-- LIQUIDACIONES A TERCEROS -->
+    <div id="v-liq-terceros" style="display:none">
+      <div class="ph">
+        <div><div class="ph-t">💼 Liquidaciones a Terceros</div><div class="ph-s">Gestión contable por punto de venta</div></div>
+        <button class="btn btn-s" onclick="recargarLiqTerceros()">🔄 Actualizar</button>
+      </div>
+      <div class="card" style="padding:16px 20px;margin-bottom:16px">
+        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+          <div class="searchbox" style="min-width:220px">
+            <span style="color:var(--muted)">🔍</span>
+            <input id="lt-srch" placeholder="Buscar cliente, banco, punto de venta..." oninput="renderLiqTerceros()">
+          </div>
+          <input type="date" class="fsel" id="lt-desde" onchange="renderLiqTerceros()" title="Desde" style="font-size:12px;padding:6px 10px">
+          <input type="date" class="fsel" id="lt-hasta" onchange="renderLiqTerceros()" title="Hasta" style="font-size:12px;padding:6px 10px">
+          <select class="fsel" id="lt-pv" onchange="renderLiqTerceros()" style="font-size:12px;padding:6px 10px">
+            <option value="">Todos los puntos de venta</option>
+          </select>
+          <button class="btn btn-s" style="font-size:12px" onclick="limpiarFiltrosLT()">✕ Limpiar</button>
+          <div id="lt-count" style="font-size:12px;color:var(--muted);margin-left:auto">—</div>
+        </div>
+      </div>
+      <div style="overflow-x:auto;border-radius:12px;border:1.5px solid var(--line)">
+        <div style="overflow-x:auto;overflow-y:visible;scrollbar-width:none" id="lt-scroll">
+          <table class="cont-table">
+            <thead>
+              <tr>
+                <th>Acciones</th>
+                <th>#</th>
+                <th>Punto de Venta</th>
+                <th>Fecha solicitud</th>
+                <th>Estado</th>
+                <th>Banco</th>
+                <th>Concesionaria</th>
+                <th>Cliente</th>
+                <th>DNI</th>
+                <th>Gestor</th>
+                <th>Vehículo</th>
+                <th>Imp. Solicitado</th>
+                <th>Tasa</th>
+                <th>A liquidar agencia</th>
+                <th>1,2 Imp. Crédito</th>
+                <th>Gastos Gestoría</th>
+                <th>Comisión LUKAYA</th>
+                <th>Fecha liquidación</th>
+                <th>Comisión comercial</th>
+                <th>Comisión operativo</th>
+                <th>Comisión gestor</th>
+                <th>Retribución banco</th>
+                <th>Ganancia LUKAYA</th>
+                <th>Pagado</th>
+                <th>Fecha pagado</th>
+                <th>Pago com. gest.</th>
+                <th>Fecha pagado com. gest.</th>
+                <th>Observaciones</th>
+              </tr>
+            </thead>
+            <tbody id="lt-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+      <div id="lt-empty" class="empty-state" style="display:none">
+        <div class="ei">💼</div>
+        <h3>Sin registros</h3>
+        <p>No hay solicitudes AVANZA con Punto de Venta asignado</p>
+      </div>
+      <div style="overflow-x:auto;overflow-y:hidden;height:14px;border-top:1.5px solid var(--line);margin-top:4px" id="lt-mirror">
+        <div id="lt-mirror-inner" style="height:1px"></div>
+      </div>
+    </div>
+
     <!-- MI CUENTA -->
     <div id="v-micuenta" style="display:none">
       <div class="ph">
@@ -1466,6 +1536,7 @@ function openSidebar() {
   document.getElementById('sb-backup').style.display = ME?.rol === 'admin' ? '' : 'none';
   document.getElementById('sb-usuarios').style.display = ME?.rol === 'admin' ? '' : 'none';
   document.getElementById('sb-contabilidad').style.display = '';
+  document.getElementById('sb-liq-terceros').style.display = ME?.rol === 'admin' ? '' : 'none';
 }
 function closeSidebar() {
   document.getElementById('sidebar').classList.remove('open');
@@ -3795,7 +3866,7 @@ function showV(v) {
       setTimeout(renderReportes, 50);
     }
   }
-  ['sol','nueva','usuarios','config','micuenta','reportes','backup','contabilidad','creditos','bancos','datero'].forEach(id => {
+  ['sol','nueva','usuarios','config','micuenta','reportes','backup','contabilidad','creditos','bancos','datero','liq-terceros'].forEach(id => {
     const el = document.getElementById('v-'+id);
     if (el) el.style.display = id===v ? '' : 'none';
     const tn = document.getElementById('tn-'+id);
@@ -3822,6 +3893,11 @@ function showV(v) {
     renderContabilidad();
     setTimeout(initContMirror, 100);
     recargarLiquidaciones();
+  }
+  if (v === 'liq-terceros') {
+    initLTSelectPV();
+    renderLiqTerceros();
+    setTimeout(initLTMirror, 100);
   }
 }
 
@@ -4487,6 +4563,287 @@ async function cambiarPassword() {
     document.getElementById('pwd-rep').value    = '';
     toast('Contraseña actualizada ✓','ok');
   } catch(e) { toast('Error: '+e.message,'er'); }
+}
+
+// ══════════════════════════════════════════════
+// LIQUIDACIONES A TERCEROS
+// ══════════════════════════════════════════════
+let LT_DATA = {}; // id -> datos contables del tercero (igual estructura que CONT_DATA)
+
+async function recargarLiqTerceros() {
+  const btn = document.querySelector('[onclick="recargarLiqTerceros()"]');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Actualizando...'; }
+  await Promise.all([loadRecords(), loadContabilidad()]);
+  initLTSelectPV();
+  renderLiqTerceros();
+  if (btn) { btn.disabled = false; btn.textContent = '🔄 Actualizar'; }
+  toast('Datos actualizados ✓', 'ok');
+}
+
+function initLTSelectPV() {
+  const sel = document.getElementById('lt-pv');
+  if (!sel) return;
+  const current = sel.value;
+  sel.innerHTML = '<option value="">Todos los puntos de venta</option>' +
+    (LISTS.puntodeventa || []).map(p => `<option>${p}</option>`).join('');
+  if (current) sel.value = current;
+}
+
+function limpiarFiltrosLT() {
+  document.getElementById('lt-srch').value = '';
+  document.getElementById('lt-desde').value = '';
+  document.getElementById('lt-hasta').value = '';
+  document.getElementById('lt-pv').value = '';
+  renderLiqTerceros();
+}
+
+function renderLiqTerceros() {
+  const q     = (document.getElementById('lt-srch')?.value || '').toLowerCase();
+  const desde = document.getElementById('lt-desde')?.value || '';
+  const hasta = document.getElementById('lt-hasta')?.value || '';
+  const pv    = document.getElementById('lt-pv')?.value || '';
+
+  // Solo AVANZA con punto de venta asignado
+  let data = RECORDS.filter(r => (r.estado||'').toUpperCase() === 'AVANZA' && r.puntodeventa && r.puntodeventa.trim());
+  if (q)     data = data.filter(r => [r.nombrecliente, r.banco, r.concesionaria, r.puntodeventa, r.gestorAsignado].some(v => (v||'').toLowerCase().includes(q)));
+  if (desde) data = data.filter(r => r.fecha && r.fecha >= desde);
+  if (hasta) data = data.filter(r => r.fecha && r.fecha <= hasta);
+  if (pv)    data = data.filter(r => (r.puntodeventa||'') === pv);
+
+  const tbody = document.getElementById('lt-tbody');
+  const empty = document.getElementById('lt-empty');
+  const count = document.getElementById('lt-count');
+
+  count.textContent = data.length + ' registro' + (data.length !== 1 ? 's' : '');
+
+  if (!data.length) {
+    tbody.innerHTML = '';
+    empty.style.display = '';
+    setTimeout(initLTMirror, 50);
+    return;
+  }
+  empty.style.display = 'none';
+
+  const mon  = v => v ? '$'+Number(String(v).replace(/[$,]/g,'')).toLocaleString('es-AR') : '—';
+  const val  = v => (v && v !== 'undefined') ? v : '—';
+  const fmtD = v => { if (!v) return '—'; const p=v.split('-'); return p.length===3?p[2]+'/'+p[1]+'/'+p[0]:v; };
+  const chkV = v => v ? '<span style="color:var(--green);font-weight:700">✓</span>' : '<span style="color:var(--line)">—</span>';
+
+  tbody.innerHTML = data.map((r, i) => {
+    // Usar LT_DATA si existe, sino caer en CONT_DATA
+    const c = LT_DATA[r.id] || CONT_DATA[r.id] || {};
+    return `
+    <tr style="cursor:pointer" onclick="editLT('${r.id}')">
+      <td style="position:sticky;left:0;background:#fff;z-index:1;box-shadow:2px 0 6px rgba(0,0,0,.04)" onclick="event.stopPropagation()">
+        <div class="abtns"><button class="ibtn" onclick="editLT('${r.id}')" title="Editar">✏️</button></div>
+      </td>
+      <td style="color:var(--muted);font-size:11px">${i+1}</td>
+      <td style="font-weight:700;color:var(--blue);white-space:nowrap">${val(r.puntodeventa)}</td>
+      <td>${r.fecha ? r.fecha.split('-').reverse().join('/') : '—'}</td>
+      <td>${r.estado ? `<span class="badge b-${r.estado.toLowerCase()}"><span class="bd"></span>${r.estado}</span>` : '—'}</td>
+      <td style="font-weight:600">${val(r.banco)}</td>
+      <td>${val(r.concesionaria)}</td>
+      <td style="font-weight:700">${val(r.nombrecliente)}</td>
+      <td style="font-family:monospace">${val(r.dni)}</td>
+      <td style="font-weight:600;color:var(--blue)">${val(r.gestorAsignado)}</td>
+      <td>${val(r.descripcion)}</td>
+      <td style="font-family:monospace">${mon(r.importe)}</td>
+      <td>${val(r.tasa)}</td>
+      <td style="font-family:monospace">${mon(c.aLiquidar)}</td>
+      <td style="font-family:monospace">${mon(c.impCredito)}</td>
+      <td style="font-family:monospace">${mon(c.gastosGestoria)}</td>
+      <td style="font-family:monospace">${mon(c.comLukaya)}</td>
+      <td>${fmtD(c.fechaLiq)}</td>
+      <td style="font-family:monospace">${mon(c.comComercial)}</td>
+      <td style="font-family:monospace">${mon(c.comOperativo)}</td>
+      <td style="font-family:monospace">${mon(c.comGestora)}</td>
+      <td style="font-family:monospace">${mon(c.retribBanco)}</td>
+      <td style="font-family:monospace;color:var(--green);font-weight:600">${mon(c.ganancia)}</td>
+      <td class="chk">${chkV(c.pagado)}</td>
+      <td>${fmtD(c.fechaPagado)}</td>
+      <td class="chk">${chkV(c.pagoGest)}</td>
+      <td>${fmtD(c.fechaPagoGest)}</td>
+      <td style="max-width:140px;overflow:hidden;text-overflow:ellipsis" title="${c.obs||''}">${val(c.obs)}</td>
+    </tr>`;
+  }).join('');
+
+  setTimeout(initLTMirror, 50);
+}
+
+function initLTMirror() {
+  const scroll = document.getElementById('lt-scroll');
+  const mirror = document.getElementById('lt-mirror');
+  const inner  = document.getElementById('lt-mirror-inner');
+  if (!scroll || !mirror || !inner) return;
+  inner.style.width = scroll.scrollWidth + 'px';
+  mirror.style.display = scroll.scrollWidth > scroll.clientWidth + 2 ? 'block' : 'none';
+  let syncing = false;
+  scroll.onscroll = () => { if (syncing) return; syncing = true; mirror.scrollLeft = scroll.scrollLeft; syncing = false; };
+  mirror.onscroll = () => { if (syncing) return; syncing = true; scroll.scrollLeft = mirror.scrollLeft; syncing = false; };
+}
+
+function calcLTLiquidar() {
+  const r = RECORDS.find(x => x.id === document.getElementById('lt-edit-id').value);
+  const importe = parseFloat(String(r?.importe||0).replace(/[$,]/g,'')) || 0;
+  const impCredito  = Math.round(importe * COEFICIENTES.impCredito / 100);
+  document.getElementById('lt-imp-credito').value = impCredito.toFixed(2);
+  const comLukaya   = Math.round((importe * COEFICIENTES.comLukaya / 100) - impCredito);
+  document.getElementById('lt-com-lukaya').value = comLukaya.toFixed(2);
+  const comGestora  = Math.round(importe * COEFICIENTES.comGestor / 100);
+  document.getElementById('lt-com-gestora').value = comGestora.toFixed(2);
+  const retribBanco = Math.round(importe * COEFICIENTES.retribBanco / 100);
+  document.getElementById('lt-retrib-banco').value = retribBanco.toFixed(2);
+  const comComercial = parseFloat(document.getElementById('lt-com-comercial').value||0) || 0;
+  const comOperativo = parseFloat(document.getElementById('lt-com-operativo').value||0) || 0;
+  const ganancia = Math.round(comLukaya - comComercial - comOperativo - comGestora + retribBanco);
+  document.getElementById('lt-ganancia').value = ganancia.toFixed(2);
+  const gastosGest = parseFloat(document.getElementById('lt-gastos-gestoria').value||0) || 0;
+  document.getElementById('lt-a-liquidar').value = Math.round(importe - comLukaya - gastosGest - impCredito).toFixed(2);
+}
+
+function editLT(id) {
+  const r  = RECORDS.find(x => x.id === id);
+  const c  = LT_DATA[id] || CONT_DATA[id] || {};
+  const cd = CLIENTES_DATA[r?.dni] || {};
+  const val = v => (v && v !== 'undefined') ? v : '—';
+  const mon = v => v ? '$'+Number(String(v).replace(/[$,]/g,'')).toLocaleString('es-AR') : '—';
+
+  document.getElementById('lt-edit-id').value = id;
+  document.getElementById('lt-edit-nombre').textContent = r ? (r.nombrecliente||id) : id;
+
+  const infoEl = document.getElementById('lt-edit-info');
+  if (infoEl && r) {
+    infoEl.innerHTML = `
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;background:var(--surface);border-radius:10px;padding:14px;margin-bottom:16px;font-size:12px">
+        <div><span style="color:var(--muted);font-weight:600;display:block;font-size:10px;text-transform:uppercase">Fecha</span>${r.fecha ? r.fecha.split('-').reverse().join('/') : '—'}</div>
+        <div><span style="color:var(--muted);font-weight:600;display:block;font-size:10px;text-transform:uppercase">Banco</span>${val(r.banco)}</div>
+        <div><span style="color:var(--muted);font-weight:600;display:block;font-size:10px;text-transform:uppercase">Estado</span>${val(r.estado)}</div>
+        <div><span style="color:var(--muted);font-weight:600;display:block;font-size:10px;text-transform:uppercase">Concesionaria</span>${val(r.concesionaria)}</div>
+        <div><span style="color:var(--muted);font-weight:600;display:block;font-size:10px;text-transform:uppercase">DNI</span>${val(r.dni)}</div>
+        <div><span style="color:var(--muted);font-weight:600;display:block;font-size:10px;text-transform:uppercase">Teléfono</span>${val(cd.telefono)}</div>
+        <div><span style="color:var(--muted);font-weight:600;display:block;font-size:10px;text-transform:uppercase">Vehículo</span>${val(r.descripcion)}</div>
+        <div><span style="color:var(--muted);font-weight:600;display:block;font-size:10px;text-transform:uppercase">Imp. Solicitado</span>${mon(r.importe)}</div>
+        <div><span style="color:var(--muted);font-weight:600;display:block;font-size:10px;text-transform:uppercase">Gestor</span><b style="color:var(--blue)">${val(r.gestorAsignado)}</b></div>
+      </div>`;
+  }
+
+  // Punto de Venta
+  document.getElementById('lt-puntodeventa').value = r?.puntodeventa || '';
+  renderLTPVDD();
+
+  // Campos manuales
+  document.getElementById('lt-gastos-gestoria').value = c.gastosGestoria || '';
+  document.getElementById('lt-com-comercial').value   = c.comComercial   || '';
+  document.getElementById('lt-com-operativo').value   = c.comOperativo   || '';
+  document.getElementById('lt-fecha-liq').value       = c.fechaLiq       || '';
+  document.getElementById('lt-pagado').checked        = !!c.pagado;
+  document.getElementById('lt-fecha-pagado').value    = c.fechaPagado    || '';
+  document.getElementById('lt-pago-gest').checked     = !!c.pagoGest;
+  document.getElementById('lt-fecha-pago-gest').value = c.fechaPagoGest  || '';
+  document.getElementById('lt-obs').value             = c.obs            || '';
+
+  if (c.impCredito || c.comLukaya || c.aLiquidar) {
+    document.getElementById('lt-imp-credito').value  = c.impCredito  || '';
+    document.getElementById('lt-com-lukaya').value   = c.comLukaya   || '';
+    document.getElementById('lt-com-gestora').value  = c.comGestora  || '';
+    document.getElementById('lt-retrib-banco').value = c.retribBanco || '';
+    document.getElementById('lt-ganancia').value     = c.ganancia    || '';
+    document.getElementById('lt-a-liquidar').value   = c.aLiquidar   || '';
+  } else {
+    setTimeout(calcLTLiquidar, 50);
+  }
+
+  document.getElementById('lt-edit-overlay').classList.add('open');
+}
+
+function closeLTEdit() {
+  document.getElementById('lt-edit-overlay').classList.remove('open');
+  document.querySelectorAll('.cdd').forEach(d => d.classList.remove('open'));
+}
+
+async function saveLTEdit() {
+  const id = document.getElementById('lt-edit-id').value;
+  const pv = document.getElementById('lt-puntodeventa').value.trim();
+  if (!pv) { toast('El Punto de Venta es obligatorio', 'er'); return; }
+
+  // Si se cambió el punto de venta, guardarlo en el registro
+  const r = RECORDS.find(x => x.id === id);
+  if (r && r.puntodeventa !== pv) {
+    r.puntodeventa = pv;
+    // Agregar a la lista si es nuevo
+    if (!LISTS.puntodeventa.includes(pv)) {
+      LISTS.puntodeventa.push(pv);
+      await gas({ action:'addPuntoDeVenta', nombre:pv });
+      initLTSelectPV();
+    }
+    // Guardar en solicitud
+    await gas({ ...r, action:'edit', sheetName:SHEET_NAME });
+  }
+
+  const data = {
+    action: 'saveContabilidad', id,
+    aLiquidar:      document.getElementById('lt-a-liquidar').value,
+    impCredito:     document.getElementById('lt-imp-credito').value,
+    gastosGestoria: document.getElementById('lt-gastos-gestoria').value,
+    comLukaya:      document.getElementById('lt-com-lukaya').value,
+    fechaLiq:       document.getElementById('lt-fecha-liq').value,
+    comComercial:   document.getElementById('lt-com-comercial').value,
+    comOperativo:   document.getElementById('lt-com-operativo').value,
+    comGestora:     document.getElementById('lt-com-gestora').value,
+    retribBanco:    document.getElementById('lt-retrib-banco').value,
+    ganancia:       document.getElementById('lt-ganancia').value,
+    pagado:         String(document.getElementById('lt-pagado').checked),
+    fechaPagado:    document.getElementById('lt-fecha-pagado').value,
+    pagoGest:       String(document.getElementById('lt-pago-gest').checked),
+    fechaPagoGest:  document.getElementById('lt-fecha-pago-gest').value,
+    obs:            document.getElementById('lt-obs').value,
+  };
+
+  try {
+    await gas(data);
+    LT_DATA[id] = { ...data, pagado: document.getElementById('lt-pagado').checked, pagoGest: document.getElementById('lt-pago-gest').checked };
+    CONT_DATA[id] = LT_DATA[id];
+    toast('Guardado ✓', 'ok');
+    closeLTEdit();
+    renderLiqTerceros();
+  } catch(e) { toast('Error: ' + e.message, 'er'); }
+}
+
+// Dropdown Punto de Venta en el modal LT
+function renderLTPVDD() {
+  const dd = document.getElementById('lt-dd-pv');
+  if (!dd) return;
+  const opts = LISTS.puntodeventa || [];
+  if (!opts.length) {
+    dd.innerHTML = '<div class="copt" style="color:var(--muted);font-style:italic;cursor:default;font-size:12px">Sin opciones — usá ＋ para agregar</div>';
+    return;
+  }
+  dd.innerHTML = opts.map(v => `<div class="copt" onmousedown="pickLTPV('${v.replace(/'/g,"\\'")}')"><span>${v}</span></div>`).join('');
+}
+
+function toggleLTPV() {
+  const dd = document.getElementById('lt-dd-pv');
+  const isOpen = dd.classList.contains('open');
+  document.querySelectorAll('.cdd').forEach(d => d.classList.remove('open'));
+  if (!isOpen) { renderLTPVDD(); dd.classList.add('open'); document.getElementById('lt-puntodeventa').focus(); }
+}
+
+function pickLTPV(val) {
+  document.getElementById('lt-puntodeventa').value = val;
+  document.getElementById('lt-dd-pv').classList.remove('open');
+}
+
+async function addLTPVOpt() {
+  const input = document.getElementById('lt-puntodeventa');
+  const val = input.value.trim();
+  if (!val) { toast('Escribí el nombre del punto de venta', 'wa'); return; }
+  if (!LISTS.puntodeventa.includes(val)) {
+    LISTS.puntodeventa.push(val);
+    await gas({ action:'addPuntoDeVenta', nombre:val });
+    initLTSelectPV();
+    toast('Punto de venta agregado ✓', 'ok');
+  }
+  renderLTPVDD();
 }
 
 // ══════════════════════════════════════════════
@@ -5379,6 +5736,9 @@ function renderReportes() {
     <button class="sb-item" onclick="closeSidebar();showV('datero')">
       <span class="sb-icon">📨</span> Datero
     </button>
+    <button class="sb-item" id="sb-liq-terceros" onclick="closeSidebar();showV('liq-terceros')" style="display:none">
+      <span class="sb-icon">💼</span> Liquidaciones a Terceros
+    </button>
     <button class="sb-item" onclick="closeSidebar();openNotasBlock()">
       <span class="sb-icon">📝</span> Block de notas
     </button>
@@ -5680,6 +6040,62 @@ function renderReportes() {
 </div>
 
 
+
+<!-- MODAL EDITAR LIQ TERCEROS -->
+<div class="overlay" id="lt-edit-overlay" onclick="if(event.target===this)closeLTEdit()" style="z-index:700">
+  <div class="modal" style="max-width:720px;max-height:92vh;overflow-y:auto" onclick="event.stopPropagation()">
+    <div class="mh">
+      <div>
+        <div class="mt">✏️ Liquidación a Terceros</div>
+        <div style="font-size:11.5px;color:var(--muted);margin-top:3px" id="lt-edit-nombre">—</div>
+      </div>
+      <button class="xbtn" onclick="closeLTEdit()">×</button>
+    </div>
+    <input type="hidden" id="lt-edit-id">
+    <div id="lt-edit-info"></div>
+    <div class="fg" style="grid-template-columns:repeat(2,1fr);gap:12px">
+      <!-- Punto de Venta -->
+      <div class="fc span2">
+        <label>Punto de Venta *</label>
+        <div class="combo"><input id="lt-puntodeventa" placeholder="Seleccioná o escribí..." autocomplete="off">
+          <div class="combo-btns">
+            <button class="cb" onclick="toggleLTPV()" type="button">▾</button>
+            <button class="cb" onclick="addLTPVOpt()" type="button">＋</button>
+          </div>
+          <div class="cdd" id="lt-dd-pv"></div>
+        </div>
+      </div>
+      <!-- Campos calculados y manuales igual que contabilidad -->
+      <div class="fc"><label>A liquidar agencia <span style="color:var(--green);font-size:10px">(calculado)</span></label><input id="lt-a-liquidar" type="number" placeholder="0" readonly style="background:#f0fdf4;font-weight:700;color:var(--green)"></div>
+      <div class="fc"><label>1,2 Imp. Crédito <span style="color:var(--green);font-size:10px">(calculado)</span></label><input id="lt-imp-credito" type="number" placeholder="0" readonly style="background:#f0fdf4;font-weight:700;color:var(--green)"></div>
+      <div class="fc"><label>Gastos Gestoría</label><input id="lt-gastos-gestoria" type="number" placeholder="0" oninput="calcLTLiquidar()"></div>
+      <div class="fc"><label>Comisión LUKAYA <span style="color:var(--green);font-size:10px">(calculado)</span></label><input id="lt-com-lukaya" type="number" placeholder="0" readonly style="background:#f0fdf4;font-weight:700;color:var(--green)"></div>
+      <div class="fc"><label>Fecha liquidación</label><input id="lt-fecha-liq" type="date"></div>
+      <div class="fc"><label>Comisión comercial</label><input id="lt-com-comercial" type="number" placeholder="0" oninput="calcLTLiquidar()"></div>
+      <div class="fc"><label>Comisión operativo</label><input id="lt-com-operativo" type="number" placeholder="0" oninput="calcLTLiquidar()"></div>
+      <div class="fc"><label>Comisión gestor <span style="color:var(--green);font-size:10px">(calculado)</span></label><input id="lt-com-gestora" type="number" placeholder="0" readonly style="background:#f0fdf4;font-weight:700;color:var(--green)"></div>
+      <div class="fc"><label>Retribución banco <span style="color:var(--green);font-size:10px">(calculado)</span></label><input id="lt-retrib-banco" type="number" placeholder="0" readonly style="background:#f0fdf4;font-weight:700;color:var(--green)"></div>
+      <div class="fc"><label>Ganancia LUKAYA <span style="color:var(--green);font-size:10px">(calculado)</span></label><input id="lt-ganancia" type="number" placeholder="0" readonly style="background:#f0fdf4;font-weight:700;color:var(--green)"></div>
+      <div class="fc"><label>Pagado</label>
+        <div class="chk-grid" style="grid-template-columns:1fr">
+          <label class="chk-row"><input type="checkbox" id="lt-pagado"> Sí, pagado</label>
+        </div>
+      </div>
+      <div class="fc"><label>Fecha pagado</label><input id="lt-fecha-pagado" type="date"></div>
+      <div class="fc"><label>Pago com. gest.</label>
+        <div class="chk-grid" style="grid-template-columns:1fr">
+          <label class="chk-row"><input type="checkbox" id="lt-pago-gest"> Sí, pagado</label>
+        </div>
+      </div>
+      <div class="fc"><label>Fecha pagado com. gest.</label><input id="lt-fecha-pago-gest" type="date"></div>
+      <div class="fc span2"><label>Observaciones</label><textarea id="lt-obs" style="min-height:60px"></textarea></div>
+    </div>
+    <div class="mfoot">
+      <button class="btn btn-s" onclick="closeLTEdit()">Cancelar</button>
+      <button class="btn btn-p" onclick="saveLTEdit()">💾 Guardar</button>
+    </div>
+  </div>
+</div>
 
 <!-- MODAL EDITAR CONTABILIDAD -->
 <div class="overlay" id="cont-edit-overlay" onclick="if(event.target===this)closeContEdit()" style="z-index:700">
